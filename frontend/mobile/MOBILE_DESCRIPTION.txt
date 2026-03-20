@@ -1,0 +1,116 @@
+HAPPY TAILS MOBILE FRONTEND
+============================
+
+PURPOSE:
+The mobile frontend is the native application that runs on iOS and Android devices,
+providing pet owners with convenient access to their pet's information and services
+on the go.
+
+MAIN RESPONSIBILITIES:
+
+1. USER INTERFACE & DESIGN
+   - Provide an intuitive, mobile-optimized interface
+   - Follow platform-specific design guidelines (iOS HIG, Material Design)
+   - Support responsive layouts for various screen sizes
+   - Ensure fast loading times and smooth animations
+
+2. AUTHENTICATION & SECURITY
+   - User login and registration screens
+   - Secure credential storage on device
+   - Biometric authentication (fingerprint, face recognition)
+   - Session management and auto-logout
+   - Secure API communication (HTTPS/TLS)
+
+3. PET MANAGEMENT
+   - View and manage pet profiles
+   - Add/edit/delete pet information
+   - Upload and manage pet photos
+   - Track pet details and health information
+   - Quick access to critical pet info
+
+4. APPOINTMENTS & SCHEDULING
+   - View upcoming veterinary appointments
+   - Schedule new appointments
+   - Receive appointment reminders
+   - View appointment history
+   - Get directions to veterinary clinics
+
+5. HEALTH TRACKING
+   - Log symptoms and health concerns
+   - View health history and vaccinations
+   - Track medications and treatments
+   - Set reminders for medications
+   - View health recommendations
+
+6. NOTIFICATIONS
+   - Push notifications for appointments
+   - Health alerts and reminders
+   - Message notifications
+   - Customizable notification preferences
+
+7. MESSAGING & COMMUNICATION
+   - Send and receive messages with other users
+   - Chat with veterinary service providers
+   - Real-time notifications for new messages
+   - Message history and search
+
+8. OFFLINE FUNCTIONALITY
+   - Offline access to cached pet data
+   - Sync data when connection is restored
+   - Handle network failures gracefully
+
+9. MEDIA & PHOTOS
+   - Capture photos of pets using device camera
+   - Upload photos to cloud storage
+   - View photo gallery for pets
+   - Compress and optimize photos for bandwidth
+
+10. NAVIGATION & ROUTING
+    - Intuitive bottom/drawer navigation
+    - Deep linking to specific screens
+    - Browser history management
+    - Smooth transitions between screens
+
+11. SETTINGS & PREFERENCES
+    - User profile management
+    - App preferences and settings
+    - Privacy and security settings
+    - Data backup and restore options
+
+12. ERROR HANDLING & FEEDBACK
+    - User-friendly error messages
+    - Retry mechanisms for failed operations
+    - Loading indicators during long operations
+    - Successful operation feedback (toasts, alerts)
+
+13. LOCATION SERVICES
+    - Map integration for finding veterinarians
+    - Pet care facility locator
+    - Location-based reminders
+
+14. PERFORMANCE & EFFICIENCY
+    - Minimal battery consumption
+    - Efficient data usage
+    - Quick app startup time
+    - Smooth 60 FPS animations
+
+PLATFORM SUPPORT:
+   - iOS (minimum version: iOS 12 or higher)
+   - Android (minimum version: Android 6 or higher)
+
+TECHNOLOGIES & FRAMEWORKS:
+   - React Native, Flutter, or native iOS/Android development
+   - Local storage (SQLite, Realm, etc.)
+   - Push notification services
+   - Location services and mapping libraries
+
+KEY SCREENS:
+   - Login/Registration
+   - Pet Dashboard
+   - Pet Profile
+   - Appointments
+   - Health Records
+   - Medications
+   - Messages
+   - Settings
+   - Veterinarian Search/Directory
