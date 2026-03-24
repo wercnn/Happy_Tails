@@ -85,7 +85,7 @@ export default function HappyTailsRegister() {
                     <>
                       <div className="reg-upload-icon">↑</div>
                       <p className="reg-drop-text">
-                        <strong>Drop photo here</strong>
+                        Drop photo here
                       </p>
                       <p className="reg-drop-sub">
                         or{" "}
