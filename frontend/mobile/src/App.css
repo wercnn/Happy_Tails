@@ -182,3 +182,13 @@
     border-right-color: var(--border);
   }
 }
+
+.app-row-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  min-height: 100svh;
+  overflow-x: auto;
+}

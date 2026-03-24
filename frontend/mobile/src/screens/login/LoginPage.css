@@ -1,0 +1,246 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #fff;
+}
+
+/* ── Stage & Frame ── */
+
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 30px 54px rgba(0, 0, 0, 0.38);
+  background: #111;
+}
+
+/* ── Screen ── */
+
+.login-screen {
+  height: 100%;
+  width: 100%;
+  background: #ee8b28;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* ── Brand ── */
+
+.login-brand-area {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 140px 24px 140px 24px;
+}
+
+.login-brand-text {
+  margin: 0;
+  color: #fff;
+  font-family: 'Pacifico', cursive;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  white-space: nowrap;
+  display: inline-block;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  text-align: center;
+}
+
+/* ── Form Panel ── */
+
+.login-form-panel {
+  flex: 1;
+  padding: 8px 22px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-welcome {
+  margin: 0 0 22px;
+  color: #fff;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ── Fields ── */
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.login-label {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.26);
+  transition: box-shadow 0.2s ease;
+}
+
+.login-input:focus {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55), 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Forgot Password ── */
+
+.login-forgot {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 20px;
+  transition: opacity 0.15s ease;
+}
+
+.login-forgot:hover {
+  opacity: 0.8;
+}
+
+/* ── Submit ── */
+
+.login-submit-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.login-submit-button {
+  background: #fff;
+  color: #e88422;
+  border: none;
+  border-radius: 28px;
+  padding: 13px 52px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.login-submit-button:hover,
+.login-submit-button:focus-visible {
+  filter: brightness(0.96);
+  transform: translateY(1px);
+}
+
+/* ── Divider ── */
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.login-divider-text {
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Create Account ── */
+
+.login-create-button {
+  width: 100%;
+  background: transparent;
+  color: #e88422;
+  border: 2.5px solid #fff;
+  border-radius: 6px;
+  padding: 13px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.login-create-button:hover,
+.login-create-button:focus-visible {
+  filter: brightness(0.96);
+  transform: translateY(1px);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 430px) {
+  .mobile-stage {
+    padding: 0;
+  }
+
+  .mobile-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .login-brand-text {
+    font-size: 3.2rem;
+  }
+
+  .login-form-panel {
+    padding: 8px 16px 20px;
+  }
+}

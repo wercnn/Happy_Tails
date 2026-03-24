@@ -58,6 +58,10 @@ body {
   line-height: 1.5;
   font-weight: 400;
   letter-spacing: 0.04rem;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  white-space: nowrap;
+  display: inline-block;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   user-select: none;
   text-align: center;
