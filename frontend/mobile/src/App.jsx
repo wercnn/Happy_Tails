@@ -8,14 +8,23 @@ import OTP from './screens/otp/OTP'
 
 function App() {
   return (
-    <div className="app-row-layout">
-      <WelcomePage />
-      <LoginPage />
-      <RoleSelect />
-      <OwnerRegister />
-      <MinderRegister />
-      <OTP />
+    <div className="app-container">
+      <div className="app-row-layout">
+        {/* Authentication Screens */}
+        <WelcomePage />
+        <LoginPage />
+        <RoleSelect />
+        <OwnerRegister />
+        <MinderRegister />
+        <OTP />
+      </div>
+      <div className="app-row-layout">
+        {/* Pet Owner Screens */}
+        
+      </div>
     </div>
+
+    
   )
 }
 
