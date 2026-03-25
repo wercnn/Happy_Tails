@@ -4,6 +4,7 @@ import LoginPage from './screens/login/LoginPage'
 import RoleSelect from './screens/roleSelect/RoleSelect'
 import OwnerRegister from './screens/ownerRegistration/OwnerRegister'
 import MinderRegister from './screens/minderRegistration/MinderRegister'
+import OTP from './screens/otp/OTP'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <RoleSelect />
       <OwnerRegister />
       <MinderRegister />
+      <OTP />
     </div>
   )
 }
