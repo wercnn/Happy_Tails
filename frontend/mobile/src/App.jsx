@@ -7,6 +7,7 @@ import MinderRegister from './screens/Auth/minderRegistration/MinderRegister'
 import OTP from './screens/Auth/otp/OTP'
 import OwnwerHome from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
 import MyPets from './screens/Pet Owner - Pets/myPets/MyPets'
+import CreatePet from './screens/Pet Owner - Pets/createPet/CreatePet'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         {/* Pet Owner Screens */}
         <OwnwerHome />
         <MyPets />
+        <CreatePet />
       </div>
     </div>
 
