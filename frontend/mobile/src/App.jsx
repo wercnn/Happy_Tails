@@ -5,6 +5,7 @@ import RoleSelect from './screens/Auth/roleSelect/RoleSelect'
 import OwnerRegister from './screens/Auth/ownerRegistration/OwnerRegister'
 import MinderRegister from './screens/Auth/minderRegistration/MinderRegister'
 import OTP from './screens/Auth/otp/OTP'
+import OwnwerHome from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
       </div>
       <div className="app-row-layout">
         {/* Pet Owner Screens */}
-        
+        <OwnwerHome />
       </div>
     </div>
 
