@@ -1,0 +1,206 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.mypets-screen {
+  height: 100%;
+  width: 100%;
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.mypets-header {
+  flex-shrink: 0;
+  background: #ee8b28;
+  padding: 20px 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mypets-back {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.mypets-back:hover { opacity: 0.8; }
+
+.mypets-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* ── Scroll ── */
+.mypets-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 20px 16px 16px;
+}
+.mypets-scroll::-webkit-scrollbar { display: none; }
+
+.mypets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Pet Cards ── */
+.mypets-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mypets-card-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mypets-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #ee8b28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.mypets-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mypets-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.mypets-meta {
+  font-size: 0.87rem;
+  color: #888;
+}
+
+.mypets-edit-btn {
+  width: 55%;
+  background: #ee8b28;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.12s;
+}
+.mypets-edit-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.mypets-edit-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Add New Pet ── */
+.mypets-add-btn {
+  width: 100%;
+  background: #ee8b28;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.32);
+  transition: filter 0.15s, transform 0.12s;
+}
+.mypets-add-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.mypets-add-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Bottom Nav ── */
+.mypets-nav {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: stretch;
+  padding: 6px 0 10px;
+}
+
+.mypets-nav-item {
+  flex: 1;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px 2px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mypets-nav-item:hover { opacity: 0.75; }
+
+.mypets-nav-emoji { font-size: 1.3rem; line-height: 1; }
+
+.mypets-nav-label {
+  font-size: 0.67rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.mypets-nav-item--active .mypets-nav-label { color: #ee8b28; }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .mypets-scroll { padding: 16px 12px 12px; }
+}

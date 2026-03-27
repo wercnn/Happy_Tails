@@ -6,6 +6,7 @@ import OwnerRegister from './screens/Auth/ownerRegistration/OwnerRegister'
 import MinderRegister from './screens/Auth/minderRegistration/MinderRegister'
 import OTP from './screens/Auth/otp/OTP'
 import OwnwerHome from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
+import MyPets from './screens/Pet Owner - Pets/myPets/MyPets'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
       <div className="app-row-layout">
         {/* Pet Owner Screens */}
         <OwnwerHome />
+        <MyPets />
       </div>
     </div>
 
