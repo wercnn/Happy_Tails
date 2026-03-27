@@ -1,10 +1,10 @@
 import './App.css'
-import WelcomePage from './screens/welcome/WelcomePage'
-import LoginPage from './screens/login/LoginPage'
-import RoleSelect from './screens/roleSelect/RoleSelect'
-import OwnerRegister from './screens/ownerRegistration/OwnerRegister'
-import MinderRegister from './screens/minderRegistration/MinderRegister'
-import OTP from './screens/otp/OTP'
+import WelcomePage from './screens/Auth/welcome/WelcomePage'
+import LoginPage from './screens/Auth/login/LoginPage'
+import RoleSelect from './screens/Auth/roleSelect/RoleSelect'
+import OwnerRegister from './screens/Auth/ownerRegistration/OwnerRegister'
+import MinderRegister from './screens/Auth/minderRegistration/MinderRegister'
+import OTP from './screens/Auth/otp/OTP'
 
 function App() {
   return (
