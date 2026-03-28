@@ -8,6 +8,7 @@ import OTP from './screens/Auth/otp/OTP'
 import OwnwerHome from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
 import MyPets from './screens/Pet Owner - Pets/myPets/MyPets'
 import CreatePet from './screens/Pet Owner - Pets/createPet/CreatePet'
+import PetDetail from './screens/Pet Owner - Pets/petDetail/PetDetail'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <OwnwerHome />
         <MyPets />
         <CreatePet />
+        <PetDetail />
       </div>
     </div>
 
