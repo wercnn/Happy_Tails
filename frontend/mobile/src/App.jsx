@@ -9,6 +9,7 @@ import OwnwerHome from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
 import MyPets from './screens/Pet Owner - Pets/myPets/MyPets'
 import CreatePet from './screens/Pet Owner - Pets/createPet/CreatePet'
 import PetDetail from './screens/Pet Owner - Pets/petDetail/PetDetail'
+import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <MyPets />
         <CreatePet />
         <PetDetail />
+        <AddHealth />
       </div>
     </div>
 
