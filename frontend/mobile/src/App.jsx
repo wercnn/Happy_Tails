@@ -15,6 +15,7 @@ import Dashboard from './screens/Pet Minder/dashboard/Dashboard'
 import Services from './screens/Pet Minder/services/Service'
 import Availability from './screens/Pet Minder/availability/Availability'
 import Requests from './screens/Pet Minder/requests/Requests'
+import Accept from './screens/Pet Minder/accept/Accept'
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
         <Services />
         <Availability />
         <Requests />
+        <Accept />
       </div>
     </div>
 
