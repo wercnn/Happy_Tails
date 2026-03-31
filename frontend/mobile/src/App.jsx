@@ -13,6 +13,8 @@ import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import UploadPhoto from './screens/Pet Owner - Pets/uploadPhoto/UploadPhoto'
 import Dashboard from './screens/Pet Minder/dashboard/Dashboard'
 import Services from './screens/Pet Minder/services/Service'
+import Availability from './screens/Pet Minder/availability/Availability'
+import Requests from './screens/Pet Minder/requests/Requests'
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
         {/* Pet Minder Screens */}
         <Dashboard />
         <Services />
+        <Availability />
+        <Requests />
       </div>
     </div>
 
