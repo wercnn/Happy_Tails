@@ -12,6 +12,7 @@ import PetDetail from './screens/Pet Owner - Pets/petDetail/PetDetail'
 import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import UploadPhoto from './screens/Pet Owner - Pets/uploadPhoto/UploadPhoto'
 import Dashboard from './screens/Pet Minder/dashboard/Dashboard'
+import Services from './screens/Pet Minder/services/Service'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
       <div className="app-row-layout">
         {/* Pet Minder Screens */}
         <Dashboard />
+        <Services />
       </div>
     </div>
 
