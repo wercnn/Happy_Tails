@@ -30,6 +30,8 @@ import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
 import History from './screens/Booking Flow/history/History'
 import BookingDetails from './screens/Booking Flow/bookingDetails/BookingDetails'
 import Cancel from './screens/Booking Flow/cancel/Cancel'
+import Report from './screens/Emergency/ReportIncident'
+import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted'
 
 function App() {
   return (
@@ -83,6 +85,11 @@ function App() {
         <History />
         <BookingDetails />
         <Cancel />
+      </div>
+      <div className="app-row-layout">
+        {/* Emergency */}
+        <Report />
+        <ReportSubmitted />
       </div>
     </div>
 
