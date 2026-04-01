@@ -18,6 +18,9 @@ import Requests from './screens/Pet Minder/requests/Requests'
 import Accept from './screens/Pet Minder/accept/Accept'
 import Notifications from './screens/Notifications & Profile/notifications/Notifications'
 import ProfileSettings from './screens/Notifications & Profile/profileSettings/ProfileSettings'
+import SearchMinders from './screens/Search & Discovery/searchMinders/SearchMinders'
+import Filters from './screens/Search & Discovery/filters/Filters'
+import MinderProfile from './screens/Search & Discovery/minderProfile/MinderProfile'
 
 function App() {
   return (
@@ -52,6 +55,12 @@ function App() {
         {/* Notifications & Profile */}
         <Notifications />
         <ProfileSettings />
+      </div>
+      <div className="app-row-layout">
+        {/* Search & Discovery */}
+        <SearchMinders />
+        <Filters />
+        <MinderProfile />
       </div>
     </div>
 
