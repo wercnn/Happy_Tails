@@ -186,11 +186,17 @@
 .app-row-layout {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 20px;
   width: 100%;
   min-height: 100svh;
   overflow-x: auto;
+}
+
+.app-row-layout > * {
+  flex: 0 0 calc((100% - 100px) / 6);
+  max-width: calc((100% - 100px) / 6);
 }
 .app-container {
   display: flex;

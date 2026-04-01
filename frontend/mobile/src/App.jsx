@@ -21,6 +21,15 @@ import ProfileSettings from './screens/Notifications & Profile/profileSettings/P
 import SearchMinders from './screens/Search & Discovery/searchMinders/SearchMinders'
 import Filters from './screens/Search & Discovery/filters/Filters'
 import MinderProfile from './screens/Search & Discovery/minderProfile/MinderProfile'
+import SelectService from './screens/Booking Flow/selectService/SelectService'
+import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
+import AvailabilityCalendar from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
+import Summary from './screens/Booking Flow/summary/Summary'
+import Confirmed from './screens/Booking Flow/confirmed/Confirmed'
+import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
+import History from './screens/Booking Flow/history/History'
+import BookingDetails from './screens/Booking Flow/bookingDetails/BookingDetails'
+import Cancel from './screens/Booking Flow/cancel/Cancel'
 
 function App() {
   return (
@@ -61,6 +70,19 @@ function App() {
         <SearchMinders />
         <Filters />
         <MinderProfile />
+      </div>
+      <div className="app-row-layout">
+        {/* Booking flow */}
+        <SelectService />
+        <SelectDates />
+        <AvailabilityCalendar />
+        <Summary /> 
+        {/* The summary is showing what it would look like with a single-day booking and a multi-day booking. */}
+        <Confirmed />
+        <RequestSent />
+        <History />
+        <BookingDetails />
+        <Cancel />
       </div>
     </div>
 
