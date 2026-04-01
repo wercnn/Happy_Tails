@@ -16,7 +16,8 @@ import Services from './screens/Pet Minder/services/Service'
 import Availability from './screens/Pet Minder/availability/Availability'
 import Requests from './screens/Pet Minder/requests/Requests'
 import Accept from './screens/Pet Minder/accept/Accept'
-import Notifications from './screens/Notifications & Profile/Notifications'
+import Notifications from './screens/Notifications & Profile/notifications/Notifications'
+import ProfileSettings from './screens/Notifications & Profile/profileSettings/ProfileSettings'
 
 function App() {
   return (
@@ -50,7 +51,7 @@ function App() {
       <div className="app-row-layout">
         {/* Notifications & Profile */}
         <Notifications />
-        
+        <ProfileSettings />
       </div>
     </div>
 
