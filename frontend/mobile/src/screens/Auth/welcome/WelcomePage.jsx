@@ -1,6 +1,9 @@
-import './WelcomePage.css';
+import './WelcomePage.css'
+import { useNavigate } from 'react-router-dom'
 
 export default function HappyTailsScreen() {
+  const navigate = useNavigate()
+
   return (
     <main className="welcome-screen">
       <section className="welcome-brand-area">
@@ -8,7 +11,10 @@ export default function HappyTailsScreen() {
       </section>
 
       <section className="welcome-actions-panel">
-        <button className="welcome-action-button" onClick={() => alert('Navigate to Login')}>
+        <button
+          className="welcome-action-button"
+          onClick={() => navigate('/login')}
+        >
           I HAVE A HAPPY TAIL ACCOUNT
         </button>
 
@@ -18,10 +24,13 @@ export default function HappyTailsScreen() {
           <span className="welcome-divider-line" />
         </div>
 
-        <button className="welcome-action-button" onClick={() => alert('Navigate to Register')}>
+        <button
+          className="welcome-action-button"
+          onClick={() => alert('Navigate to Register')}
+        >
           CREATE YOUR HAPPY TAIL ACCOUNT
         </button>
       </section>
     </main>
-  );
+  )
 }

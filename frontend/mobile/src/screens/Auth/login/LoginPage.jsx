@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./LoginPage.css";
 
-export default function HappyTailsLogin() {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 

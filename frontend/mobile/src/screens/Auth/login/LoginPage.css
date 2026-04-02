@@ -22,7 +22,7 @@ body {
 .login-screen {
   min-height: 100svh;
   width: 100%;
-  background: #ee8b28;
+  background: #f28c28;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -139,9 +139,9 @@ body {
 
 .login-submit-button {
   background: #fff;
-  color: #e88422;
+  color: #f28c28;
   border: none;
-  border-radius: 28px;
+  border-radius: 14px;
   padding: 13px 52px;
   font-size: 0.85rem;
   font-weight: 700;
@@ -185,7 +185,7 @@ body {
 .login-create-button {
   width: 100%;
   background: transparent;
-  color: #e88422;
+  color: #f28c28;
   border: 2.5px solid #fff;
   border-radius: 6px;
   padding: 13px 10px;
