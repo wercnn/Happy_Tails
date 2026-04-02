@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./RoleSelect.css";
+import { useNavigate } from 'react-router-dom'
 
 const roles = [
   {
@@ -17,6 +18,7 @@ const roles = [
 ];
 
 export default function HappyTailsRoleSelect() {
+  const navigate = useNavigate()
   const [selected, setSelected] = useState(null);
 
   return (
@@ -53,7 +55,7 @@ export default function HappyTailsRoleSelect() {
 
           {/* Footer */}
           <footer className="role-footer">
-            <button className="role-back-button" onClick={() => alert("Navigate Back")}>
+            <button className="role-back-button" onClick={() => navigate('/')}>
               ← Back
             </button>
           </footer>

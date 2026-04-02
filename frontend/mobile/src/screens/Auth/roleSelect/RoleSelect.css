@@ -157,18 +157,20 @@ body {
 
 .role-back-button {
   width: 100%;
-  background: #ee8b28;
+  background: transparent;
   color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 17px 10px;
-  font-size: 1rem;
+  border: 2.5px solid #f28c28;
+  border-radius: 6px;
+  padding: 13px 10px;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.4);
-  transition: filter 0.15s ease, transform 0.15s ease;
+  background: #f28c28;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-bottom: 17px;
 }
 
 .role-back-button:hover,

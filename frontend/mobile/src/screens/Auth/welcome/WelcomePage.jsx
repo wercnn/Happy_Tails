@@ -26,7 +26,7 @@ export default function WelcomePage() {
 
         <button
           className="welcome-action-button"
-          onClick={() => alert('Navigate to Register')}
+          onClick={() => navigate('/register')}
         >
           CREATE YOUR HAPPY TAIL ACCOUNT
         </button>
