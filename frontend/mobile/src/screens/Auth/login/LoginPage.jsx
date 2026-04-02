@@ -1,7 +1,9 @@
 import { useState } from "react";
 import "./LoginPage.css";
+import { useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -62,7 +64,7 @@ export default function LoginPage() {
 
         <button
           className="login-create-button"
-          onClick={() => alert("Navigate to Register")}
+          onClick={() => navigate('/register')}
         >
           CREATE YOUR HAPPY TAIL ACCOUNT
         </button>
