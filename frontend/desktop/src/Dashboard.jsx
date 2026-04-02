@@ -12,7 +12,7 @@ import IncidentsPage from "./dashboard/pages/IncidentsPage.jsx";
 import ReportsPage from "./dashboard/pages/ReportsPage.jsx";
 import SettingsPage from "./dashboard/pages/SettingsPage.jsx";
 
-export default function Dashboard() {
+export default function Dashboard({ user, onLogout }) {
   const [page, setPage] = useState("overview");
   const [sideCollapsed, setSideCollapsed] = useState(false);
 
@@ -104,13 +104,22 @@ export default function Dashboard() {
           <div style={{ padding: "12px 10px", borderTop: `1px solid rgba(255,255,255,0.1)` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.orangeLight, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: C.orange, flexShrink: 0 }}>
-                CS
+                {user ? user.name.slice(0, 2).toUpperCase() : "CS"}
               </div>
               {!sideCollapsed && (
-                <div style={{ overflow: "hidden" }}>
-                  <div style={{ color: C.white, fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Support Team</div>
-                  <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>Customer Support</div>
+                <div style={{ overflow: "hidden", flex: 1 }}>
+                  <div style={{ color: C.white, fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.name ?? "Support Team"}</div>
+                  <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>{user?.role ?? "Customer Support"}</div>
                 </div>
+              )}
+              {!sideCollapsed && onLogout && (
+                <button
+                  onClick={onLogout}
+                  title="Sign out"
+                  style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 16, cursor: "pointer", padding: 4, flexShrink: 0, lineHeight: 1 }}
+                >
+                  ↩
+                </button>
               )}
             </div>
           </div>
@@ -143,9 +152,9 @@ export default function Dashboard() {
                 <div style={{ position: "absolute", top: 6, right: 6, width: 10, height: 10, borderRadius: "50%", background: C.red, border: `2px solid ${C.white}` }} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Avatar name="CS" size={34} color={C.orange} />
+                <Avatar name={user ? user.name.slice(0, 2).toUpperCase() : "CS"} size={34} color={C.orange} />
                 <div>
-                  <div style={{ fontWeight: 700, color: C.navy, fontSize: 13 }}>Support Team</div>
+                  <div style={{ fontWeight: 700, color: C.navy, fontSize: 13 }}>{user?.name ?? "Support Team"}</div>
                   <div style={{ fontSize: 11, color: C.mid }}>Online</div>
                 </div>
               </div>
