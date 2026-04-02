@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./RoleSelect.css";
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from "react-router-dom";
 
 const roles = [
   {
@@ -17,20 +17,28 @@ const roles = [
   },
 ];
 
-export default function HappyTailsRoleSelect() {
-  const navigate = useNavigate()
+export default function RoleSelect() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState(null);
+
+  const handleRoleSelect = (roleId) => {
+    setSelected(roleId);
+
+    if (roleId === "owner") {
+      navigate("/ownerReg");
+    } else if (roleId === "minder") {
+      navigate("/minderReg");
+    }
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <main className="role-screen">
-          {/* Header */}
           <header className="role-header">
             <h1 className="role-brand-text">Happy Tails</h1>
           </header>
 
-          {/* Body */}
           <section className="role-body">
             <h2 className="role-prompt">I am a...</h2>
 
@@ -39,7 +47,7 @@ export default function HappyTailsRoleSelect() {
                 <button
                   key={role.id}
                   className={`role-card${selected === role.id ? " role-card--selected" : ""}`}
-                  onClick={() => setSelected(role.id)}
+                  onClick={() => handleRoleSelect(role.id)}
                 >
                   <span className="role-card-emoji" aria-hidden="true">
                     {role.emoji}
@@ -53,9 +61,8 @@ export default function HappyTailsRoleSelect() {
             </div>
           </section>
 
-          {/* Footer */}
           <footer className="role-footer">
-            <button className="role-back-button" onClick={() => navigate('/')}>
+            <button className="role-back-button" onClick={() => navigate("/")}>
               ← Back
             </button>
           </footer>
