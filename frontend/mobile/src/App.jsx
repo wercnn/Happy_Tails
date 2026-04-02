@@ -35,9 +35,17 @@ import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted
 
 function App() {
   return (
+
+    <WelcomePage />
+
+
+
+
+    // Below is for testing purposes only - to show all screens in one place.
+    /*
     <div className="app-container">
       <div className="app-row-layout">
-        {/* Authentication Screens */}
+        {/* Authentication Screens 
         <WelcomePage />
         <LoginPage />
         <RoleSelect />
@@ -46,7 +54,7 @@ function App() {
         <OTP />
       </div>
       <div className="app-row-layout">
-        {/* Pet Owner Screens */}
+        {/* Pet Owner Screens 
         <OwnwerHome />
         <MyPets />
         <CreatePet />
@@ -55,7 +63,7 @@ function App() {
         <UploadPhoto />
       </div>
       <div className="app-row-layout">
-        {/* Pet Minder Screens */}
+        {/* Pet Minder Screens 
         <Dashboard />
         <Services />
         <Availability />
@@ -63,23 +71,23 @@ function App() {
         <Accept />
       </div>
       <div className="app-row-layout">
-        {/* Notifications & Profile */}
+        {/* Notifications & Profile 
         <Notifications />
         <ProfileSettings />
       </div>
       <div className="app-row-layout">
-        {/* Search & Discovery */}
+        {/* Search & Discovery 
         <SearchMinders />
         <Filters />
         <MinderProfile />
       </div>
       <div className="app-row-layout">
-        {/* Booking flow */}
+        {/* Booking flow 
         <SelectService />
         <SelectDates />
         <AvailabilityCalendar />
         <Summary /> 
-        {/* The summary is showing what it would look like with a single-day booking and a multi-day booking. */}
+        {/* The summary is showing what it would look like with a single-day booking and a multi-day booking. 
         <Confirmed />
         <RequestSent />
         <History />
@@ -87,11 +95,11 @@ function App() {
         <Cancel />
       </div>
       <div className="app-row-layout">
-        {/* Emergency */}
+        {/* Emergency 
         <Report />
         <ReportSubmitted />
       </div>
-    </div>
+    </div> */
 
     
   )
