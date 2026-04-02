@@ -34,7 +34,7 @@ export default function Dashboard({ user, onLogout }) {
       <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
 
-      <div style={{ display: "flex", minHeight: "100vh", background: C.light, fontFamily: "'Nunito', sans-serif", color: C.dark }}>
+      <div style={{ display: "flex", height: "70vh", overflow: "hidden", background: C.light, fontFamily: "'Nunito', sans-serif", color: C.dark, zoom: 1.6 }}>
         {/* ── SIDEBAR ── */}
         <aside
           style={{
@@ -67,7 +67,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* Nav */}
-          <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
+          <nav style={{ flex: "1", padding: "12px 8px", overflowY: "auto" }}>
             {NAV.map((n) => (
               <button
                 key={n.key}
@@ -126,7 +126,7 @@ export default function Dashboard({ user, onLogout }) {
         </aside>
 
         {/* ── MAIN ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
           {/* Top bar */}
           <header
             style={{
@@ -162,7 +162,7 @@ export default function Dashboard({ user, onLogout }) {
           </header>
 
           {/* Page content */}
-          <main style={{ flex: 1, overflowY: "auto", padding: "28px" }}>
+          <main style={{ flex: 1, overflowY: "auto", padding: "48px 56px", minHeight: 0 }}>
             <PageComponent />
           </main>
         </div>
