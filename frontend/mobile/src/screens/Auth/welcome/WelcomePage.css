@@ -59,17 +59,23 @@ body {
 
 .welcome-action-button {
   width: 100%;
-  border: none;
-  border-radius: 7px;
-  background: #fff;
+  background: transparent;
   color: #f28c28;
+  border: 2.5px solid #fff;
+  border-radius: 6px;
   padding: 13px 10px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.02rem;
+  font-family: inherit;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  box-shadow: 0 4px 7px rgba(0, 0, 0, 0.3);
+  background: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.welcome-login-button {
+  margin-bottom: 15px;
 }
 
 .welcome-action-button:hover,
@@ -83,20 +89,19 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0 16px;
+  margin-bottom: 16px;
 }
 
 .welcome-divider-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .welcome-divider-text {
-  font-size: 0.82rem;
   color: #fff;
-  font-style: normal;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -106,7 +111,7 @@ body {
   }
 
   .welcome-action-button {
-    font-size: 0.74rem;
+    font-size: 0.85rem;
   }
 
   .welcome-divider-text {
