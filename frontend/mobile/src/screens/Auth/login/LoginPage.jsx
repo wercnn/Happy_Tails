@@ -1,11 +1,35 @@
 import { useState } from "react";
 import "./LoginPage.css";
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = () => {
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required.";
+    } else if (!emailRegex.test(email.trim())) {
+      newErrors.email = "Enter a valid email address.";
+    }
+
+    if (!password.trim()) {
+      newErrors.password = "Password is required.";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    alert("Logging in…");
+  };
 
   return (
     <main className="login-screen">
@@ -20,24 +44,32 @@ export default function LoginPage() {
           <label className="login-label" htmlFor="email">Email</label>
           <input
             id="email"
-            className="login-input"
+            className={`login-input ${errors.email ? "login-input--error" : ""}`}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors((prev) => ({ ...prev, email: "" }));
+            }}
             autoComplete="email"
           />
+          {errors.email && <p className="login-error-text">{errors.email}</p>}
         </div>
 
         <div className="login-field">
           <label className="login-label" htmlFor="password">Password</label>
           <input
             id="password"
-            className="login-input"
+            className={`login-input ${errors.password ? "login-input--error" : ""}`}
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors((prev) => ({ ...prev, password: "" }));
+            }}
             autoComplete="current-password"
           />
+          {errors.password && <p className="login-error-text">{errors.password}</p>}
         </div>
 
         <button
@@ -50,7 +82,7 @@ export default function LoginPage() {
         <div className="login-submit-row">
           <button
             className="login-submit-button"
-            onClick={() => alert("Logging in…")}
+            onClick={handleSubmit}
           >
             LOG IN
           </button>
