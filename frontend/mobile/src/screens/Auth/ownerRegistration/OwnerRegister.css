@@ -297,3 +297,21 @@ body {
     padding: 20px 16px 28px;
   }
 }
+
+.reg-input--error {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
+}
+
+.reg-input--error:focus {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.18);
+}
+
+.reg-error-text {
+  margin: 2px 0 0;
+  color: #d93025;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
