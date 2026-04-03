@@ -66,6 +66,224 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   gap: 14px;
 }
 
+/* ── Filter Dropdown ── */
+.br-filter-dropdown {
+  position: relative;
+}
+
+.br-filter-toggle {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  color: #1a1a1a;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s, color 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+
+.br-filter-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.br-filter-toggle:active {
+  transform: translateY(1px);
+}
+
+.br-filter-toggle--open,
+.br-filter-toggle--active {
+  background: #fff7ef;
+  color: #c96f16;
+  box-shadow: 0 0 0 2px rgba(242, 140, 40, 0.14);
+}
+
+.br-filter-toggle-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.br-filter-toggle-arrow {
+  font-size: 1rem;
+  line-height: 1;
+  color: inherit;
+}
+
+/* ── Filters Panel ── */
+.br-filters-panel {
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.br-filters-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.br-filters-title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.br-clear-filters-btn {
+  border: none;
+  background: #f4f4f5;
+  color: #777;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.12s, opacity 0.15s;
+}
+
+.br-clear-filters-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.br-clear-filters-btn--active {
+  background: #fde8cc;
+  color: #d97706;
+}
+
+.br-clear-filters-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.br-clear-filters-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* ── Custom Filter Dropdowns ── */
+.br-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.br-custom-filter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.br-custom-filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #666;
+  padding-left: 2px;
+}
+
+.br-custom-filter-trigger {
+  width: 100%;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s, transform 0.12s;
+}
+
+.br-custom-filter-trigger:hover {
+  transform: translateY(-1px);
+}
+
+.br-custom-filter-trigger:active {
+  transform: translateY(1px);
+}
+
+.br-custom-filter--open .br-custom-filter-trigger,
+.br-custom-filter--active .br-custom-filter-trigger {
+  border-color: #f28c28;
+  background: #fff7ef;
+  color: #c96f16;
+  box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.12);
+}
+
+.br-custom-filter-value {
+  text-align: left;
+}
+
+.br-custom-filter-chevron {
+  font-size: 1rem;
+  line-height: 1;
+  color: inherit;
+  margin-left: 12px;
+}
+
+.br-custom-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #f3dfc9;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.br-custom-filter-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #333;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.br-custom-filter-option:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.br-custom-filter-option--selected {
+  background: #fde8cc;
+  color: #d97706;
+}
+
+.br-custom-filter-option--selected:hover {
+  background: #fde8cc;
+  color: #d97706;
+}
 /* ── Cards ── */
 .br-card {
   background: #fff;
@@ -231,6 +449,23 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
-  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+
+  .mobile-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .br-body { padding: 14px 12px 20px; }
+
+  .br-filters-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .br-clear-filters-btn {
+    width: 100%;
+  }
 }
