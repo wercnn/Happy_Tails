@@ -56,7 +56,6 @@ export default function HappyTailsMyServices() {
       <div className="mobile-frame">
         <div className="ms-screen">
           <header className="ms-header">
-            <button className="ms-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="ms-title">My Services</h1>
           </header>
 

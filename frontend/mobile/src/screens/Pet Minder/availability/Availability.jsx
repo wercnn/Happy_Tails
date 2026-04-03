@@ -74,7 +74,6 @@ export default function HappyTailsAvailability() {
       <div className="mobile-frame">
         <div className="av-screen">
           <header className="av-header">
-            <button className="av-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="av-title">Set Availability</h1>
           </header>
 

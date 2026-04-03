@@ -95,7 +95,6 @@ export default function HappyTailsBookingRequests() {
       <div className="mobile-frame">
         <div className="br-screen">
           <header className="br-header">
-            <button className="br-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="br-title">Booking Requests</h1>
           </header>
 
