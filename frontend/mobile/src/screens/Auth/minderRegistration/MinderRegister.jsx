@@ -86,7 +86,7 @@ export default function HappyTailsMinderRegister() {
       return;
     }
 
-    alert("Submitting for verification…");
+    navigate("/otp");
   };
 
   const basicFields = [

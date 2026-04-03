@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./OTP.css";
 
 const LENGTH = 6;
 
 export default function HappyTailsOTP() {
+  const navigate = useNavigate();
   const [digits, setDigits] = useState(Array(LENGTH).fill(""));
   const inputs = useRef([]);
 
@@ -65,7 +67,7 @@ export default function HappyTailsOTP() {
 
             <button
               className="otp-submit"
-              onClick={() => alert("Verifying…")}
+              onClick={() => navigate("/identity")}
             >
               Verify &amp; Continue →
             </button>
