@@ -11,6 +11,9 @@ import OTP from './screens/Auth/otp/OTP'
 import Identity from './screens/Auth/identity/identity'
 
 import MindDash from './screens/Pet Minder/dashboard/Dashboard'
+import MindService from './screens/Pet Minder/services/Service'
+import MindAvailability from './screens/Pet Minder/availability/Availability'
+import MindRequests from './screens/Pet Minder/requests/Requests'
 
 function App() {
   return (
@@ -24,6 +27,9 @@ function App() {
       <Route path="/identity" element={<Identity />} />
 
       <Route path="/mindDash" element={<MindDash />} />
+      <Route path="/mindService" element={<MindService />} />
+      <Route path="/mindAvailability" element={<MindAvailability />} />
+      <Route path="/mindRequests" element={<MindRequests />} />
     </Routes>
   )
 }

@@ -35,7 +35,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Orange Header ── */
 .md-header {
   flex-shrink: 0;
-  background: #ee8b28;
+  background: #f28c28;
   padding: 22px 20px 20px;
   display: flex;
   align-items: center;
@@ -142,7 +142,12 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Sections ── */
-.md-section { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.md-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
 
 .md-section-title {
   margin: 0;
@@ -150,6 +155,49 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-weight: 800;
   color: #1a1a1a;
   text-align: center;
+}
+
+/* ── Schedule Section Header Toggle ── */
+.md-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 28px;
+}
+
+.md-section-header .md-section-title {
+  flex: 1;
+  text-align: center;
+}
+
+.md-section-toggle {
+  position: absolute;
+  border: none;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.md-section-toggle--right {
+  right: 0;
+}
+
+.md-section-toggle--left {
+  left: 0;
+}
+
+.md-section-toggle:hover {
+  opacity: 0.8;
+}
+
+.md-section-toggle--active {
+  transform: rotate(180deg);
 }
 
 /* ── Request Cards ── */
@@ -192,7 +240,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #ee8b28;
+  background: #f28c28;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,6 +307,29 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   margin: 0;
 }
 
+/* ── Schedule Slider ── */
+.md-schedule-slider {
+  width: 100%;
+  overflow: hidden;
+}
+
+.md-schedule-track {
+  display: flex;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 0.35s ease;
+}
+
+.md-schedule-track--upcoming {
+  transform: translateX(-50%);
+}
+
+.md-schedule-panel {
+  width: 50%;
+  flex-shrink: 0;
+  padding-right: 2px;
+}
+
 /* ── Schedule Cards ── */
 .md-schedule-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -274,7 +345,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .md-schedule-time {
   background: #fde8cc;
-  color: #e07b10;
+  color: #f28c28;
   font-size: 0.78rem;
   font-weight: 800;
   border-radius: 8px;
@@ -334,7 +405,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   white-space: nowrap;
 }
 
-.md-nav-item--active .md-nav-label { color: #ee8b28; }
+.md-nav-item--active .md-nav-label { color: #f28c28; }
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
