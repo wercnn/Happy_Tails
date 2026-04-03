@@ -73,7 +73,7 @@ export default function HappyTailsOTP() {
             <p className="otp-resend-row">
               Didn't receive code?{" "}
               <button className="otp-resend-link" onClick={() => alert("OTP resent!")}>
-                Resend OTP
+                Resend Code
               </button>
             </p>
           </section>

@@ -5,6 +5,7 @@ import LoginPage from './screens/Auth/login/LoginPage'
 import RoleSelect from './screens/Auth/roleSelect/RoleSelect'
 import OwnerRegistration from './screens/Auth/ownerRegistration/OwnerRegister'
 import MinderRegistration from './screens/Auth/minderRegistration/MinderRegister'
+import OTP from './screens/Auth/otp/OTP'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/register" element={<RoleSelect />} />
       <Route path="/ownerReg" element={<OwnerRegistration />} />
       <Route path="/minderReg" element={<MinderRegistration />} />
+      <Route path="/otp" element={<OTP />} />
     </Routes>
   )
 }

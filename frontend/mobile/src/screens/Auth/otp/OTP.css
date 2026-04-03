@@ -35,7 +35,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 /* ── Orange Header ── */
 .otp-header {
-  background: #ee8b28;
+  background: #f28c28;
   padding: 36px 28px 32px;
   display: flex;
   flex-direction: column;
@@ -108,35 +108,34 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: #222;
   text-align: center;
   outline: none;
-  caret-color: #ee8b28;
+  caret-color: #f28c28;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .otp-box:focus {
-  border-color: #ee8b28;
+  border-color: #f28c28;
   box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.18);
 }
 
 .otp-box--filled {
-  border-color: #ee8b28;
+  border-color: #f28c28;
 }
 
 /* ── Submit ── */
 .otp-submit {
   width: 100%;
-  background: #ee8b28;
+  background: transparent;
   color: #fff;
-  border: none;
-  border-radius: 14px;
+  border: 2.5px solid #f28c28;
+  border-radius: 6px;
   padding: 17px 10px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(238, 139, 40, 0.38);
-  margin-bottom: 20px;
-  transition: filter 0.15s ease, transform 0.15s ease;
+  letter-spacing: 0.06em;
+  background: #f28c28;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .otp-submit:hover,
@@ -152,7 +151,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 /* ── Resend ── */
 .otp-resend-row {
-  margin: 0;
+  margin-top: 20px;
   font-size: 0.85rem;
   color: #999;
   text-align: center;

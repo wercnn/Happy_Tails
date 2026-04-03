@@ -75,7 +75,7 @@ export default function HappyTailsRegister() {
       return;
     }
 
-    alert("Creating account…");
+    navigate("/otp");
   };
 
   const fields = [
