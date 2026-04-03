@@ -48,7 +48,7 @@ body {
 /* ── Header ── */
 
 .role-header {
-  background: #ee8b28;
+  background: #f28c28;
   padding: 64px 24px 64px 24px;
   display: flex;
   align-items: center;
@@ -166,7 +166,6 @@ body {
   font-weight: 700;
   font-family: inherit;
   letter-spacing: 0.06em;
-  cursor: pointer;
   background: #f28c28;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease, filter 0.15s ease;

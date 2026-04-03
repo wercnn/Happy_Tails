@@ -37,7 +37,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Sticky Header ── */
 .mreg-header {
   flex-shrink: 0;
-  background: #ee8b28;
+  background: #f28c28;
   padding: 18px 20px;
   display: flex;
   align-items: center;
@@ -124,7 +124,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .mreg-input::placeholder { color: #aaa; }
 .mreg-input:focus {
-  border-color: #ee8b28;
+  border-color: #f28c28;
   box-shadow: 0 0 0 3px rgba(238,139,40,0.15);
 }
 
@@ -145,7 +145,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .mreg-textarea::placeholder { color: #aaa; }
 .mreg-textarea:focus {
-  border-color: #ee8b28;
+  border-color: #f28c28;
   box-shadow: 0 0 0 3px rgba(238,139,40,0.15);
 }
 
@@ -201,7 +201,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .mreg-chip {
   background: #fde8cc;
-  color: #e07b10;
+  color: #f28c28;
   border: none;
   border-radius: 999px;
   padding: 8px 18px;
@@ -213,7 +213,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .mreg-chip:hover { background: #fbd4a0; transform: translateY(-1px); }
 .mreg-chip--active {
-  background: #ee8b28;
+  background: #f28c28;
   color: #fff;
 }
 
@@ -282,19 +282,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Submit ── */
 .mreg-submit {
   width: 100%;
-  margin-top: 8px;
-  background: #ee8b28;
+  background: transparent;
   color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 17px 10px;
-  font-size: 1rem;
+  border: 2.5px solid #f28c28;
+  border-radius: 6px;
+  padding: 13px 10px;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(238,139,40,0.35);
-  transition: filter 0.15s, transform 0.15s;
+  letter-spacing: 0.06em;
+  background: #f28c28;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
 }
 .mreg-submit:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .mreg-submit:active { transform: translateY(1px); filter: brightness(0.96); }
@@ -310,7 +310,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .mreg-login-link {
   background: none;
   border: none;
-  color: #ee8b28;
+  color: #f28c28;
   font-size: 0.82rem;
   font-weight: 700;
   font-family: inherit;

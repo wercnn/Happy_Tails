@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./OwnerRegister.css";
 
 export default function HappyTailsRegister() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -47,7 +49,9 @@ export default function HappyTailsRegister() {
         <div className="reg-screen">
           {/* Sticky header */}
           <header className="reg-header">
-            <button className="reg-back-icon" onClick={() => alert("Go back")}>←</button>
+            <button className="reg-back-icon" onClick={() => navigate('/register')}>
+              ←
+            </button>
             <h1 className="reg-title">Pet Owner Registration</h1>
           </header>
 
@@ -115,7 +119,7 @@ export default function HappyTailsRegister() {
 
               <p className="reg-login-prompt">
                 Already have an account?{" "}
-                <button className="reg-login-link" onClick={() => alert("Navigate to Login")}>
+                <button className="reg-login-link" onClick={() => navigate("/login")}>
                   Log in
                 </button>
               </p>

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./MinderRegister.css";
 
 const SERVICES = ["Dog Walking", "Pet Sitting", "Home Boarding"];
@@ -6,6 +7,7 @@ const PETS = ["Dogs", "Cats", "Reptiles", "Birds"];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function HappyTailsMinderRegister() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "",
     phone: "", password: "", confirmPassword: "", postcode: "",
@@ -51,8 +53,10 @@ export default function HappyTailsMinderRegister() {
 
           {/* Sticky header */}
           <header className="mreg-header">
-            <button className="mreg-back-icon" onClick={() => alert("Go back")}>←</button>
-            <h1 className="mreg-title">Pet Owner Registration</h1>
+            <button className="mreg-back-icon" onClick={() => navigate('/register')}>
+              ←
+            </button>
+            <h1 className="mreg-title">Pet Minder Registration</h1>
           </header>
 
           {/* Scrollable body */}
@@ -210,7 +214,7 @@ export default function HappyTailsMinderRegister() {
 
               <p className="mreg-login-prompt">
                 Already have an account?{" "}
-                <button className="mreg-login-link" onClick={() => alert("Navigate to Login")}>Log in</button>
+                <button className="mreg-login-link" onClick={() => navigate("/login")}>Log in</button>
               </p>
 
             </div>
