@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Requests.css";
 
 const INITIAL_REQUESTS = [
@@ -35,23 +36,24 @@ const INITIAL_REQUESTS = [
 ];
 
 const STATUS_CLASS = {
-  "pending":     "br-badge--pending",
-  "awaiting":    "br-badge--awaiting",
+  "pending": "br-badge--pending",
+  "awaiting": "br-badge--awaiting",
   "in progress": "br-badge--inprogress",
-  "confirmed":   "br-badge--confirmed",
+  "confirmed": "br-badge--confirmed",
 };
 
 const NAV = [
-  { id: "dashboard",    emoji: "🏠",  label: "Dashboard" },
-  { id: "services",     emoji: "⚙️",  label: "Services" },
-  { id: "availability", emoji: "📅",  label: "Availability" },
-  { id: "requests",     emoji: "📬",  label: "Requests" },
-  { id: "profile",      emoji: "👤",  label: "Profile" },
+  { id: "dashboard", emoji: "🏠", label: "Dashboard" },
+  { id: "services", emoji: "⚙️", label: "Services" },
+  { id: "availability", emoji: "📅", label: "Availability" },
+  { id: "requests", emoji: "📬", label: "Requests" },
+  { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
 export default function HappyTailsBookingRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState("requests");
 
   const handleAction = (id, action) => {
     if (action === "accept") {
@@ -63,24 +65,44 @@ export default function HappyTailsBookingRequests() {
     }
   };
 
+  const handleNavClick = (id) => {
+    setActiveNav(id);
+
+    switch (id) {
+      case "dashboard":
+        navigate("/mindDash");
+        break;
+      case "services":
+        navigate("/mindService");
+        break;
+      case "availability":
+        navigate("/mindAvailability");
+        break;
+      case "requests":
+        navigate("/mindRequests");
+        break;
+      case "profile":
+        navigate("/mindProfile");
+        break;
+      default:
+        alert("Placeholder route");
+        break;
+    }
+  };
+
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="br-screen">
-
-          {/* Header */}
           <header className="br-header">
             <button className="br-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="br-title">Booking Requests</h1>
           </header>
 
-          {/* Scrollable body */}
           <div className="br-scroll">
             <div className="br-body">
               {requests.map((r) => (
                 <div key={r.id} className="br-card">
-
-                  {/* Top row */}
                   <div className="br-card-top">
                     <span className="br-card-avatar">{r.icon}</span>
                     <span className="br-card-service">{r.service}</span>
@@ -89,13 +111,11 @@ export default function HappyTailsBookingRequests() {
                     </span>
                   </div>
 
-                  {/* Detail rows */}
                   <div className="br-card-details">
                     <span className="br-detail">{r.petEmoji} {r.pet} · {r.owner}</span>
                     <span className="br-detail">📅 {r.date}</span>
                   </div>
 
-                  {/* Actions */}
                   <div className="br-card-actions">
                     <button
                       className="br-accept-btn"
@@ -110,7 +130,6 @@ export default function HappyTailsBookingRequests() {
                       ✕ Decline
                     </button>
                   </div>
-
                 </div>
               ))}
 
@@ -120,20 +139,18 @@ export default function HappyTailsBookingRequests() {
             </div>
           </div>
 
-          {/* Bottom Nav */}
           <nav className="br-nav">
             {NAV.map((item) => (
               <button
                 key={item.id}
                 className={`br-nav-item${activeNav === item.id ? " br-nav-item--active" : ""}`}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => handleNavClick(item.id)}
               >
                 <span className="br-nav-emoji">{item.emoji}</span>
                 <span className="br-nav-label">{item.label}</span>
               </button>
             ))}
           </nav>
-
         </div>
       </div>
     </div>

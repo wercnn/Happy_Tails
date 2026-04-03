@@ -112,7 +112,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .ms-card-price {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #ee8b28;
+  color: #f28c28;
 }
 
 .ms-card-controls {
@@ -159,7 +159,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .ms-edit-btn {
   background: none;
   border: none;
-  color: #ee8b28;
+  color: #f28c28;
   font-size: 0.88rem;
   font-weight: 700;
   font-family: inherit;
@@ -172,7 +172,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Add New Service ── */
 .ms-add-btn {
   width: 100%;
-  background: #ee8b28;
+  background: #f28c28;
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -222,7 +222,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   white-space: nowrap;
 }
 
-.ms-nav-item--active .ms-nav-label { color: #ee8b28; }
+.ms-nav-item--active .ms-nav-label { color: #f28c28; }
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
