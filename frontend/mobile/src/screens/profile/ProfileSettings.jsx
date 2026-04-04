@@ -12,7 +12,7 @@ const MENU_ITEMS = [
   { id: "logout", emoji: "🚪", label: "Log Out", color: "#ef4444", danger: true },
 ];
 
-const NAV = [
+const NAV_ITEMS = [
   { id: "dashboard", emoji: "🏠", label: "Dashboard" },
   { id: "services", emoji: "⚙️", label: "Services" },
   { id: "availability", emoji: "📅", label: "Availability" },
@@ -22,12 +22,16 @@ const NAV = [
 
 export default function HappyTailsProfile() {
   const navigate = useNavigate();
+  const role = localStorage.getItem("userRole");
+
   const [activeNav, setActiveNav] = useState("profile");
 
   const handleMenu = (id) => {
     if (id === "logout") {
       if (window.confirm("Are you sure you want to log out?")) {
+        localStorage.removeItem("userRole");
         alert("Logged out.");
+        navigate("/");
       }
     } else {
       alert(`Navigate to: ${id}`);
@@ -37,25 +41,50 @@ export default function HappyTailsProfile() {
   const handleNavClick = (id) => {
     setActiveNav(id);
 
-    switch (id) {
-      case "dashboard":
-        navigate("/mindDash");
-        break;
-      case "services":
-        navigate("/mindService");
-        break;
-      case "availability":
-        navigate("/mindAvailability");
-        break;
-      case "requests":
-        navigate("/mindRequests");
-        break;
-      case "profile":
-        navigate("/profile");
-        break;
-      default:
-        alert("Placeholder route");
-        break;
+    if (role === "owner") {
+      switch (id) {
+        case "dashboard":
+          navigate("/ownerHome");
+          break;
+        case "services":
+          alert("Owner does not have Services page");
+          break;
+        case "availability":
+          alert("Owner does not have Availability page");
+          break;
+        case "requests":
+          navigate("/bookingHistory");
+          break;
+        case "profile":
+          navigate("/profile");
+          break;
+        default:
+          alert("Placeholder route");
+          break;
+      }
+    } else if (role === "minder") {
+      switch (id) {
+        case "dashboard":
+          navigate("/mindDash");
+          break;
+        case "services":
+          navigate("/mindService");
+          break;
+        case "availability":
+          navigate("/mindAvailability");
+          break;
+        case "requests":
+          navigate("/mindRequests");
+          break;
+        case "profile":
+          navigate("/profile");
+          break;
+        default:
+          alert("Placeholder route");
+          break;
+      }
+    } else {
+      navigate("/");
     }
   };
 
@@ -92,7 +121,7 @@ export default function HappyTailsProfile() {
           </div>
 
           <nav className="prof-nav">
-            {NAV.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 className={`prof-nav-item${activeNav === item.id ? " prof-nav-item--active" : ""}`}

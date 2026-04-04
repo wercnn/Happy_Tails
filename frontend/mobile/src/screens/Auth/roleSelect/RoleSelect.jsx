@@ -23,6 +23,7 @@ export default function RoleSelect() {
 
   const handleRoleSelect = (roleId) => {
     setSelected(roleId);
+    localStorage.setItem("userRole", roleId);
 
     if (roleId === "owner") {
       navigate("/ownerReg");

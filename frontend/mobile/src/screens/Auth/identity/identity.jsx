@@ -1,13 +1,12 @@
 import { useState } from "react";
 import "./identity.css";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const ID_TYPES = ["Passport", "Driving Licence"];
 
 export default function IdentityVerification() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const role = location.state?.role;
+  const role = localStorage.getItem("userRole");
 
   const [form, setForm] = useState({
     dob: "",

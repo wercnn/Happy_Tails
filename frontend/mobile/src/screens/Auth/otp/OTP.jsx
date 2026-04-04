@@ -1,14 +1,11 @@
 import { useState, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./OTP.css";
 
 const LENGTH = 6;
 
 export default function HappyTailsOTP() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const role = location.state?.role;
-
   const [digits, setDigits] = useState(Array(LENGTH).fill(""));
   const inputs = useRef([]);
 
@@ -39,7 +36,7 @@ export default function HappyTailsOTP() {
   };
 
   const handleVerify = () => {
-    navigate("/identity", { state: { role } });
+    navigate("/identity");
   };
 
   return (
