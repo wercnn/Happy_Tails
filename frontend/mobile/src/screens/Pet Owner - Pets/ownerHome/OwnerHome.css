@@ -208,18 +208,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 /* ── Add a Pet ── */
 .home-add-pet {
-  width: 100%;
   background: #f28c28;
   color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 15px 10px;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 700;
   font-family: inherit;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(238,139,40,0.3);
-  transition: filter 0.15s, transform 0.12s;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
 }
 .home-add-pet:hover { filter: brightness(1.06); transform: translateY(-1px); }
 

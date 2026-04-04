@@ -50,7 +50,6 @@ export default function HappyTailsMyPets() {
       <div className="mobile-frame">
         <div className="mypets-screen">
           <header className="mypets-header">
-            <button className="mypets-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="mypets-title">My Pets</h1>
           </header>
 

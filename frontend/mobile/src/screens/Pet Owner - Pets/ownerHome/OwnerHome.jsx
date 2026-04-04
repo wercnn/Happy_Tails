@@ -66,7 +66,7 @@ export default function HappyTailsHome() {
             <div className="home-banner">
               <h2 className="home-banner-title">Find a Minder Today</h2>
               <p className="home-banner-sub">Browse trusted pet carers near you</p>
-              <button className="home-banner-btn" onClick={() => alert("Search minders")}>
+              <button className="home-banner-btn" onClick={() => navigate("/ownerSearch")}>
                 Search Now →
               </button>
             </div>

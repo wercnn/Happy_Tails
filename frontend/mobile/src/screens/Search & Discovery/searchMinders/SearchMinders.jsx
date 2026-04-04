@@ -101,7 +101,6 @@ export default function HappyTailsFindMinder() {
       <div className="mobile-frame">
         <div className="fm-screen">
           <header className="fm-header">
-            <button className="fm-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="fm-title">Find a Minder</h1>
           </header>
 

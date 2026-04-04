@@ -78,7 +78,6 @@ export default function HappyTailsBookingHistory() {
       <div className="mobile-frame">
         <div className="bh-screen">
           <header className="bh-header">
-            <button className="bh-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="bh-title">Booking History</h1>
           </header>
 

@@ -12,7 +12,15 @@ const MENU_ITEMS = [
   { id: "logout", emoji: "🚪", label: "Log Out", color: "#ef4444", danger: true },
 ];
 
-const NAV_ITEMS = [
+const OWNER_NAV_ITEMS = [
+  { id: "home", emoji: "🏠", label: "Home" },
+  { id: "pets", emoji: "🐾", label: "My Pets" },
+  { id: "search", emoji: "🔍", label: "Search" },
+  { id: "bookings", emoji: "📋", label: "Bookings" },
+  { id: "profile", emoji: "👤", label: "Profile" },
+];
+
+const MINDER_NAV_ITEMS = [
   { id: "dashboard", emoji: "🏠", label: "Dashboard" },
   { id: "services", emoji: "⚙️", label: "Services" },
   { id: "availability", emoji: "📅", label: "Availability" },
@@ -24,6 +32,7 @@ export default function HappyTailsProfile() {
   const navigate = useNavigate();
   const role = localStorage.getItem("userRole");
 
+  const navItems = role === "owner" ? OWNER_NAV_ITEMS : MINDER_NAV_ITEMS;
   const [activeNav, setActiveNav] = useState("profile");
 
   const handleMenu = (id) => {
@@ -43,17 +52,17 @@ export default function HappyTailsProfile() {
 
     if (role === "owner") {
       switch (id) {
-        case "dashboard":
-          navigate("/ownerHome");
+        case "home":
+          navigate("/ownerDash");
           break;
-        case "services":
-          alert("Owner does not have Services page");
+        case "pets":
+          navigate("/ownerPets");
           break;
-        case "availability":
-          alert("Owner does not have Availability page");
+        case "search":
+          navigate("/ownerSearch");
           break;
-        case "requests":
-          navigate("/bookingHistory");
+        case "bookings":
+          navigate("/ownerBooking");
           break;
         case "profile":
           navigate("/profile");
@@ -121,7 +130,7 @@ export default function HappyTailsProfile() {
           </div>
 
           <nav className="prof-nav">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <button
                 key={item.id}
                 className={`prof-nav-item${activeNav === item.id ? " prof-nav-item--active" : ""}`}
