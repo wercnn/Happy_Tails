@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./History.css";
 
 const BOOKINGS = [
@@ -29,35 +30,58 @@ const BOOKINGS = [
 ];
 
 const STATUS_STYLE = {
-  confirmed:  { cls: "bh-badge--confirmed",  label: "confirmed" },
-  completed:  { cls: "bh-badge--completed",  label: "completed" },
-  cancelled:  { cls: "bh-badge--cancelled",  label: "cancelled" },
-  pending:    { cls: "bh-badge--pending",    label: "pending" },
+  confirmed: { cls: "bh-badge--confirmed", label: "confirmed" },
+  completed: { cls: "bh-badge--completed", label: "completed" },
+  cancelled: { cls: "bh-badge--cancelled", label: "cancelled" },
+  pending: { cls: "bh-badge--pending", label: "pending" },
 };
 
 const NAV = [
-  { id: "home",     emoji: "🏠", label: "Home" },
-  { id: "pets",     emoji: "🐾", label: "My Pets" },
-  { id: "search",   emoji: "🔍", label: "Search" },
+  { id: "home", emoji: "🏠", label: "Home" },
+  { id: "pets", emoji: "🐾", label: "My Pets" },
+  { id: "search", emoji: "🔍", label: "Search" },
   { id: "bookings", emoji: "📋", label: "Bookings" },
-  { id: "profile",  emoji: "👤", label: "Profile" },
+  { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
 export default function HappyTailsBookingHistory() {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("bookings");
+
+  const handleNavClick = (id) => {
+    setActiveNav(id);
+
+    switch (id) {
+      case "home":
+        navigate("/ownerDash");
+        break;
+      case "pets":
+        navigate("/ownerPets");
+        break;
+      case "search":
+        navigate("/ownerSearch");
+        break;
+      case "bookings":
+        navigate("/ownerBooking");
+        break;
+      case "profile":
+        navigate("/profile");
+        break;
+      default:
+        alert("Placeholder route");
+        break;
+    }
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="bh-screen">
-
-          {/* Header */}
           <header className="bh-header">
             <button className="bh-back" onClick={() => alert("Go back")}>←</button>
             <h1 className="bh-title">Booking History</h1>
           </header>
 
-          {/* Scrollable body */}
           <div className="bh-scroll">
             <div className="bh-body">
               {BOOKINGS.map((b) => {
@@ -81,20 +105,18 @@ export default function HappyTailsBookingHistory() {
             </div>
           </div>
 
-          {/* Bottom Nav */}
           <nav className="bh-nav">
             {NAV.map((item) => (
               <button
                 key={item.id}
                 className={`bh-nav-item${activeNav === item.id ? " bh-nav-item--active" : ""}`}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => handleNavClick(item.id)}
               >
                 <span className="bh-nav-emoji">{item.emoji}</span>
                 <span className="bh-nav-label">{item.label}</span>
               </button>
             ))}
           </nav>
-
         </div>
       </div>
     </div>

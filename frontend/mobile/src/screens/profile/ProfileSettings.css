@@ -35,7 +35,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Hero Header ── */
 .prof-hero {
   flex-shrink: 0;
-  background: #ee8b28;
+  background: #f28c28;
   padding: 28px 24px 28px;
   display: flex;
   flex-direction: column;
@@ -188,7 +188,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   white-space: nowrap;
 }
 
-.prof-nav-item--active .prof-nav-label { color: #ee8b28; }
+.prof-nav-item--active .prof-nav-label { color: #f28c28; }
 
 /* ── Responsive ── */
 @media (max-width: 430px) {

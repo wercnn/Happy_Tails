@@ -34,13 +34,13 @@ export default function HappyTailsHome() {
         navigate("/ownerPets");
         break;
       case "search":
-        alert("Go to Search");
+        navigate("/ownerSearch");
         break;
       case "bookings":
-        alert("Go to Bookings");
+        navigate("/ownerBooking");
         break;
       case "profile":
-        alert("Go to Profile");
+        navigate("/profile");
         break;
       default:
         alert("Placeholder route");
