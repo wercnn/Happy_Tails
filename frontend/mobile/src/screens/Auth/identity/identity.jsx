@@ -1,11 +1,14 @@
 import { useState } from "react";
 import "./identity.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const ID_TYPES = ["Passport", "Driving Licence"];
 
 export default function IdentityVerification() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const role = location.state?.role;
+
   const [form, setForm] = useState({
     dob: "",
     idType: "",
@@ -59,7 +62,13 @@ export default function IdentityVerification() {
       return;
     }
 
-    navigate("/mindDash");
+    if (role === "owner") {
+      navigate("/ownerDash");
+    } else if (role === "minder") {
+      navigate("/mindDash");
+    } else {
+      navigate("/");
+    }
   };
 
   return (
@@ -70,7 +79,7 @@ export default function IdentityVerification() {
             <button
               className="verify-back-icon"
               type="button"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
             >
               ←
             </button>

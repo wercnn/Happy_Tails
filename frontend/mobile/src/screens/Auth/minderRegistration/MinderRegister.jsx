@@ -86,7 +86,7 @@ export default function HappyTailsMinderRegister() {
       return;
     }
 
-    navigate("/otp");
+    navigate("/otp", { state: { role: "minder" } });
   };
 
   const basicFields = [

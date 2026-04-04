@@ -1,11 +1,14 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./OTP.css";
 
 const LENGTH = 6;
 
 export default function HappyTailsOTP() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const role = location.state?.role;
+
   const [digits, setDigits] = useState(Array(LENGTH).fill(""));
   const inputs = useRef([]);
 
@@ -27,25 +30,30 @@ export default function HappyTailsOTP() {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, LENGTH);
     const next = [...digits];
-    pasted.split("").forEach((ch, i) => { next[i] = ch; });
+    pasted.split("").forEach((ch, i) => {
+      next[i] = ch;
+    });
     setDigits(next);
     const focusIdx = Math.min(pasted.length, LENGTH - 1);
     inputs.current[focusIdx]?.focus();
+  };
+
+  const handleVerify = () => {
+    navigate("/identity", { state: { role } });
   };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <main className="otp-screen">
-
-          {/* Orange header */}
           <header className="otp-header">
             <span className="otp-phone-emoji">📱</span>
             <h1 className="otp-heading">Verify Your Number</h1>
-            <p className="otp-subtext">We sent a code to +44 7700 <span className="otp-masked">****</span>00</p>
+            <p className="otp-subtext">
+              We sent a code to +44 7700 <span className="otp-masked">****</span>00
+            </p>
           </header>
 
-          {/* White body */}
           <section className="otp-body">
             <p className="otp-label">Enter 6-digit OTP Code</p>
 
@@ -65,10 +73,7 @@ export default function HappyTailsOTP() {
               ))}
             </div>
 
-            <button
-              className="otp-submit"
-              onClick={() => navigate("/identity")}
-            >
+            <button className="otp-submit" onClick={handleVerify}>
               Verify &amp; Continue →
             </button>
 
@@ -79,7 +84,6 @@ export default function HappyTailsOTP() {
               </button>
             </p>
           </section>
-
         </main>
       </div>
     </div>

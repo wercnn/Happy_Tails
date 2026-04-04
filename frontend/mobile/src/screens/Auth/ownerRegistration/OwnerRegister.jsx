@@ -75,7 +75,7 @@ export default function HappyTailsRegister() {
       return;
     }
 
-    navigate("/otp");
+    navigate("/otp", { state: { role: "owner" } });
   };
 
   const fields = [

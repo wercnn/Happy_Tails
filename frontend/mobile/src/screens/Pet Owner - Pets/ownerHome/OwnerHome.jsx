@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./OwnerHome.css";
 
 const PETS = [
-  { id: 1, emoji: "🐶", name: "Buddy",  breed: "Golden Retriever", age: "3 yrs" },
-  { id: 2, emoji: "🐱", name: "Luna",   breed: "British Shorthair", age: "2 yrs" },
+  { id: 1, emoji: "🐶", name: "Buddy", breed: "Golden Retriever", age: "3 yrs" },
+  { id: 2, emoji: "🐱", name: "Luna", breed: "British Shorthair", age: "2 yrs" },
 ];
 
 const BOOKINGS = [
@@ -11,22 +12,46 @@ const BOOKINGS = [
 ];
 
 const NAV = [
-  { id: "home",     emoji: "🏠", label: "Home" },
-  { id: "pets",     emoji: "🐾", label: "My Pets" },
-  { id: "search",   emoji: "🔍", label: "Search" },
+  { id: "home", emoji: "🏠", label: "Home" },
+  { id: "pets", emoji: "🐾", label: "My Pets" },
+  { id: "search", emoji: "🔍", label: "Search" },
   { id: "bookings", emoji: "📋", label: "Bookings" },
-  { id: "profile",  emoji: "👤", label: "Profile" },
+  { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
 export default function HappyTailsHome() {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
+
+  const handleNavClick = (id) => {
+    setActiveNav(id);
+
+    switch (id) {
+      case "home":
+        navigate("/ownerDash");
+        break;
+      case "pets":
+        navigate("/ownerPets");
+        break;
+      case "search":
+        alert("Go to Search");
+        break;
+      case "bookings":
+        alert("Go to Bookings");
+        break;
+      case "profile":
+        alert("Go to Profile");
+        break;
+      default:
+        alert("Placeholder route");
+        break;
+    }
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="home-screen">
-
-          {/* ── Orange Header ── */}
           <header className="home-header">
             <div className="home-greeting-block">
               <h1 className="home-greeting">Good morning 👋</h1>
@@ -37,10 +62,7 @@ export default function HappyTailsHome() {
             </button>
           </header>
 
-          {/* ── Scrollable Body ── */}
           <div className="home-scroll">
-
-            {/* Find a Minder banner */}
             <div className="home-banner">
               <h2 className="home-banner-title">Find a Minder Today</h2>
               <p className="home-banner-sub">Browse trusted pet carers near you</p>
@@ -49,7 +71,6 @@ export default function HappyTailsHome() {
               </button>
             </div>
 
-            {/* My Pets */}
             <section className="home-section">
               <h3 className="home-section-title">My Pets</h3>
               <div className="home-pet-list">
@@ -69,7 +90,6 @@ export default function HappyTailsHome() {
               </button>
             </section>
 
-            {/* Recent Bookings */}
             <section className="home-section">
               <h3 className="home-section-title">Recent Bookings</h3>
               <div className="home-booking-list">
@@ -91,20 +111,18 @@ export default function HappyTailsHome() {
             <div className="home-scroll-pad" />
           </div>
 
-          {/* ── Bottom Nav ── */}
           <nav className="home-nav">
             {NAV.map((item) => (
               <button
                 key={item.id}
                 className={`home-nav-item${activeNav === item.id ? " home-nav-item--active" : ""}`}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => handleNavClick(item.id)}
               >
                 <span className="home-nav-emoji">{item.emoji}</span>
                 <span className="home-nav-label">{item.label}</span>
               </button>
             ))}
           </nav>
-
         </div>
       </div>
     </div>
