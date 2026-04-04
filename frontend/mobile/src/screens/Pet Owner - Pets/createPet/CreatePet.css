@@ -222,22 +222,32 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
 }
 
+.cpet-input--error {
+  border: 1.8px solid #dc2626;
+}
+
+.cpet-error-text {
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 /* ── Save ── */
 .cpet-save {
-  width: 100%;
-  margin-top: 8px;
-  background: #ee8b28;
+  background: #f28c28;
   color: #fff;
   border: none;
   border-radius: 14px;
-  padding: 17px 10px;
-  font-size: 1rem;
+  padding: 15px 10px;
+  font-size: 0.85rem;
   font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.35);
-  transition: filter 0.15s, transform 0.15s;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
 }
 .cpet-save:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .cpet-save:active { transform: translateY(1px); filter: brightness(0.96); }
