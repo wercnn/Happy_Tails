@@ -10,10 +10,14 @@ import MinderRegistration from './screens/Auth/minderRegistration/MinderRegister
 import OTP from './screens/Auth/otp/OTP'
 import Identity from './screens/Auth/identity/identity'
 
+/* Pet Minder screens */
 import MindDash from './screens/Pet Minder/dashboard/Dashboard'
 import MindService from './screens/Pet Minder/services/Service'
 import MindAvailability from './screens/Pet Minder/availability/Availability'
 import MindRequests from './screens/Pet Minder/requests/Requests'
+
+/* Pet Minder and Pet Owner profile screens */
+import Profile from './screens/profile/ProfileSettings'
 
 function App() {
   return (
@@ -30,6 +34,8 @@ function App() {
       <Route path="/mindService" element={<MindService />} />
       <Route path="/mindAvailability" element={<MindAvailability />} />
       <Route path="/mindRequests" element={<MindRequests />} />
+
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   )
 }

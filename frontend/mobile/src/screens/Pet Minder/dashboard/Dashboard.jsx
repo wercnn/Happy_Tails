@@ -79,7 +79,7 @@ export default function HappyTailsMinderDashboard() {
         navigate("/mindRequests");
         break;
       case "profile":
-        navigate("/mindProfile");
+        navigate("/profile");
         break;
       default:
         break;

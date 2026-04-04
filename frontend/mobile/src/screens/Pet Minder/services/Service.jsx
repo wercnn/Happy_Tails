@@ -43,7 +43,7 @@ export default function HappyTailsMyServices() {
         navigate("/mindRequests");
         break;
       case "profile":
-        navigate("/mindProfile");
+        navigate("/profile");
         break;
       default:
         alert("Placeholder route");
