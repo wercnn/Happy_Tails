@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SearchMinders.css";
 
-const FILTERS = ["Dog Walking", "Boarding", "Pet Sitting", "Day Care"];
-
 const MINDERS = [
   {
     id: 1,
@@ -73,7 +71,6 @@ export default function HappyTailsFindMinder() {
   const location = useLocation();
 
   const [query, setQuery] = useState("");
-  const [activeFilters, setActiveFilters] = useState([]);
   const [activeNav, setActiveNav] = useState("search");
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
 
@@ -82,11 +79,6 @@ export default function HappyTailsFindMinder() {
       setAppliedFilters(location.state.filters);
     }
   }, [location.state]);
-
-  const toggleFilter = (f) =>
-    setActiveFilters((prev) =>
-      prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]
-    );
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -120,10 +112,6 @@ export default function HappyTailsFindMinder() {
         m.name.toLowerCase().includes(query.toLowerCase()) ||
         m.services.toLowerCase().includes(query.toLowerCase());
 
-      const matchesChipFilters =
-        activeFilters.length === 0 ||
-        activeFilters.some((f) => m.serviceList.includes(f));
-
       const matchesServiceFilters =
         appliedFilters.services.includes("All") ||
         appliedFilters.services.some((service) =>
@@ -144,7 +132,6 @@ export default function HappyTailsFindMinder() {
 
       return (
         matchesQuery &&
-        matchesChipFilters &&
         matchesServiceFilters &&
         matchesPetFilters &&
         matchesAvailability &&
@@ -168,7 +155,7 @@ export default function HappyTailsFindMinder() {
     }
 
     return result;
-  }, [query, activeFilters, appliedFilters]);
+  }, [query, appliedFilters]);
 
   return (
     <div className="mobile-stage">
@@ -201,18 +188,6 @@ export default function HappyTailsFindMinder() {
                 >
                   ☰
                 </button>
-              </div>
-
-              <div className="fm-filters">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f}
-                    className={`fm-filter-chip${activeFilters.includes(f) ? " fm-filter-chip--active" : ""}`}
-                    onClick={() => toggleFilter(f)}
-                  >
-                    {f}
-                  </button>
-                ))}
               </div>
 
               <div className="fm-minder-list">
