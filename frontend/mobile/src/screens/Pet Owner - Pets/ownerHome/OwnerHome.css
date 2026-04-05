@@ -141,7 +141,12 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .home-banner-btn:hover { filter: brightness(0.97); transform: translateY(1px); }
 
 /* ── Sections ── */
-.home-section { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
 
 .home-section-title {
   margin: 0;
@@ -151,8 +156,34 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   text-align: center;
 }
 
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.home-pet-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.home-empty-pets {
+  margin: 0;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 8px 2px 2px;
+  text-align: center;
+}
+
 /* ── Pet Cards ── */
-.home-pet-list { display: flex; flex-direction: column; gap: 10px; }
+.home-pet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .home-pet-card {
   width: 100%;
@@ -180,6 +211,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   justify-content: center;
   font-size: 1.7rem;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .home-pet-info {
@@ -204,6 +236,23 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: #bbb;
   font-size: 1.1rem;
   font-weight: 300;
+}
+
+.home-view-all-pets {
+  border: none;
+  background: none;
+  color: #f28c28;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 4px 2px 0;
+  text-align: left;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.home-view-all-pets:hover {
+  text-decoration: underline;
 }
 
 /* ── Add a Pet ── */

@@ -1,11 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./OwnerHome.css";
-
-const PETS = [
-  { id: 1, emoji: "🐶", name: "Buddy", breed: "Golden Retriever", age: "3 yrs" },
-  { id: 2, emoji: "🐱", name: "Luna", breed: "British Shorthair", age: "2 yrs" },
-];
 
 const BOOKINGS = [
   { id: 1, emoji: "🚶", service: "Dog Walking", minder: "James W.", time: "Today, 2pm", status: "Confirmed" },
@@ -22,6 +17,12 @@ const NAV = [
 export default function HappyTailsHome() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
+  const [pets, setPets] = useState([]);
+
+  useEffect(() => {
+    const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
+    setPets(savedPets);
+  }, []);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -48,6 +49,9 @@ export default function HappyTailsHome() {
     }
   };
 
+  const visiblePets = pets.slice(0, 3);
+  const hasMoreThanThreePets = pets.length > 3;
+
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
@@ -72,20 +76,60 @@ export default function HappyTailsHome() {
             </div>
 
             <section className="home-section">
-              <h3 className="home-section-title">My Pets</h3>
-              <div className="home-pet-list">
-                {PETS.map((pet) => (
-                  <button key={pet.id} className="home-pet-card" onClick={() => alert(`View ${pet.name}`)}>
-                    <span className="home-pet-avatar">{pet.emoji}</span>
-                    <div className="home-pet-info">
-                      <span className="home-pet-name">{pet.name}</span>
-                      <span className="home-pet-meta">{pet.breed} · {pet.age}</span>
-                    </div>
-                    <span className="home-pet-chevron">›</span>
-                  </button>
-                ))}
+              <div className="home-section-head">
+                <h3 className="home-section-title">My Pets</h3>
               </div>
-              <button className="home-add-pet" onClick={() => alert("Add a pet")}>
+
+              <div className="home-pet-list">
+                {pets.length > 0 ? (
+                  <>
+                    {visiblePets.map((pet) => (
+                      <button
+                        key={pet.id}
+                        className="home-pet-card"
+                        onClick={() => navigate("/ownerPets")}
+                      >
+                        <span className="home-pet-avatar">
+                          {pet.photo ? (
+                            <img
+                              src={pet.photo}
+                              alt={pet.name}
+                              className="home-pet-avatar-img"
+                            />
+                          ) : (
+                            pet.emoji || "🐾"
+                          )}
+                        </span>
+
+                        <div className="home-pet-info">
+                          <span className="home-pet-name">{pet.name}</span>
+                          <span className="home-pet-meta">
+                            {pet.breed} · {pet.age}
+                          </span>
+                        </div>
+
+                        <span className="home-pet-chevron">›</span>
+                      </button>
+                    ))}
+
+                    {hasMoreThanThreePets && (
+                      <button
+                        className="home-view-all-pets"
+                        onClick={() => navigate("/ownerPets")}
+                      >
+                        View all pets here →
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <p className="home-empty-pets">No pets added yet</p>
+                )}
+              </div>
+
+              <button
+                className="home-add-pet"
+                onClick={() => navigate("/addPet")}
+              >
                 + Add a Pet
               </button>
             </section>
@@ -97,7 +141,11 @@ export default function HappyTailsHome() {
                   <div key={b.id} className="home-booking-card">
                     <span className="home-booking-avatar">{b.emoji}</span>
                     <div className="home-booking-info">
-                      <span className="home-booking-service">{b.service}<br />with {b.minder}</span>
+                      <span className="home-booking-service">
+                        {b.service}
+                        <br />
+                        with {b.minder}
+                      </span>
                       <span className="home-booking-time">{b.time}</span>
                     </div>
                     <span className={`home-booking-badge home-booking-badge--${b.status.toLowerCase()}`}>
