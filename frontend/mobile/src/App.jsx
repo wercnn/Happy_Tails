@@ -27,6 +27,8 @@ import SearchFilters from './screens/Search & Discovery/filters/Filters'
 import ViewMinders from './screens/Search & Discovery/minderProfile/MinderProfile'
 import SelectService from './screens/Booking Flow/selectService/SelectService'
 import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
+import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
+import BookingSummary from './screens/Booking Flow/summary/Summary'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -58,6 +60,8 @@ function App() {
       <Route path="/viewMinders" element={<ViewMinders />} />
       <Route path="/selectService" element={<SelectService />} />
       <Route path="/selectDates" element={<SelectDates />} />
+      <Route path="/availabilityCalendar" element={<AvailabilityCalender />} />
+      <Route path="/bookingSummary" element={<BookingSummary />} />
 
       <Route path="/profile" element={<Profile />} />
     </Routes>

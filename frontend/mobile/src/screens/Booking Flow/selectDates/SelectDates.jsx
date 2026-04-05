@@ -29,7 +29,12 @@ export default function HappyTailsDateTime() {
   };
 
   const handleCheckAvailability = () => {
-    alert("Checking availability…");
+    navigate("/availabilityCalendar", {
+    state: {
+      minder,
+      service: selectedService,
+    },
+  })
   };
 
   return (
