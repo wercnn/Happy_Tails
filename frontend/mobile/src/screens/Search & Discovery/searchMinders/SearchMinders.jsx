@@ -195,7 +195,7 @@ export default function HappyTailsFindMinder() {
                   <button
                     key={m.id}
                     className="fm-minder-card"
-                    onClick={() => alert(`View ${m.name}'s profile`)}
+                    onClick={() => navigate("/viewMinders", { state: { minder: m } })}
                   >
                     <span className="fm-minder-avatar">{m.emoji}</span>
                     <div className="fm-minder-info">

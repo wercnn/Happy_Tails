@@ -24,6 +24,7 @@ import OwnerBooking from './screens/Booking Flow/history/History'
 import AddPet from './screens/Pet Owner - Pets/createPet/CreatePet'
 import PetProfile from './screens/Pet Owner - Pets/petDetail/PetDetail'
 import SearchFilters from './screens/Search & Discovery/filters/Filters'
+import ViewMinders from './screens/Search & Discovery/minderProfile/MinderProfile'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -52,6 +53,7 @@ function App() {
       <Route path="/addPet" element={<AddPet />} />
       <Route path="/petProfile" element={<PetProfile />} />
       <Route path="/searchFilters" element={<SearchFilters />} />
+      <Route path="/viewMinders" element={<ViewMinders />} />
 
       <Route path="/profile" element={<Profile />} />
     </Routes>
