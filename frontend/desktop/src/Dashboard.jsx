@@ -6,6 +6,7 @@ import { Avatar } from "./dashboard/components/Avatar.jsx";
 import OverviewPage from "./dashboard/pages/OverviewPage.jsx";
 import UsersPage from "./dashboard/pages/UsersPage.jsx";
 import BookingsPage from "./dashboard/pages/BookingsPage.jsx";
+import DisputesPage from "./dashboard/pages/DisputesPage.jsx";
 import PaymentsPage from "./dashboard/pages/PaymentsPage.jsx";
 import ReviewsPage from "./dashboard/pages/ReviewsPage.jsx";
 import IncidentsPage from "./dashboard/pages/IncidentsPage.jsx";
@@ -20,6 +21,7 @@ export default function Dashboard({ user, onLogout }) {
     overview: OverviewPage,
     users: UsersPage,
     bookings: BookingsPage,
+    disputes: DisputesPage,
     payments: PaymentsPage,
     reviews: ReviewsPage,
     incidents: IncidentsPage,
