@@ -2,27 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MyPets.css";
 
-const INITIAL_PETS = [
-  {
-    id: 1,
-    emoji: "🐶",
-    name: "Buddy",
-    breed: "Golden Retriever",
-    age: "3",
-    species: "Dog",
-    notes: "2 walks a day, fed at 8am and 6pm",
-  },
-  {
-    id: 2,
-    emoji: "🐱",
-    name: "Luna",
-    breed: "British Shorthair",
-    age: "2",
-    species: "Cat",
-    notes: "Indoor cat, fed twice daily",
-  },
-];
-
 const PET_FILTERS = ["All", "Dog", "Cat", "Rabbit", "Bird", "Reptile", "Other"];
 
 const NAV = [
@@ -35,7 +14,7 @@ const NAV = [
 
 export default function HappyTailsMyPets() {
   const navigate = useNavigate();
-  const [pets, setPets] = useState(INITIAL_PETS);
+  const [pets, setPets] = useState([]);
   const [activeNav, setActiveNav] = useState("pets");
   const [openPetId, setOpenPetId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +22,7 @@ export default function HappyTailsMyPets() {
 
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
-    setPets([...INITIAL_PETS, ...savedPets]);
+    setPets(savedPets);
   }, []);
 
   const filteredPets = useMemo(() => {
@@ -151,7 +130,7 @@ export default function HappyTailsMyPets() {
                           className="mypets-avatar-img"
                         />
                       ) : (
-                        pet.emoji
+                        pet.emoji || "🐾"
                       )}
                     </span>
 
