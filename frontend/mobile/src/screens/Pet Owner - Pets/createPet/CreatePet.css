@@ -222,6 +222,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
 }
 
+.cpet-textarea {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.cpet-character-count {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #888;
+  text-align: right;
+}
+
 .cpet-input--error {
   border: 1.8px solid #dc2626;
 }

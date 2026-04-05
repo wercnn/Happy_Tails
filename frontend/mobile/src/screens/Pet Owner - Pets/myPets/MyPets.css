@@ -66,6 +66,85 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   gap: 14px;
 }
 
+/* ── Search & Filters ── */
+
+.mypets-add-btn--top {
+  margin-bottom: 4px;
+}
+
+.mypets-search-row {
+  display: flex;
+  align-items: center;
+}
+
+.mypets-search-box {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
+}
+
+.mypets-search-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.mypets-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #333;
+  background: transparent;
+}
+
+.mypets-search-input::placeholder {
+  color: #aaa;
+}
+
+.mypets-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mypets-filter-chip {
+  background: #fff;
+  border: 1.8px solid #ddd;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.mypets-filter-chip:hover {
+  border-color: #ee8b28;
+  color: #ee8b28;
+}
+
+.mypets-filter-chip--active {
+  background: #fde8cc;
+  border-color: #ee8b28;
+  color: #e07b10;
+}
+
+.mypets-empty {
+  text-align: center;
+  color: #aaa;
+  font-size: 0.88rem;
+  padding: 20px 0 6px;
+  margin: 0;
+}
+
 /* ── Pet Cards ── */
 .mypets-card {
   background: #fff;
@@ -211,10 +290,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-size: 0.82rem;
   color: #222;
   text-align: right;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .mypets-summary-row--notes .mypets-summary-value {
   text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .mypets-avatar {

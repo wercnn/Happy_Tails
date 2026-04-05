@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MyPets.css";
 
@@ -23,6 +23,8 @@ const INITIAL_PETS = [
   },
 ];
 
+const PET_FILTERS = ["All", "Dog", "Cat", "Rabbit", "Bird", "Reptile", "Other"];
+
 const NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
   { id: "pets", emoji: "🐾", label: "My Pets" },
@@ -36,11 +38,28 @@ export default function HappyTailsMyPets() {
   const [pets, setPets] = useState(INITIAL_PETS);
   const [activeNav, setActiveNav] = useState("pets");
   const [openPetId, setOpenPetId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
 
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
     setPets([...INITIAL_PETS, ...savedPets]);
   }, []);
+
+  const filteredPets = useMemo(() => {
+    return pets.filter((pet) => {
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        pet.breed.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pet.species || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesFilter =
+        activeFilter === "All" || pet.species === activeFilter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [pets, searchQuery, activeFilter]);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -81,7 +100,39 @@ export default function HappyTailsMyPets() {
 
           <div className="mypets-scroll">
             <div className="mypets-list">
-              {pets.map((pet) => (
+              <button
+                className="mypets-add-btn mypets-add-btn--top"
+                onClick={() => navigate("/addPet")}
+              >
+                + Add New Pet
+              </button>
+
+              <div className="mypets-search-row">
+                <div className="mypets-search-box">
+                  <span className="mypets-search-icon">🔍</span>
+                  <input
+                    className="mypets-search-input"
+                    type="text"
+                    placeholder="Search pets by name, breed or species..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mypets-filters">
+                {PET_FILTERS.map((filter) => (
+                  <button
+                    key={filter}
+                    className={`mypets-filter-chip${activeFilter === filter ? " mypets-filter-chip--active" : ""}`}
+                    onClick={() => setActiveFilter(filter)}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+
+              {filteredPets.map((pet) => (
                 <div key={pet.id} className="mypets-card">
                   <button
                     className="mypets-edit-icon"
@@ -143,12 +194,9 @@ export default function HappyTailsMyPets() {
                 </div>
               ))}
 
-              <button
-                className="mypets-add-btn"
-                onClick={() => navigate("/addPet")}
-              >
-                + Add New Pet
-              </button>
+              {filteredPets.length === 0 && (
+                <p className="mypets-empty">No pets match your search or filter.</p>
+              )}
             </div>
           </div>
 

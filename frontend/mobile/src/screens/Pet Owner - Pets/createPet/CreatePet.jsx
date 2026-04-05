@@ -20,7 +20,9 @@ export default function HappyTailsCreatePet() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setForm((f) => ({ ...f, [name]: value }));
+    const nextValue = name === "notes" ? value.slice(0, 200) : value;
+
+    setForm((f) => ({ ...f, [name]: nextValue }));
 
     setErrors((prev) => ({
       ...prev,
@@ -216,7 +218,9 @@ export default function HappyTailsCreatePet() {
                   placeholder="Feeding times, walks, medication..."
                   value={form.notes}
                   onChange={handleChange}
+                  maxLength={200}
                 />
+                <p className="cpet-character-count">{form.notes.length}/200</p>
                 {errors.notes && <p className="cpet-error-text">{errors.notes}</p>}
               </div>
 
