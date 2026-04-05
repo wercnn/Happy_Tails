@@ -98,7 +98,12 @@ export default function HappyTailsCalendar() {
   const handleConfirmDates = () => {
     if (!end) return;
 
-    alert(`Booking confirmed: ${selectionLabel}`);
+    navigate("/bookingSummary", {
+    state: {
+      minder,
+      service,
+    },
+    })
   };
 
   return (

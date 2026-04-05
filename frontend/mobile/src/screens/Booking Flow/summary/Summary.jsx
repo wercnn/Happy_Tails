@@ -1,17 +1,17 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Summary.css";
 
 // Single-day booking example
 const SINGLE_BOOKING = {
   service: "Dog Walking (60 min)",
   minder: "James Walker",
-  verified: true,
   pet: "Buddy",
   dates: [{ label: "Wednesday, 9 April 2026" }],
   multiDay: false,
   time: "9:00 AM",
   location: "Luton, LU1",
-  serviceRate: 22.00,
+  serviceRate: 22.0,
   platformFeeRate: 0.05,
   nights: null,
 };
@@ -20,7 +20,6 @@ const SINGLE_BOOKING = {
 const MULTI_BOOKING = {
   service: "Overnight Boarding",
   minder: "James Walker",
-  verified: true,
   pet: "Buddy",
   dates: [
     { label: "Monday, 14 April 2026" },
@@ -30,21 +29,20 @@ const MULTI_BOOKING = {
   multiDay: true,
   time: null,
   location: "Luton, LU1",
-  serviceRate: 35.00,  // per night
+  serviceRate: 35.0,
   platformFeeRate: 0.05,
   nights: 3,
 };
 
 function BookingSummary({ booking }) {
-  const subtotal     = booking.multiDay
+  const subtotal = booking.multiDay
     ? booking.serviceRate * booking.nights
     : booking.serviceRate;
-  const platformFee  = +(subtotal * booking.platformFeeRate).toFixed(2);
-  const total        = +(subtotal + platformFee).toFixed(2);
+  const platformFee = +(subtotal * booking.platformFeeRate).toFixed(2);
+  const total = +(subtotal + platformFee).toFixed(2);
 
   return (
     <div className="bs-summary">
-      {/* Booking Details card */}
       <div className="bs-card">
         <h2 className="bs-card-title">Booking Details</h2>
 
@@ -55,10 +53,7 @@ function BookingSummary({ booking }) {
 
         <div className="bs-row">
           <span className="bs-label">Minder</span>
-          <span className="bs-value">
-            {booking.minder}
-            {booking.verified && <span className="bs-verified"> ✔</span>}
-          </span>
+          <span className="bs-value">{booking.minder}</span>
         </div>
 
         <div className="bs-row">
@@ -101,7 +96,6 @@ function BookingSummary({ booking }) {
         </div>
       </div>
 
-      {/* Cost Breakdown card */}
       <div className="bs-card">
         <h2 className="bs-card-title">Cost Breakdown</h2>
 
@@ -128,46 +122,75 @@ function BookingSummary({ booking }) {
 }
 
 export default function HappyTailsBookingSummary() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const minder = location.state?.minder || null;
+  const service = location.state?.service || null;
+
   const [mode, setMode] = useState("single"); // "single" | "multi"
-  const booking = mode === "single" ? SINGLE_BOOKING : MULTI_BOOKING;
+
+  const booking = (() => {
+    const base = mode === "single" ? SINGLE_BOOKING : MULTI_BOOKING;
+
+    return {
+      ...base,
+      minder: minder?.name || base.minder,
+      service: service?.name || base.service,
+      serviceRate: service?.price
+        ? Number(String(service.price).replace("£", ""))
+        : base.serviceRate,
+      location: minder?.distance ? `${minder.distance} away` : base.location,
+    };
+  })();
+
+  const handleBack = () => {
+    navigate("/availabilityCalendar", {
+      state: {
+        minder,
+        service,
+      },
+    });
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="bs-screen">
-
-          {/* Header */}
           <header className="bs-header">
-            <button className="bs-back" onClick={() => alert("Go back")}>←</button>
+            <button className="bs-back" onClick={handleBack}>←</button>
             <h1 className="bs-title">Booking Summary</h1>
           </header>
 
-          {/* Toggle (demo only) */}
           <div className="bs-toggle-row">
             <button
               className={`bs-toggle-btn${mode === "single" ? " bs-toggle-btn--active" : ""}`}
               onClick={() => setMode("single")}
-            >Single Day</button>
+            >
+              Single Day
+            </button>
             <button
               className={`bs-toggle-btn${mode === "multi" ? " bs-toggle-btn--active" : ""}`}
               onClick={() => setMode("multi")}
-            >Multi Day</button>
+            >
+              Multi Day
+            </button>
           </div>
 
-          {/* Scrollable body */}
           <div className="bs-scroll">
             <div className="bs-body">
               <BookingSummary booking={booking} />
             </div>
           </div>
 
-          {/* Footer */}
           <div className="bs-footer">
-            <button className="bs-confirm-btn" onClick={() => alert("Booking confirmed!")}>
+            <button
+              className="bs-confirm-btn"
+              onClick={() => alert("Booking confirmed!")}
+            >
               CONFIRM BOOKING →
             </button>
           </div>
-
         </div>
       </div>
     </div>
