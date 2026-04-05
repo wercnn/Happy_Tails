@@ -23,6 +23,7 @@ export const NAV = [
   { key: "overview", icon: "🏠", label: "Overview" },
   { key: "users", icon: "👥", label: "Users" },
   { key: "bookings", icon: "📋", label: "Bookings" },
+  { key: "disputes", icon: "⚖️", label: "Disputes" },
   { key: "payments", icon: "💳", label: "Payments & Refunds" },
   { key: "reviews", icon: "⭐", label: "Reviews" },
   { key: "incidents", icon: "🚨", label: "Incidents" },
