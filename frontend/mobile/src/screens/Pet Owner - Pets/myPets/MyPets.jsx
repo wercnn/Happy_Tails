@@ -131,11 +131,18 @@ export default function HappyTailsMyPets() {
               </div>
 
               {filteredPets.map((pet) => (
-                <div key={pet.id} className="mypets-card">
+                <div
+                  key={pet.id}
+                  className="mypets-card"
+                  onClick={() => navigate("/petProfile", { state: { pet } })}
+                >
                   <div className="mypets-card-actions-top">
                     <button
                       className="mypets-edit-icon"
-                      onClick={() => navigate("/addPet", { state: { pet } })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/addPet", { state: { pet } });
+                      }}
                       aria-label={`Edit ${pet.name}`}
                     >
                       ✎
@@ -143,7 +150,10 @@ export default function HappyTailsMyPets() {
 
                     <button
                       className="mypets-delete-icon"
-                      onClick={() => confirmDeletePet(pet.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDeletePet(pet.id);
+                      }}
                       aria-label={`Delete ${pet.name}`}
                     >
                       🗑
@@ -171,7 +181,10 @@ export default function HappyTailsMyPets() {
 
                   <button
                     className="mypets-summary-toggle"
-                    onClick={() => togglePetSummary(pet.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePetSummary(pet.id);
+                    }}
                   >
                     <span>Quick Summary</span>
                     <span className={`mypets-summary-arrow${openPetId === pet.id ? " mypets-summary-arrow--open" : ""}`}>
@@ -180,7 +193,10 @@ export default function HappyTailsMyPets() {
                   </button>
 
                   {openPetId === pet.id && (
-                    <div className="mypets-summary">
+                    <div
+                      className="mypets-summary"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="mypets-summary-row">
                         <span className="mypets-summary-label">Species:</span>
                         <span className="mypets-summary-value">{pet.species || "Not added"}</span>
@@ -222,8 +238,14 @@ export default function HappyTailsMyPets() {
           </nav>
 
           {deletePetId && (
-            <div className="mypets-delete-overlay">
-              <div className="mypets-delete-modal">
+            <div
+              className="mypets-delete-overlay"
+              onClick={() => setDeletePetId(null)}
+            >
+              <div
+                className="mypets-delete-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <h2 className="mypets-delete-title">Delete Pet?</h2>
                 <p className="mypets-delete-text">
                   Are you sure you want to remove {petToDelete?.name || "this pet"}?

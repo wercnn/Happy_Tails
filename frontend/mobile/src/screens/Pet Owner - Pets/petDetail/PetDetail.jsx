@@ -1,44 +1,80 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import "./PetDetail.css";
 
-const PET = {
-  emoji: "🐶",
-  name: "Buddy",
-  breed: "Golden Retriever",
-  age: "3 years old",
-  details: [
-    { label: "Species",    value: "Dog" },
-    { label: "Breed",      value: "Golden Retriever" },
-    { label: "Age",        value: "3 years" },
-    { label: "Weight",     value: "28 kg" },
-    { label: "Vaccinated", value: "Yes - up to date" },
-  ],
-  notes: "Fed twice daily at 8am and 6pm. Walks at 7am and 5pm. Loves playing fetch. Allergic to chicken-based food",
-};
-
 export default function HappyTailsPetProfile() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const pet = location.state?.pet;
+
+  if (!pet) {
+    return (
+      <div className="mobile-stage">
+        <div className="mobile-frame">
+          <div className="pp-screen">
+            <header className="pp-header">
+              <div className="pp-header-top">
+                <button className="pp-back" onClick={() => navigate("/ownerPets")}>
+                  ←
+                </button>
+
+                <span className="pp-header-label">Pet Profile</span>
+
+                <span className="pp-header-spacer" />
+              </div>
+
+              <h1 className="pp-name">Pet not found</h1>
+              <p className="pp-subtitle">Please go back and select a pet again.</p>
+            </header>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const details = [
+    { label: "Species", value: pet.species || "Not added" },
+    { label: "Breed", value: pet.breed || "Not added" },
+    { label: "Age", value: pet.age ? `${pet.age} yrs` : "Not added" },
+  ];
+
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="pp-screen">
-
-          {/* ── Orange Header ── */}
           <header className="pp-header">
             <div className="pp-header-top">
-              <button className="pp-back" onClick={() => alert("Go back")}>← Pet Profile</button>
-              <button className="pp-edit" onClick={() => alert("Edit pet")}>Edit</button>
+              <button className="pp-back" onClick={() => navigate("/ownerPets")}>
+                ←
+              </button>
+
+              <span className="pp-header-label">Pet Profile</span>
+
+              <button
+                className="pp-edit"
+                onClick={() => navigate("/addPet", { state: { pet } })}
+              >
+                Edit
+              </button>
             </div>
-            <span className="pp-avatar">{PET.emoji}</span>
-            <h1 className="pp-name">{PET.name}</h1>
-            <p className="pp-subtitle">{PET.breed} · {PET.age}</p>
+
+            <span className="pp-avatar">
+              {pet.photo ? (
+                <img src={pet.photo} alt={pet.name} className="pp-avatar-img" />
+              ) : (
+                pet.emoji || "🐾"
+              )}
+            </span>
+
+            <h1 className="pp-name">{pet.name}</h1>
+            <p className="pp-subtitle">
+              {pet.breed} · {pet.age} yrs
+            </p>
           </header>
 
-          {/* ── Scrollable Body ── */}
           <div className="pp-scroll">
             <div className="pp-body">
-
-              {/* Info rows */}
               <div className="pp-info-list">
-                {PET.details.map((d) => (
+                {details.map((d) => (
                   <div key={d.label} className="pp-info-row">
                     <span className="pp-info-label">{d.label}</span>
                     <span className="pp-info-value">{d.value}</span>
@@ -46,20 +82,19 @@ export default function HappyTailsPetProfile() {
                 ))}
               </div>
 
-              {/* Routines & Notes */}
               <h2 className="pp-notes-title">Routines &amp; Notes</h2>
               <div className="pp-notes-box">
-                <p className="pp-notes-text">{PET.notes}</p>
+                <p className="pp-notes-text">{pet.notes || "No notes added."}</p>
               </div>
 
-              {/* Add Health Data */}
-              <button className="pp-health-btn" onClick={() => alert("Add health data")}>
+              <button
+                className="pp-health-btn"
+                onClick={() => alert("Add health data")}
+              >
                 + Add Health Data
               </button>
-
             </div>
           </div>
-
         </div>
       </div>
     </div>

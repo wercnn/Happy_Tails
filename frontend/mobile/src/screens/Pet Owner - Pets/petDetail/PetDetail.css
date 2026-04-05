@@ -45,9 +45,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .pp-header-top {
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 8px;
 }
 
@@ -56,15 +56,39 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   background: none;
   border: none;
   color: #fff;
-  font-size: 1rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   padding: 0;
   transition: opacity 0.15s;
 }
+
+.pp-back {
+  font-size: 1.7rem;
+  line-height: 1;
+  justify-self: start;
+}
+
+.pp-edit {
+  font-size: 1rem;
+  justify-self: end;
+}
+
 .pp-back:hover,
 .pp-edit:hover { opacity: 0.8; }
+
+.pp-header-label {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.pp-header-spacer {
+  width: 40px;
+  height: 1px;
+  justify-self: end;
+}
 
 .pp-avatar {
   font-size: 3.4rem;
@@ -160,19 +184,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 /* ── Add Health Data ── */
 .pp-health-btn {
-  width: 100%;
-  background: #ee8b28;
+  background: #f28c28;
   color: #fff;
   border: none;
   border-radius: 14px;
-  padding: 17px 10px;
-  font-size: 1rem;
+  padding: 15px 10px;
+  font-size: 0.85rem;
   font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.35);
-  transition: filter 0.15s, transform 0.15s;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
 }
 .pp-health-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .pp-health-btn:active { transform: translateY(1px); filter: brightness(0.96); }
