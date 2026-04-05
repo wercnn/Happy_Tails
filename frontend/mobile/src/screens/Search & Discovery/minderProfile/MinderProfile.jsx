@@ -147,7 +147,7 @@ export default function HappyTailsMinderProfile() {
           <div className="mp-footer">
             <button
               className="mp-book-btn"
-              onClick={() => alert(`Book ${profile.name}!`)}
+              onClick={() => navigate("/selectService", { state: { minder } })}
             >
               BOOK NOW →
             </button>

@@ -1,32 +1,43 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import "./SelectService.css";
 
 const SERVICES = [
-  { id: 1, emoji: "🚶", name: "Dog Walking (30 min)", price: "£15",      unit: "" },
-  { id: 2, emoji: "🚶", name: "Dog Walking (60 min)", price: "£22",      unit: "" },
-  { id: 3, emoji: "🏠", name: "Overnight Boarding",   price: "£35",      unit: "/night" },
+  { id: 1, emoji: "🚶", name: "Dog Walking (30 min)", price: "£15", unit: "" },
+  { id: 2, emoji: "🚶", name: "Dog Walking (60 min)", price: "£22", unit: "" },
+  { id: 3, emoji: "🏠", name: "Overnight Boarding", price: "£35", unit: "/night" },
 ];
 
 export default function HappyTailsSelectService() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const minder = location.state?.minder || null;
   const [selected, setSelected] = useState(null);
+
+  const handleBack = () => {
+    if (minder) {
+      navigate("/viewMinders", { state: { minder } });
+      return;
+    }
+
+    navigate("/ownerSearch");
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="ss-screen">
-
-          {/* Header */}
           <header className="ss-header">
-            <button className="ss-back" onClick={() => alert("Go back")}>←</button>
+            <button className="ss-back" onClick={handleBack}>
+              ←
+            </button>
             <h1 className="ss-title">Select Service</h1>
           </header>
 
-          {/* Body */}
           <div className="ss-scroll">
             <div className="ss-body">
-
               <p className="ss-subtitle">
-                Choose a service from <strong>James Walker</strong>
+                Choose a service from <strong>{minder?.name || "this minder"}</strong>
               </p>
 
               <div className="ss-list">
@@ -45,21 +56,18 @@ export default function HappyTailsSelectService() {
                   </button>
                 ))}
               </div>
-
             </div>
           </div>
 
-          {/* Footer */}
           <div className="ss-footer">
             <button
               className={`ss-continue-btn${!selected ? " ss-continue-btn--disabled" : ""}`}
-              onClick={() => selected ? alert("Continuing to booking…") : null}
+              onClick={() => (selected ? alert("Continuing to booking…") : null)}
               disabled={!selected}
             >
               CONTINUE →
             </button>
           </div>
-
         </div>
       </div>
     </div>
