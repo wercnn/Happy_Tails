@@ -223,10 +223,10 @@ export default function UsersPage() {
                     <Td>
                       <div style={{ display: "flex", gap: 6 }}>
                         <Btn variant="success" small>
-                          ✓ Approve
+                          Verify
                         </Btn>
                         <Btn variant="danger" small>
-                          ✗ Reject
+                          Reject
                         </Btn>
                         <Btn variant="outline" small>
                           View Docs
