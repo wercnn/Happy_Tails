@@ -163,10 +163,10 @@ export default function PaymentsPage() {
                     {r.status === "open" ? (
                       <div style={{ display: "flex", gap: 6 }}>
                         <Btn variant="success" small>
-                          Approve
+                          Approve Refund
                         </Btn>
                         <Btn variant="danger" small>
-                          Deny
+                          Deny Refund
                         </Btn>
                         <Btn variant="outline" small>
                           Escalate
