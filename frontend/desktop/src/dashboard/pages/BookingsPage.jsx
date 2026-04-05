@@ -99,9 +99,12 @@ export default function BookingsPage() {
                   <StatusBadge status={b.status} />
                 </Td>
                 <Td>
-                  <div style={{ display: "flex", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <Btn variant="outline" small>
                       View
+                    </Btn>
+                    <Btn variant = "outline" small>
+                      Intervene 
                     </Btn>
                     {b.status === "pending" && (
                       <Btn variant="danger" small>
