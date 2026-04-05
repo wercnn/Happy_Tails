@@ -19,6 +19,7 @@ export default function HappyTailsMyPets() {
   const [openPetId, setOpenPetId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [deletePetId, setDeletePetId] = useState(null);
 
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
@@ -39,6 +40,8 @@ export default function HappyTailsMyPets() {
       return matchesSearch && matchesFilter;
     });
   }, [pets, searchQuery, activeFilter]);
+
+  const petToDelete = pets.find((pet) => pet.id === deletePetId) || null;
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -67,6 +70,22 @@ export default function HappyTailsMyPets() {
 
   const togglePetSummary = (petId) => {
     setOpenPetId((prev) => (prev === petId ? null : petId));
+  };
+
+  const confirmDeletePet = (petId) => {
+    setDeletePetId(petId);
+  };
+
+  const handleDeletePet = () => {
+    const updatedPets = pets.filter((pet) => pet.id !== deletePetId);
+    setPets(updatedPets);
+    localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+
+    if (openPetId === deletePetId) {
+      setOpenPetId(null);
+    }
+
+    setDeletePetId(null);
   };
 
   return (
@@ -113,13 +132,23 @@ export default function HappyTailsMyPets() {
 
               {filteredPets.map((pet) => (
                 <div key={pet.id} className="mypets-card">
-                  <button
-                    className="mypets-edit-icon"
-                    onClick={() => navigate("/addPet", { state: { pet } })}
-                    aria-label={`Edit ${pet.name}`}
-                  >
-                    ✎
-                  </button>
+                  <div className="mypets-card-actions-top">
+                    <button
+                      className="mypets-edit-icon"
+                      onClick={() => navigate("/addPet", { state: { pet } })}
+                      aria-label={`Edit ${pet.name}`}
+                    >
+                      ✎
+                    </button>
+
+                    <button
+                      className="mypets-delete-icon"
+                      onClick={() => confirmDeletePet(pet.id)}
+                      aria-label={`Delete ${pet.name}`}
+                    >
+                      🗑
+                    </button>
+                  </div>
 
                   <div className="mypets-card-top">
                     <span className="mypets-avatar">
@@ -191,6 +220,32 @@ export default function HappyTailsMyPets() {
               </button>
             ))}
           </nav>
+
+          {deletePetId && (
+            <div className="mypets-delete-overlay">
+              <div className="mypets-delete-modal">
+                <h2 className="mypets-delete-title">Delete Pet?</h2>
+                <p className="mypets-delete-text">
+                  Are you sure you want to remove {petToDelete?.name || "this pet"}?
+                </p>
+
+                <div className="mypets-delete-actions">
+                  <button
+                    className="mypets-delete-cancel"
+                    onClick={() => setDeletePetId(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="mypets-delete-confirm"
+                    onClick={handleDeletePet}
+                  >
+                    Yes, Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
