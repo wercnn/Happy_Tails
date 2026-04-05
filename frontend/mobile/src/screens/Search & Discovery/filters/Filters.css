@@ -248,10 +248,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   border-radius: 12px;
   padding: 16px 10px;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.06em;
-  cursor: pointer;
+  letter-spacing: 0.08em;
   box-shadow: 0 4px 12px rgba(238, 139, 40, 0.32);
   transition: filter 0.15s, transform 0.12s;
 }
@@ -266,7 +265,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   border-radius: 12px;
   padding: 14px 10px;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 700;
   font-family: inherit;
   letter-spacing: 0.06em;
   cursor: pointer;

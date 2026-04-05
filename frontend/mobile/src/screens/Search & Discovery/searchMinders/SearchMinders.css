@@ -110,6 +110,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   justify-content: center;
   flex-shrink: 0;
   transition: filter 0.15s;
+  color: white;
 }
 .fm-filter-btn:hover { filter: brightness(1.08); }
 

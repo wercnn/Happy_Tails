@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./SearchMinders.css";
 
 const FILTERS = ["Dog Walking", "Boarding", "Pet Sitting", "Day Care"];
@@ -9,31 +9,46 @@ const MINDERS = [
     id: 1,
     emoji: "🐕",
     name: "James Walker",
-    verified: true,
     services: "Dog Walking · Boarding",
+    serviceList: ["Dog Walking", "Boarding"],
+    petTypes: ["Dogs"],
+    availability: ["Today", "This Week"],
+    price: 15,
     rate: "£15/hr",
     distance: "0.8 mi",
-    rating: "4.9",
+    rating: 4.9,
+    ratingText: "4.9",
+    reviews: 24,
   },
   {
     id: 2,
     emoji: "🐶",
     name: "Priya Patel",
-    verified: false,
     services: "Pet Sitting · Day Care",
+    serviceList: ["Pet Sitting", "Day Care"],
+    petTypes: ["Dogs", "Cats"],
+    availability: ["This Week", "Weekends Only"],
+    price: 12,
     rate: "£12/hr",
     distance: "1.2 mi",
-    rating: "4.7",
+    rating: 4.7,
+    ratingText: "4.7",
+    reviews: 18,
   },
   {
     id: 3,
     emoji: "🐕",
     name: "Tom Hughes",
-    verified: true,
     services: "Dog Walking",
+    serviceList: ["Dog Walking"],
+    petTypes: ["Dogs", "Rabbits"],
+    availability: ["Today", "Weekends Only"],
+    price: 14,
     rate: "£14/hr",
     distance: "1.5 mi",
-    rating: "4.8",
+    rating: 4.8,
+    ratingText: "4.8",
+    reviews: 31,
   },
 ];
 
@@ -45,11 +60,28 @@ const NAV = [
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
+const DEFAULT_FILTERS = {
+  services: ["All"],
+  pets: ["All"],
+  availability: ["Any"],
+  maxPrice: 25,
+  sortBy: "Nearest First",
+};
+
 export default function HappyTailsFindMinder() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState([]);
   const [activeNav, setActiveNav] = useState("search");
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
+
+  useEffect(() => {
+    if (location.state?.filters) {
+      setAppliedFilters(location.state.filters);
+    }
+  }, [location.state]);
 
   const toggleFilter = (f) =>
     setActiveFilters((prev) =>
@@ -81,20 +113,62 @@ export default function HappyTailsFindMinder() {
     }
   };
 
-  const filtered = MINDERS.filter((m) => {
-    const matchesQuery =
-      query === "" ||
-      m.name.toLowerCase().includes(query.toLowerCase()) ||
-      m.services.toLowerCase().includes(query.toLowerCase());
+  const filtered = useMemo(() => {
+    let result = MINDERS.filter((m) => {
+      const matchesQuery =
+        query.trim() === "" ||
+        m.name.toLowerCase().includes(query.toLowerCase()) ||
+        m.services.toLowerCase().includes(query.toLowerCase());
 
-    const matchesFilters =
-      activeFilters.length === 0 ||
-      activeFilters.some((f) =>
-        m.services.toLowerCase().includes(f.toLowerCase())
+      const matchesChipFilters =
+        activeFilters.length === 0 ||
+        activeFilters.some((f) => m.serviceList.includes(f));
+
+      const matchesServiceFilters =
+        appliedFilters.services.includes("All") ||
+        appliedFilters.services.some((service) =>
+          m.serviceList.includes(service)
+        );
+
+      const matchesPetFilters =
+        appliedFilters.pets.includes("All") ||
+        appliedFilters.pets.some((pet) => m.petTypes.includes(pet));
+
+      const matchesAvailability =
+        appliedFilters.availability.includes("Any") ||
+        appliedFilters.availability.some((slot) =>
+          m.availability.includes(slot)
+        );
+
+      const matchesPrice = m.price <= appliedFilters.maxPrice;
+
+      return (
+        matchesQuery &&
+        matchesChipFilters &&
+        matchesServiceFilters &&
+        matchesPetFilters &&
+        matchesAvailability &&
+        matchesPrice
       );
+    });
 
-    return matchesQuery && matchesFilters;
-  });
+    switch (appliedFilters.sortBy) {
+      case "Highest Rated":
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case "Lowest Price":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "Most Reviews":
+        result.sort((a, b) => b.reviews - a.reviews);
+        break;
+      case "Nearest First":
+      default:
+        break;
+    }
+
+    return result;
+  }, [query, activeFilters, appliedFilters]);
 
   return (
     <div className="mobile-stage">
@@ -117,8 +191,15 @@ export default function HappyTailsFindMinder() {
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </div>
-                <button className="fm-filter-btn" onClick={() => alert("Open filters")}>
-                  ⚙️
+                <button
+                  className="fm-filter-btn"
+                  onClick={() =>
+                    navigate("/searchFilters", {
+                      state: { filters: appliedFilters },
+                    })
+                  }
+                >
+                  ☰
                 </button>
               </div>
 
@@ -145,7 +226,6 @@ export default function HappyTailsFindMinder() {
                     <div className="fm-minder-info">
                       <div className="fm-minder-name-row">
                         <span className="fm-minder-name">{m.name}</span>
-                        {m.verified && <span className="fm-verified">✔</span>}
                       </div>
                       <span className="fm-minder-services">{m.services}</span>
                       <div className="fm-minder-meta">
@@ -153,11 +233,12 @@ export default function HappyTailsFindMinder() {
                         <span className="fm-dot-sep">📍</span>
                         <span className="fm-distance">{m.distance}</span>
                         <span className="fm-star">⭐</span>
-                        <span className="fm-rating">{m.rating}</span>
+                        <span className="fm-rating">{m.ratingText}</span>
                       </div>
                     </div>
                   </button>
                 ))}
+
                 {filtered.length === 0 && (
                   <p className="fm-empty">No minders found. Try adjusting your search.</p>
                 )}

@@ -1,55 +1,82 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Filters.css";
 
 const SERVICE_TYPES = ["All", "Dog Walking", "Boarding", "Pet Sitting", "Day Care"];
-const PET_TYPES     = ["All", "Dogs", "Cats", "Rabbits", "Birds"];
-const AVAILABILITY  = ["Any", "Today", "This Week", "Weekends Only"];
-const SORT_OPTIONS  = ["Nearest First", "Highest Rated", "Lowest Price", "Most Reviews"];
+const PET_TYPES = ["All", "Dogs", "Cats", "Rabbits", "Birds"];
+const AVAILABILITY = ["Any", "Today", "This Week", "Weekends Only"];
+const SORT_OPTIONS = ["Nearest First", "Highest Rated", "Lowest Price", "Most Reviews"];
+
+const DEFAULT_FILTERS = {
+  services: ["All"],
+  pets: ["All"],
+  availability: ["Any"],
+  maxPrice: 25,
+  sortBy: "Nearest First",
+};
 
 export default function HappyTailsFilters() {
-  const [services,      setServices]      = useState(["All"]);
-  const [pets,          setPets]          = useState(["All"]);
-  const [availability,  setAvailability]  = useState(["Any"]);
-  const [maxPrice,      setMaxPrice]      = useState(25);
-  const [sortBy,        setSortBy]        = useState("Nearest First");
-  const [sortOpen,      setSortOpen]      = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const incomingFilters = location.state?.filters || DEFAULT_FILTERS;
+
+  const [services, setServices] = useState(incomingFilters.services);
+  const [pets, setPets] = useState(incomingFilters.pets);
+  const [availability, setAvailability] = useState(incomingFilters.availability);
+  const [maxPrice, setMaxPrice] = useState(incomingFilters.maxPrice);
+  const [sortBy, setSortBy] = useState(incomingFilters.sortBy);
+  const [sortOpen, setSortOpen] = useState(false);
 
   const toggle = (val, list, setter, exclusive = ["All", "Any"]) => {
     if (exclusive.includes(val)) {
       setter([val]);
     } else {
       setter((prev) => {
-        const without = prev.filter((x) => !exclusive.includes(x));
-        return without.includes(val)
-          ? without.filter((x) => x !== val) || [exclusive[0]]
-          : [...without, val];
+        const withoutExclusive = prev.filter((x) => !exclusive.includes(x));
+
+        const updated = withoutExclusive.includes(val)
+          ? withoutExclusive.filter((x) => x !== val)
+          : [...withoutExclusive, val];
+
+        return updated.length > 0 ? updated : [exclusive[0]];
       });
     }
   };
 
-  const applyFilters = () => alert("Filters applied!");
+  const applyFilters = () => {
+    navigate("/ownerSearch", {
+      state: {
+        filters: {
+          services,
+          pets,
+          availability,
+          maxPrice,
+          sortBy,
+        },
+      },
+    });
+  };
+
   const clearAll = () => {
     setServices(["All"]);
     setPets(["All"]);
     setAvailability(["Any"]);
     setMaxPrice(25);
     setSortBy("Nearest First");
+    setSortOpen(false);
   };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="flt-screen">
-
-          {/* Drag handle */}
           <div className="flt-handle" />
 
           <div className="flt-scroll">
             <div className="flt-body">
-
               <h1 className="flt-heading">Filters &amp; Sort</h1>
 
-              {/* Service Type */}
               <section className="flt-section">
                 <label className="flt-section-label">Service Type</label>
                 <div className="flt-chips">
@@ -58,12 +85,13 @@ export default function HappyTailsFilters() {
                       key={s}
                       className={`flt-chip${services.includes(s) ? " flt-chip--active" : ""}`}
                       onClick={() => toggle(s, services, setServices, ["All"])}
-                    >{s}</button>
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               </section>
 
-              {/* Pet Type */}
               <section className="flt-section">
                 <label className="flt-section-label">Pet Type</label>
                 <div className="flt-chips">
@@ -72,12 +100,13 @@ export default function HappyTailsFilters() {
                       key={p}
                       className={`flt-chip${pets.includes(p) ? " flt-chip--active" : ""}`}
                       onClick={() => toggle(p, pets, setPets, ["All"])}
-                    >{p}</button>
+                    >
+                      {p}
+                    </button>
                   ))}
                 </div>
               </section>
 
-              {/* Availability */}
               <section className="flt-section">
                 <label className="flt-section-label">Availability</label>
                 <div className="flt-chips">
@@ -86,19 +115,22 @@ export default function HappyTailsFilters() {
                       key={a}
                       className={`flt-chip${availability.includes(a) ? " flt-chip--active" : ""}`}
                       onClick={() => toggle(a, availability, setAvailability, ["Any"])}
-                    >{a}</button>
+                    >
+                      {a}
+                    </button>
                   ))}
                 </div>
               </section>
 
-              {/* Max Price */}
               <section className="flt-section">
                 <label className="flt-section-label">Max Price (per hour)</label>
                 <div className="flt-slider-wrap">
                   <input
                     type="range"
                     className="flt-slider"
-                    min={5} max={50} step={1}
+                    min={5}
+                    max={50}
+                    step={1}
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(Number(e.target.value))}
                     style={{ "--pct": `${((maxPrice - 5) / 45) * 100}%` }}
@@ -111,7 +143,6 @@ export default function HappyTailsFilters() {
                 </div>
               </section>
 
-              {/* Sort By */}
               <section className="flt-section">
                 <label className="flt-section-label">Sort By</label>
                 <div className="flt-select-wrap">
@@ -120,26 +151,32 @@ export default function HappyTailsFilters() {
                     onClick={() => setSortOpen((o) => !o)}
                   >
                     <span>{sortBy}</span>
-                    <span className={`flt-select-arrow${sortOpen ? " flt-select-arrow--open" : ""}`}>▼</span>
+                    <span className={`flt-select-arrow${sortOpen ? " flt-select-arrow--open" : ""}`}>
+                      ▼
+                    </span>
                   </button>
+
                   {sortOpen && (
                     <div className="flt-dropdown">
                       {SORT_OPTIONS.map((opt) => (
                         <button
                           key={opt}
                           className={`flt-dropdown-item${sortBy === opt ? " flt-dropdown-item--active" : ""}`}
-                          onClick={() => { setSortBy(opt); setSortOpen(false); }}
-                        >{opt}</button>
+                          onClick={() => {
+                            setSortBy(opt);
+                            setSortOpen(false);
+                          }}
+                        >
+                          {opt}
+                        </button>
                       ))}
                     </div>
                   )}
                 </div>
               </section>
-
             </div>
           </div>
 
-          {/* Footer actions */}
           <div className="flt-footer">
             <button className="flt-apply-btn" onClick={applyFilters}>
               APPLY FILTERS
@@ -148,7 +185,6 @@ export default function HappyTailsFilters() {
               CLEAR ALL
             </button>
           </div>
-
         </div>
       </div>
     </div>
