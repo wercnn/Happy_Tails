@@ -48,7 +48,6 @@ function App() {
       <Route path="/ownerBooking" element={<OwnerBooking />} />
       <Route path="/addPet" element={<AddPet />} />
 
-
       <Route path="/profile" element={<Profile />} />
     </Routes>
   )

@@ -1,25 +1,42 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./CreatePet.css";
 
 const SPECIES = ["Dog", "Cat", "Rabbit", "Bird", "Reptile", "Other"];
 
+const EMPTY_FORM = {
+  name: "",
+  species: "Dog",
+  breed: "",
+  age: "",
+  notes: "",
+};
+
 export default function HappyTailsCreatePet() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    name: "",
-    species: "Dog",
-    breed: "",
-    age: "",
-    notes: "",
-  });
+  const location = useLocation();
+  const editingPet = location.state?.pet || null;
+
+  const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState(null);
   const [errors, setErrors] = useState({});
   const fileRef = useRef(null);
 
+  useEffect(() => {
+    if (editingPet) {
+      setForm({
+        name: editingPet.name || "",
+        species: editingPet.species || "Dog",
+        breed: editingPet.breed || "",
+        age: editingPet.age || "",
+        notes: editingPet.notes || "",
+      });
+      setPhoto(editingPet.photo || null);
+    }
+  }, [editingPet]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     const nextValue = name === "notes" ? value.slice(0, 200) : value;
 
     setForm((f) => ({ ...f, [name]: nextValue }));
@@ -39,25 +56,11 @@ export default function HappyTailsCreatePet() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!form.name.trim()) {
-      newErrors.name = "Pet name is required.";
-    }
-
-    if (!form.species.trim()) {
-      newErrors.species = "Species is required.";
-    }
-
-    if (!form.breed.trim()) {
-      newErrors.breed = "Breed is required.";
-    }
-
-    if (!form.age.trim()) {
-      newErrors.age = "Age is required.";
-    }
-
-    if (!form.notes.trim()) {
-      newErrors.notes = "Daily routines / notes are required.";
-    }
+    if (!form.name.trim()) newErrors.name = "Pet name is required.";
+    if (!form.species.trim()) newErrors.species = "Species is required.";
+    if (!form.breed.trim()) newErrors.breed = "Breed is required.";
+    if (!form.age.trim()) newErrors.age = "Age is required.";
+    if (!form.notes.trim()) newErrors.notes = "Daily routines / notes are required.";
 
     return newErrors;
   };
@@ -83,27 +86,43 @@ export default function HappyTailsCreatePet() {
     const validationErrors = validateForm();
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
-
-    const newPet = {
-      id: Date.now(),
-      emoji: getPetEmoji(form.species),
-      name: form.name.trim(),
-      breed: form.breed.trim(),
-      age: form.age.trim(),
-      species: form.species,
-      notes: form.notes.trim(),
-      photo: photo || null,
-    };
+    if (Object.keys(validationErrors).length > 0) return;
 
     const existingPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
-    const updatedPets = [...existingPets, newPet];
 
-    localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+    if (editingPet) {
+      const updatedPets = existingPets.map((pet) =>
+        pet.id === editingPet.id
+          ? {
+              ...pet,
+              emoji: getPetEmoji(form.species),
+              name: form.name.trim(),
+              breed: form.breed.trim(),
+              age: form.age.trim(),
+              species: form.species,
+              notes: form.notes.trim(),
+              photo: photo || null,
+            }
+          : pet
+      );
 
-    alert("Pet profile saved!");
+      localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+    } else {
+      const newPet = {
+        id: Date.now(),
+        emoji: getPetEmoji(form.species),
+        name: form.name.trim(),
+        breed: form.breed.trim(),
+        age: form.age.trim(),
+        species: form.species,
+        notes: form.notes.trim(),
+        photo: photo || null,
+      };
+
+      const updatedPets = [...existingPets, newPet];
+      localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+    }
+
     navigate("/ownerPets");
   };
 
@@ -112,8 +131,12 @@ export default function HappyTailsCreatePet() {
       <div className="mobile-frame">
         <div className="cpet-screen">
           <header className="cpet-header">
-            <button className="cpet-back" onClick={() => navigate("/ownerPets")}>←</button>
-            <h1 className="cpet-title">Create Pet Profile</h1>
+            <button className="cpet-back" onClick={() => navigate("/ownerPets")}>
+              ←
+            </button>
+            <h1 className="cpet-title">
+              {editingPet ? "Edit Pet Profile" : "Create Pet Profile"}
+            </h1>
           </header>
 
           <div className="cpet-scroll">
@@ -173,7 +196,9 @@ export default function HappyTailsCreatePet() {
                     onChange={handleChange}
                   >
                     {SPECIES.map((s) => (
-                      <option key={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
                   <span className="cpet-select-arrow">V</span>
@@ -225,7 +250,7 @@ export default function HappyTailsCreatePet() {
               </div>
 
               <button className="cpet-save" onClick={handleSubmit}>
-                Save Pet Profile
+                {editingPet ? "Update Pet Profile" : "Save Pet Profile"}
               </button>
             </div>
           </div>

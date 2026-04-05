@@ -136,7 +136,7 @@ export default function HappyTailsMyPets() {
                 <div key={pet.id} className="mypets-card">
                   <button
                     className="mypets-edit-icon"
-                    onClick={() => alert(`Edit ${pet.name}`)}
+                    onClick={() => navigate("/addPet", { state: { pet } })}
                     aria-label={`Edit ${pet.name}`}
                   >
                     ✎
