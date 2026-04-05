@@ -23,6 +23,19 @@ export default function HappyTailsSelectService() {
     navigate("/ownerSearch");
   };
 
+  const handleContinue = () => {
+    if (!selected) return;
+
+    const selectedService = SERVICES.find((svc) => svc.id === selected);
+
+    navigate("/selectDates", {
+      state: {
+        minder,
+        service: selectedService,
+      },
+    });
+  };
+
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
@@ -62,7 +75,7 @@ export default function HappyTailsSelectService() {
           <div className="ss-footer">
             <button
               className={`ss-continue-btn${!selected ? " ss-continue-btn--disabled" : ""}`}
-              onClick={() => (selected ? alert("Continuing to booking…") : null)}
+              onClick={handleContinue}
               disabled={!selected}
             >
               CONTINUE →
