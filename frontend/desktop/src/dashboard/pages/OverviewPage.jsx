@@ -7,13 +7,14 @@ import { StatCard } from "../components/StatCard.jsx";
 
 export default function OverviewPage() {
   const stats = [
-    { icon: "👤", label: "Total Users", value: "4,812", delta: "+214", deltaUp: true, color: C.orange },
-    { icon: "🐾", label: "Active Bookings", value: "387", delta: "+42", deltaUp: true, color: C.blue },
-    { icon: "💷", label: "Revenue (Month)", value: "£18,340", delta: "+12%", deltaUp: true, color: C.green },
-    { icon: "🚨", label: "Open Incidents", value: "7", delta: "+2", deltaUp: false, color: C.red },
-    { icon: "⭐", label: "Avg. Rating", value: "4.7", delta: "+0.1", deltaUp: true, color: C.yellow },
-    { icon: "🕵️", label: "Pending Verif.", value: "23", delta: "-5", deltaUp: true, color: C.navy },
-  ];
+    const stats = [
+  { icon: "⚖️", label: "Open Disputes", value: "6", delta: "+2", deltaUp: false, color: C.red },
+  { icon: "🚨", label: "Open Incidents", value: "7", delta: "+2", deltaUp: false, color: C.red },
+  { icon: "🕵️", label: "Pending Verifications", value: "23", delta: "-5", deltaUp: true, color: C.navy },
+  { icon: "💳", label: "Refund Requests", value: "9", delta: "+3", deltaUp: false, color: C.orange },
+  { icon: "⭐", label: "Flagged Reviews", value: "7", delta: "+1", deltaUp: false, color: C.yellow },
+  { icon: "📋", label: "Active Bookings", value: "387", delta: "+42", deltaUp: true, color: C.blue },
+];
 
   const recentBookings = [
     { id: "#HT-8801", owner: "Sarah J.", minder: "James W.", service: "Dog Walking", date: "Today 9am", status: "confirmed" },
@@ -23,6 +24,7 @@ export default function OverviewPage() {
   ];
 
   const alerts = [
+    { icon: "⚖️", text: "Dispute #DSP-101 opened — refund requested for booking #HT-8801", time: "4 min ago" },
     { icon: "🚨", text: "Incident #INC-042 escalated — Buddy reported injured", time: "5 min ago" },
     { icon: "🕵️", text: "3 new minder identity verifications awaiting review", time: "1 hr ago" },
     { icon: "⭐", text: "Review #RV-281 flagged for abusive language", time: "2 hr ago" },
@@ -31,7 +33,7 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <SectionHeader title="Dashboard Overview" subtitle="Welcome back, Support Team. Here's what's happening today." />
+      <SectionHeader title="Support Overview" subtitle="Monitor disputes, refunds, incidents and verification activity." />
 
       {/* Stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
@@ -45,8 +47,8 @@ export default function OverviewPage() {
         <Card style={{ padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
-              <h3 style={{ margin: 0, color: C.navy, fontWeight: 800, fontSize: 15 }}>Bookings This Month</h3>
-              <p style={{ margin: "2px 0 0", color: C.mid, fontSize: 12 }}>Daily booking activity</p>
+              <h3 style={{ margin: 0, color: C.navy, fontWeight: 800, fontSize: 15 }}>Support Case Activity</h3>
+              <p style={{ margin: "2px 0 0", color: C.mid, fontSize: 12 }}>Daily support workload across bookings and disputes</p>
             </div>
             <Badge color={C.green} bg={C.greenLight}>
               ↑ 18% vs last month
