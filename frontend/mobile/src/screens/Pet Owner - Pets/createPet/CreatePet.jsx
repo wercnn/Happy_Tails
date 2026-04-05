@@ -16,6 +16,7 @@ export default function HappyTailsCreatePet() {
   const navigate = useNavigate();
   const location = useLocation();
   const editingPet = location.state?.pet || null;
+  const returnTo = location.state?.returnTo || null;
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState(null);
@@ -91,22 +92,27 @@ export default function HappyTailsCreatePet() {
     const existingPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
 
     if (editingPet) {
+      const updatedPet = {
+        ...editingPet,
+        emoji: getPetEmoji(form.species),
+        name: form.name.trim(),
+        breed: form.breed.trim(),
+        age: form.age.trim(),
+        species: form.species,
+        notes: form.notes.trim(),
+        photo: photo || null,
+      };
+
       const updatedPets = existingPets.map((pet) =>
-        pet.id === editingPet.id
-          ? {
-              ...pet,
-              emoji: getPetEmoji(form.species),
-              name: form.name.trim(),
-              breed: form.breed.trim(),
-              age: form.age.trim(),
-              species: form.species,
-              notes: form.notes.trim(),
-              photo: photo || null,
-            }
-          : pet
+        pet.id === editingPet.id ? updatedPet : pet
       );
 
       localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+
+      if (returnTo === "petDetail") {
+        navigate("/petProfile", { state: { pet: updatedPet } });
+        return;
+      }
     } else {
       const newPet = {
         id: Date.now(),
@@ -126,12 +132,21 @@ export default function HappyTailsCreatePet() {
     navigate("/ownerPets");
   };
 
+  const handleBack = () => {
+    if (editingPet && returnTo === "petDetail") {
+      navigate("/petProfile", { state: { pet: editingPet } });
+      return;
+    }
+
+    navigate("/ownerPets");
+  };
+
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="cpet-screen">
           <header className="cpet-header">
-            <button className="cpet-back" onClick={() => navigate("/ownerPets")}>
+            <button className="cpet-back" onClick={handleBack}>
               ←
             </button>
             <h1 className="cpet-title">

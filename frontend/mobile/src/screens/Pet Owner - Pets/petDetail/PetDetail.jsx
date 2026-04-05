@@ -51,7 +51,7 @@ export default function HappyTailsPetProfile() {
 
               <button
                 className="pp-edit"
-                onClick={() => navigate("/addPet", { state: { pet } })}
+                onClick={() => navigate("/addPet", { state: { pet, returnTo: "petDetail" } })}
               >
                 Edit
               </button>
