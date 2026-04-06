@@ -37,9 +37,9 @@ export default function UsersPage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.light, borderRadius: 10, padding: 4, width: "fit-content" }}>
         {[
-          ["owners", "🐶 Pet Owners"],
-          ["minders", "🏠 Pet Minders"],
-          ["pending", "🕵️ Pending Verification"],
+          ["owners", "Pet Owners"],
+          ["minders", "Pet Minders"],
+          ["pending", "Pending Verification"],
         ].map(([k, l]) => (
           <button
             key={k}
