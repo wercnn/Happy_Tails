@@ -22,7 +22,7 @@ export default function BookingsPage() {
 
   return (
     <div>
-      <SectionHeader title="Booking Management" subtitle="Monitor, review and manage all bookings on the platform" action={<Input placeholder="Search bookings..." icon="🔍" style={{ width: 240 }} />} />
+      <SectionHeader title="Booking Management" subtitle="Monitor booking activity and step in when customer support intervention is needed." action={<Input placeholder="Search bookings..." icon="🔍" style={{ width: 240 }} />} />
 
       {/* Filter tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
