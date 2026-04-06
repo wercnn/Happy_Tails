@@ -425,24 +425,14 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   gap: 3px;
   padding: 6px 4px 2px;
-  min-height: 52px;
   cursor: pointer;
   transition: opacity 0.15s;
 }
-
 .bh-nav-item:hover { opacity: 0.75; }
 
-.bh-nav-emoji {
-  font-size: 1.25rem;
-  line-height: 1;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.bh-nav-emoji { font-size: 1.25rem; line-height: 1; }
 
 .bh-nav-label {
   font-size: 0.63rem;
@@ -450,7 +440,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-family: inherit;
   color: #aaa;
   white-space: nowrap;
-  line-height: 1;
 }
 
 .bh-nav-item--active .bh-nav-label { color: #f28c28; }
