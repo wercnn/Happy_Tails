@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Service.css";
 
@@ -20,6 +20,20 @@ export default function HappyTailsMyServices() {
   const navigate = useNavigate();
   const [services, setServices] = useState(INITIAL_SERVICES);
   const [activeNav, setActiveNav] = useState("services");
+
+  useEffect(() => {
+    const savedServices = JSON.parse(localStorage.getItem("minderServices") || "[]");
+
+    const formattedSavedServices = savedServices.map((svc) => ({
+      id: svc.id,
+      name: svc.duration ? `${svc.serviceType} (${svc.duration})` : svc.serviceType,
+      price: svc.price.startsWith("£") ? svc.price : `£${svc.price}`,
+      unit: "",
+      enabled: true,
+    }));
+
+    setServices([...INITIAL_SERVICES, ...formattedSavedServices]);
+  }, []);
 
   const toggleService = (id) =>
     setServices((prev) =>
@@ -61,6 +75,13 @@ export default function HappyTailsMyServices() {
 
           <div className="ms-scroll">
             <div className="ms-body">
+              <button
+                className="ms-add-btn"
+                onClick={() => navigate("/addService")}
+              >
+                + Add New Service
+              </button>
+
               <div className="ms-list">
                 {services.map((svc) => (
                   <div key={svc.id} className="ms-card">
@@ -88,13 +109,6 @@ export default function HappyTailsMyServices() {
                   </div>
                 ))}
               </div>
-
-              <button
-                className="ms-add-btn"
-                onClick={() => alert("Add new service")}
-              >
-                + Add New Service
-              </button>
             </div>
           </div>
 
