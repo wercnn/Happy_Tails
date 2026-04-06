@@ -119,18 +119,18 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .rs-primary-btn {
   width: 100%;
-  background: #ee8b28;
+  background: #f28c28;
   color: #fff;
   border: none;
-  border-radius: 12px;
-  padding: 16px 10px;
-  font-size: 0.9rem;
-  font-weight: 800;
+  border-radius: 14px;
+  padding: 15px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
   font-family: inherit;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.32);
-  transition: filter 0.15s, transform 0.12s;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 .rs-primary-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .rs-primary-btn:active { transform: translateY(1px); }

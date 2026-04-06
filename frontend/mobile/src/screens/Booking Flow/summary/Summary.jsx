@@ -128,7 +128,7 @@ export default function HappyTailsBookingSummary() {
   const minder = location.state?.minder || null;
   const service = location.state?.service || null;
 
-  const [mode, setMode] = useState("single"); // "single" | "multi"
+  const [mode, setMode] = useState("single");
 
   const booking = (() => {
     const base = mode === "single" ? SINGLE_BOOKING : MULTI_BOOKING;
@@ -149,6 +149,14 @@ export default function HappyTailsBookingSummary() {
       state: {
         minder,
         service,
+      },
+    });
+  };
+
+  const handleConfirmBooking = () => {
+    navigate("/requestSent", {
+      state: {
+        minderName: booking.minder,
       },
     });
   };
@@ -186,7 +194,7 @@ export default function HappyTailsBookingSummary() {
           <div className="bs-footer">
             <button
               className="bs-confirm-btn"
-              onClick={() => alert("Booking confirmed!")}
+              onClick={handleConfirmBooking}
             >
               CONFIRM BOOKING →
             </button>
