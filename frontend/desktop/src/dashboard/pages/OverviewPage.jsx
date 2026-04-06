@@ -33,7 +33,7 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <SectionHeader title="Support Overview" subtitle="Monitor disputes, refunds, incidents and verification activity." />
+      <SectionHeader title="Support Overview" subtitle="Track disputes, refunds and verification activity across the platform." />
 
       {/* Stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
