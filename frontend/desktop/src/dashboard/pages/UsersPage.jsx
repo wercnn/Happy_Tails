@@ -30,7 +30,7 @@ export default function UsersPage() {
     <div>
       <SectionHeader
         title="User Management"
-        subtitle="Manage pet owners, minders and identity verifications"
+        subtitle="Review pet owner and pet minder accounts, verification status and account actions."
         action={<Input placeholder="Search users..." icon="🔍" style={{ width: 240 }} />}
       />
 
