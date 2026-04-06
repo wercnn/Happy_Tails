@@ -7,7 +7,7 @@ import { StatCard } from "../components/StatCard.jsx";
 
 export default function OverviewPage() {
   const stats = [
-    const stats = [
+    
   { icon: "⚖️", label: "Open Disputes", value: "6", delta: "+2", deltaUp: false, color: C.red },
   { icon: "🚨", label: "Open Incidents", value: "7", delta: "+2", deltaUp: false, color: C.red },
   { icon: "🕵️", label: "Pending Verifications", value: "23", delta: "-5", deltaUp: true, color: C.navy },
