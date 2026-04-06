@@ -23,7 +23,7 @@ export default function PaymentsPage() {
 
   return (
     <div>
-      <SectionHeader title="Payments & Refunds" subtitle="Manage escrow, transactions and dispute resolution (RQ39, 52–55)" />
+      <SectionHeader title="Payments & Refunds" subtitle="Review transactions, escrow activity and refund requests." />
 
       {/* Revenue stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
