@@ -284,6 +284,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   background: #fde8cc;
   color: #d97706;
 }
+
 /* ── Cards ── */
 .br-card {
   background: #fff;
@@ -300,6 +301,27 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.br-card-avatar-btn,
+.br-card-service-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.br-card-avatar-btn {
+  flex-shrink: 0;
+}
+
+.br-card-service-btn {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
 }
 
 .br-card-avatar {
@@ -320,6 +342,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-weight: 800;
   color: #1a1a1a;
   line-height: 1.2;
+  display: block;
 }
 
 /* ── Status Badges ── */

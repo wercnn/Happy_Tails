@@ -172,6 +172,10 @@ export default function HappyTailsBookingRequests() {
     }
   };
 
+  const handleOwnerClick = (request) => {
+    navigate("/acceptReject", { state: { request } });
+  };
+
   const handleNavClick = (id) => {
     setActiveNav(id);
 
@@ -299,8 +303,22 @@ export default function HappyTailsBookingRequests() {
               {filteredRequests.map((r) => (
                 <div key={r.id} className="br-card">
                   <div className="br-card-top">
-                    <span className="br-card-avatar">{r.icon}</span>
-                    <span className="br-card-service">{r.service}</span>
+                    <button
+                      type="button"
+                      className="br-card-avatar-btn"
+                      onClick={() => handleOwnerClick(r)}
+                    >
+                      <span className="br-card-avatar">{r.icon}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="br-card-service-btn"
+                      onClick={() => handleOwnerClick(r)}
+                    >
+                      <span className="br-card-service">{r.service}</span>
+                    </button>
+
                     <span className={`br-badge ${STATUS_CLASS[r.status] || ""}`}>
                       {r.status}
                     </span>

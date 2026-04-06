@@ -15,6 +15,7 @@ import MindDash from './screens/Pet Minder/dashboard/Dashboard'
 import MindService from './screens/Pet Minder/services/Service'
 import MindAvailability from './screens/Pet Minder/availability/Availability'
 import MindRequests from './screens/Pet Minder/requests/Requests'
+import AcceptReject from './screens/Pet Minder/accept/Accept'
 
 /* Pet Owner screens */
 import OwnerDash from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
@@ -50,6 +51,7 @@ function App() {
       <Route path="/mindService" element={<MindService />} />
       <Route path="/mindAvailability" element={<MindAvailability />} />
       <Route path="/mindRequests" element={<MindRequests />} />
+      <Route path="/acceptReject" element={<AcceptReject />} />
 
       <Route path="/ownerDash" element={<OwnerDash />} />
       <Route path="/ownerPets" element={<OwnerPets />} />
