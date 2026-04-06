@@ -378,10 +378,7 @@ CREATE TABLE MEDIA (
     timestamp   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_MEDIA PRIMARY KEY (mediaID),
     CONSTRAINT FK_MEDIA_REPORT FOREIGN KEY (reportID)
-        REFERENCES VISIT_REPORT (reportID) ON DELETE SET NULL,
-    CONSTRAINT CHK_MEDIA_PARENT CHECK (
-        (reportID IS NOT NULL OR messageID IS NOT NULL OR incidentID IS NOT NULL)
-    )
+        REFERENCES VISIT_REPORT (reportID) ON DELETE SET NULL
 );
 
 -- =============================================================

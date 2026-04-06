@@ -1,0 +1,17 @@
+{
+  "name": "happytails-server",
+  "version": "1.0.0",
+  "description": "Happy Tails pet minder app — backend prototype",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "mysql2": "^3.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
