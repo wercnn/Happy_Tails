@@ -85,7 +85,7 @@ export default function BookingsPage() {
             {filtered.map((b) => (
               <tr key={b.id}>
                 <Td>
-                  <span style={{ fontWeight: 800, color: C.navy, fontSize: 12 }}>{b.id}</span>
+                  <span style={{ fontWeight: 800, color: C.orange, fontSize: 12 }}>{b.id}</span>
                 </Td>
                 <Td>{b.owner}</Td>
                 <Td>{b.minder}</Td>
