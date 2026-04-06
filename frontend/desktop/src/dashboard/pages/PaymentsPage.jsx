@@ -45,8 +45,8 @@ export default function PaymentsPage() {
 
       <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.light, borderRadius: 10, padding: 4, width: "fit-content" }}>
         {[
-          ["transactions", "💳 Transactions"],
-          ["refunds", "↩️ Refund Requests"],
+          ["transactions", "Transactions"],
+          ["refunds", "Refund Requests"],
         ].map(([k, l]) => (
           <button
             key={k}
