@@ -1,7 +1,198 @@
 const { register } = require('../router');
 const db = require('../db');
+const {
+  uuid,
+  badRequest,
+  notFound,
+  requireUser,
+  requireRole,
+  getOwnerId,
+  getSitterId,
+} = require('../lib/helpers');
 
+async function canAccessBooking(booking, ownerID, sitterID) {
+  if (!booking) return false;
+  if (ownerID && booking.ownerID === ownerID) return true;
+  if (sitterID && booking.sitterID === sitterID) return true;
+  return false;
+}
+
+// 16) POST /api/bookings (Owner) — create booking + totalCost
+register('POST', '/api/bookings', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const body = await req.parseBody();
+  const {
+    sitterID,
+    petID,
+    slotID,
+    serviceTypeID,
+    location,
+    ownerNotes = null,
+  } = body;
+
+  if (!sitterID || !petID || !slotID || !serviceTypeID || !location?.postcode || !location?.country) {
+    return badRequest(send, res, 'sitterID, petID, slotID, serviceTypeID, and location {postcode,country} are required');
+  }
+
+  // Pet must belong to owner
+  const [petRows] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!petRows.length) return send(res, 403, { error: 'Pet does not belong to owner' });
+
+  // Slot must belong to sitter and be unbooked
+  const [slotRows] = await db.query(
+    `SELECT S.slotID, S.startTime, S.endTime, S.isBooked
+     FROM SLOT S
+     JOIN CALENDAR C ON C.calendarID = S.calendarID
+     WHERE S.slotID = ? AND C.sitterID = ?`,
+    [slotID, sitterID]
+  );
+  if (!slotRows.length) return notFound(send, res, 'Slot not found');
+  if (slotRows[0].isBooked) return send(res, 409, { error: 'Slot already booked' });
+
+  // Service price: use minder custom price if available; fallback to base price
+  const [[serviceRow]] = await db.query(
+    `SELECT
+       COALESCE(MS.customPrice, ST.basePrice) AS price
+     FROM SERVICE_TYPE ST
+     LEFT JOIN MINDER_SERVICE MS
+       ON MS.serviceTypeID = ST.serviceTypeID AND MS.sitterID = ? AND MS.isActive = TRUE
+     WHERE ST.serviceTypeID = ?`,
+    [sitterID, serviceTypeID]
+  );
+  if (!serviceRow) return notFound(send, res, 'Service type not found');
+
+  const locationID = uuid();
+  await db.query(
+    'INSERT INTO LOCATION (locationID, postcode, street, city, county, country) VALUES (?, ?, ?, ?, ?, ?)',
+    [locationID, location.postcode, location.street || null, location.city || null, location.county || null, location.country]
+  );
+
+  const bookingID = uuid();
+  const startTime = slotRows[0].startTime;
+  const endTime = slotRows[0].endTime;
+  const totalCost = Number(serviceRow.price);
+
+  await db.query(
+    `INSERT INTO BOOKING
+      (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, status, startTime, endTime, totalCost, ownerNotes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, 'pending', startTime, endTime, totalCost, ownerNotes]
+  );
+
+  await db.query('UPDATE SLOT SET isBooked = TRUE WHERE slotID = ?', [slotID]);
+
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 201, booking);
+});
+
+// 17) GET /api/bookings (Owner/Minder) — list own Bookings
 register('GET', '/api/bookings', async (req, res, send) => {
-	const [rows] = await db.query('SELECT * FROM BOOKING');
-	send(res, 200, rows);
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
+
+  const role = String(req.userRole || '').toLowerCase();
+  const ownerID = role === 'owner' ? await getOwnerId(db, req.userId) : null;
+  const sitterID = role === 'minder' ? await getSitterId(db, req.userId) : null;
+
+  if (role === 'owner' && !ownerID) return send(res, 403, { error: 'Owner profile not found' });
+  if (role === 'minder' && !sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const [rows] = await db.query(
+    `SELECT * FROM BOOKING
+     WHERE ${role === 'owner' ? 'ownerID = ?' : 'sitterID = ?'}
+     ORDER BY createdAt DESC`,
+    [role === 'owner' ? ownerID : sitterID]
+  );
+  send(res, 200, rows);
+});
+
+// 18) GET /api/bookings/:id (Owner/Minder) — get single Booking
+register('GET', '/api/bookings/:id', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
+
+  const role = String(req.userRole || '').toLowerCase();
+  const ownerID = role === 'owner' ? await getOwnerId(db, req.userId) : null;
+  const sitterID = role === 'minder' ? await getSitterId(db, req.userId) : null;
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (!(await canAccessBooking(booking, ownerID, sitterID))) return send(res, 403, { error: 'Forbidden' });
+  send(res, 200, booking);
+});
+
+// 19) PATCH /api/bookings/:id/accept (Minder) - Accept a pending booking
+register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
+  if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
+
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['accepted', bookingID]);
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
+});
+
+// 20) PATCH /api/bookings/:id/reject (Minder) - Reject a pending booking
+register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
+  if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
+
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['rejected', bookingID]);
+  await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
+});
+
+// 21) PATCH /api/bookings/:id/cancel (Owner) - Cancel a booking
+register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
+
+  const body = await req.parseBody();
+  const reason = body?.cancellationReason || null;
+
+  const status = String(booking.status).toLowerCase();
+  if (['completed', 'cancelled'].includes(status)) return send(res, 409, { error: 'Booking cannot be cancelled' });
+
+  await db.query('UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?', [
+    'cancelled',
+    reason,
+    bookingID,
+  ]);
+  await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
 });
