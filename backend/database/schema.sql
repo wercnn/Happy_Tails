@@ -12,6 +12,7 @@ CREATE TABLE USER (
     username        VARCHAR(100)    UNIQUE,                          -- #12: nullable; login uses email
     passwordHash    VARCHAR(255)    NOT NULL,
     phoneNumber     VARCHAR(20),
+    status          ENUM('Active', 'Suspended', 'Inactive') NOT NULL DEFAULT 'Active',  -- desktop: UsersPage Suspend action
     createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_USER PRIMARY KEY (userID)
 );
@@ -188,7 +189,7 @@ CREATE TABLE HEALTH_EVENT (
     eventID         VARCHAR(36)     NOT NULL,
     petID           VARCHAR(36)     NOT NULL,
     eventDate       DATE            NOT NULL,
-    eventType       ENUM('Vaccination', 'VetVisit', 'Medication', 'WeightCheck', 'Other') NOT NULL,
+    eventType       ENUM('Vaccination', 'VetVisit', 'Medication', 'Surgery', 'Dental', 'Other') NOT NULL,
     vetClinicName   VARCHAR(255),
     weight          DECIMAL(5,2),
     notes           TEXT,
@@ -251,6 +252,8 @@ CREATE TABLE MINDER_SERVICE (
     sitterID        VARCHAR(36)     NOT NULL,
     serviceTypeID   VARCHAR(36)     NOT NULL,
     customPrice     DECIMAL(10,2)   NOT NULL,
+    duration        VARCHAR(100),                                   -- minder-specific duration (e.g. "1 hour", "30 mins")
+    description     TEXT,                                           -- minder-specific service description (max 250 chars in UI)
     isActive        BOOLEAN         NOT NULL DEFAULT TRUE,
     CONSTRAINT PK_MINDER_SERVICE PRIMARY KEY (minderServiceID),
     CONSTRAINT FK_MS_MINDER FOREIGN KEY (sitterID)
@@ -258,6 +261,17 @@ CREATE TABLE MINDER_SERVICE (
     CONSTRAINT FK_MS_SERVICE FOREIGN KEY (serviceTypeID)
         REFERENCES SERVICE_TYPE (serviceTypeID),
     CONSTRAINT UQ_MINDER_SERVICE UNIQUE (sitterID, serviceTypeID)
+);
+
+-- #4-new: Pet types a minder is willing to care for (MinderRegister checkboxes, SearchMinders filter)
+CREATE TABLE MINDER_PET_TYPE (
+    minderPetTypeID VARCHAR(36)     NOT NULL,
+    sitterID        VARCHAR(36)     NOT NULL,
+    petType         VARCHAR(50)     NOT NULL,   -- e.g. 'Dogs', 'Cats', 'Reptiles', 'Birds'
+    CONSTRAINT PK_MINDER_PET_TYPE PRIMARY KEY (minderPetTypeID),
+    CONSTRAINT FK_MPT_MINDER FOREIGN KEY (sitterID)
+        REFERENCES PET_MINDER (sitterID) ON DELETE CASCADE,
+    CONSTRAINT UQ_MINDER_PET_TYPE UNIQUE (sitterID, petType)
 );
 
 CREATE TABLE CALENDAR (
@@ -423,12 +437,14 @@ CREATE TABLE DISPUTE (
     disputeID           VARCHAR(36)     NOT NULL,
     bookingID           VARCHAR(36)     NOT NULL,
     userID              VARCHAR(36)     NOT NULL,
-    employeeID          VARCHAR(36)     NOT NULL,
+    employeeID          VARCHAR(36)     NULL,                        -- desktop: assigned after creation, starts unassigned
+    disputeType         ENUM('RefundRequest', 'NoShowComplaint', 'ServiceQuality', 'PaymentDispute', 'Other') NOT NULL DEFAULT 'Other',  -- desktop: DisputesPage filter/display
     reason              TEXT            NOT NULL,
     status              VARCHAR(50)     NOT NULL DEFAULT 'Open',
     isRefundRequested   BOOLEAN         NOT NULL DEFAULT FALSE,
     resolutionNotes     TEXT,
     severityLevel       ENUM('Low', 'Medium', 'High') NOT NULL DEFAULT 'Low',
+    assignedAt          DATETIME,                                    -- desktop: timestamp when employee assigned
     createdAt           DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_DISPUTE PRIMARY KEY (disputeID),
     CONSTRAINT FK_DISPUTE_BOOKING FOREIGN KEY (bookingID)
@@ -443,7 +459,7 @@ CREATE TABLE INCIDENT_REPORT (
     incidentID      VARCHAR(36)     NOT NULL,
     bookingID       VARCHAR(36)     NOT NULL,
     employeeID      VARCHAR(36)     NOT NULL,
-    incidentType    ENUM('PetInjury', 'PetIllness', 'LostPet', 'MinderNoShow', 'Other') NOT NULL DEFAULT 'Other',  -- #6
+    incidentType    ENUM('PetInjury', 'PetIllness', 'LostPet', 'MinderNoShow', 'PropertyDamage', 'InappropriateBehaviour', 'Other') NOT NULL DEFAULT 'Other',  -- #6
     severityLevel   ENUM('Low', 'Medium', 'High') NOT NULL DEFAULT 'Low',
     description     TEXT            NOT NULL,
     reportedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -495,6 +511,7 @@ CREATE TABLE REVIEW (
     reviewerUserID  VARCHAR(36)     NOT NULL,
     rating          INT             NOT NULL,
     comment         TEXT,
+    status          ENUM('Pending', 'Approved', 'Flagged', 'Removed') NOT NULL DEFAULT 'Pending',  -- desktop: ReviewsPage moderation states
     createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_REVIEW PRIMARY KEY (reviewID),
     CONSTRAINT FK_REVIEW_BOOKING FOREIGN KEY (bookingID)
@@ -502,4 +519,55 @@ CREATE TABLE REVIEW (
     CONSTRAINT FK_REVIEW_USER FOREIGN KEY (reviewerUserID)
         REFERENCES USER (userID),
     CONSTRAINT CHK_REVIEW_RATING CHECK (rating BETWEEN 1 AND 5)
+);
+
+-- =============================================================
+-- REVIEW_FLAG (referenced by reviews.js routes)
+-- =============================================================
+
+CREATE TABLE REVIEW_FLAG (
+    flagID          VARCHAR(36)     NOT NULL,
+    reviewID        VARCHAR(36)     NOT NULL,
+    flaggerUserID   VARCHAR(36)     NOT NULL,
+    reason          TEXT,
+    status          ENUM('Open', 'Resolved', 'Dismissed') NOT NULL DEFAULT 'Open',
+    createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_REVIEW_FLAG PRIMARY KEY (flagID),
+    CONSTRAINT FK_RF_REVIEW FOREIGN KEY (reviewID)
+        REFERENCES REVIEW (reviewID) ON DELETE CASCADE,
+    CONSTRAINT FK_RF_USER FOREIGN KEY (flaggerUserID)
+        REFERENCES USER (userID) ON DELETE CASCADE
+);
+
+-- =============================================================
+-- PATCH: INCIDENT_REPORT — make employeeID nullable and add
+-- reporterUserID so minders can file reports directly
+-- (referenced by reports.js POST /api/reports/incident)
+-- =============================================================
+
+ALTER TABLE INCIDENT_REPORT
+    MODIFY COLUMN employeeID VARCHAR(36) NULL,
+    ADD COLUMN reporterUserID VARCHAR(36) NULL
+        COMMENT 'userID of the minder who filed the report';
+
+-- =============================================================
+-- PLATFORM SETTINGS (desktop: SettingsPage configuration)
+-- =============================================================
+
+CREATE TABLE PLATFORM_SETTINGS (
+    settingID               VARCHAR(36)     NOT NULL,
+    platformFeePercent      DECIMAL(5,2)    NOT NULL DEFAULT 5.00,  -- used in booking cost calc
+    escrowReleaseDays       INT             NOT NULL DEFAULT 1,
+    refundWindowDays        INT             NOT NULL DEFAULT 14,
+    stripeMode              ENUM('Live', 'Test') NOT NULL DEFAULT 'Test',
+    sessionTimeoutMins      INT             NOT NULL DEFAULT 30,
+    twoFAEnabled            BOOLEAN         NOT NULL DEFAULT TRUE,
+    auditLogRetentionDays   INT             NOT NULL DEFAULT 365,
+    gdprMode                BOOLEAN         NOT NULL DEFAULT FALSE,
+    emailNotifications      BOOLEAN         NOT NULL DEFAULT TRUE,
+    smsNotifications        BOOLEAN         NOT NULL DEFAULT FALSE,
+    bookingReminders        BOOLEAN         NOT NULL DEFAULT TRUE,
+    incidentAlerts          BOOLEAN         NOT NULL DEFAULT TRUE,
+    updatedAt               DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT PK_PLATFORM_SETTINGS PRIMARY KEY (settingID)
 );
