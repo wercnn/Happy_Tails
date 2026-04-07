@@ -80,13 +80,7 @@ export default function IncidentsPage() {
   ];
 
   return (
-    <div
-      className="incidents-page"
-      style={{
-        ...pageVars,
-        gridTemplateColumns: inc ? "1fr 380px" : "1fr",
-      }}
-    >
+    <div className="incidents-page" style={pageVars}>
       <div>
         <SectionHeader
           title="Incident & Emergency Reports"
@@ -134,13 +128,7 @@ export default function IncidentsPage() {
             </thead>
             <tbody>
               {incidents.map((i) => (
-                <tr
-                  key={i.id}
-                  className={`incidents-page__row ${
-                    selected === i.id ? "incidents-page__row--selected" : ""
-                  }`}
-                  onClick={() => setSelected(selected === i.id ? null : i.id)}
-                >
+                <tr key={i.id} className="incidents-page__row">
                   <Td>
                     <span className="incidents-page__id">{i.id}</span>
                   </Td>
@@ -159,10 +147,7 @@ export default function IncidentsPage() {
                     <Btn
                       variant="outline"
                       small
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelected(i.id);
-                      }}
+                      onClick={() => setSelected(i.id)}
                     >
                       Details
                     </Btn>
@@ -175,50 +160,89 @@ export default function IncidentsPage() {
       </div>
 
       {inc && (
-        <Card style={{ padding: 20, height: "fit-content", position: "sticky", top: 20 }}>
-          <div className="incidents-page__detail-header">
-            <div>
-              <span className="incidents-page__detail-id">{inc.id}</span>
-              <div className="incidents-page__detail-status">
-                <StatusBadge status={inc.status} />
-              </div>
-            </div>
-
+        <div
+          className="incidents-page__overlay"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="incidents-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="incidents-page__close-btn"
+              className="incidents-page__overlay-close"
             >
               ✕
             </button>
-          </div>
 
-          <h3 className="incidents-page__detail-title">{inc.type}</h3>
-          <p className="incidents-page__detail-submitted">{inc.submitted}</p>
-
-          <div className="incidents-page__detail-description-box">
-            <p className="incidents-page__detail-description">{inc.description}</p>
-          </div>
-
-          {[
-            ["Owner", inc.owner],
-            ["Minder", inc.minder],
-            ["Pet", inc.pet],
-            ["Booking", inc.booking],
-          ].map(([k, v]) => (
-            <div key={k} className="incidents-page__detail-row">
-              <span className="incidents-page__detail-key">{k}</span>
-              <span className="incidents-page__detail-value">{v}</span>
+            <div className="incidents-page__overlay-header">
+              <div className="incidents-page__overlay-header-main">
+                <span className="incidents-page__detail-id">{inc.id}</span>
+                <h3 className="incidents-page__detail-title">{inc.type}</h3>
+                <p className="incidents-page__detail-submitted">{inc.submitted}</p>
+                <div className="incidents-page__detail-status">
+                  <StatusBadge status={inc.status} />
+                </div>
+              </div>
             </div>
-          ))}
 
-          <div className="incidents-page__detail-actions">
-            <Btn variant="primary">Escalate to Manager</Btn>
-            <Btn variant="success">Mark as Resolved</Btn>
-            <Btn variant="outline">Contact Owner</Btn>
-            <Btn variant="outline">Contact Minder</Btn>
+            <div className="incidents-page__overlay-grid">
+              <div className="incidents-page__overlay-section">
+                <h4 className="incidents-page__overlay-section-title">
+                  Incident Details
+                </h4>
+
+                <div className="incidents-page__detail-description-box">
+                  <p className="incidents-page__detail-description">
+                    {inc.description}
+                  </p>
+                </div>
+
+                {[
+                  ["Owner", inc.owner],
+                  ["Minder", inc.minder],
+                  ["Pet", inc.pet],
+                  ["Booking", inc.booking],
+                ].map(([k, v]) => (
+                  <div key={k} className="incidents-page__detail-row">
+                    <span className="incidents-page__detail-key">{k}</span>
+                    <span className="incidents-page__detail-value">{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="incidents-page__overlay-section">
+                <h4 className="incidents-page__overlay-section-title">
+                  Response Actions
+                </h4>
+
+                <div className="incidents-page__overlay-meta">
+                  <div className="incidents-page__overlay-meta-card">
+                    <span className="incidents-page__overlay-meta-label">Status</span>
+                    <strong className="incidents-page__overlay-meta-value">
+                      {inc.status}
+                    </strong>
+                  </div>
+
+                  <div className="incidents-page__overlay-meta-card">
+                    <span className="incidents-page__overlay-meta-label">Booking</span>
+                    <strong className="incidents-page__overlay-meta-value">
+                      {inc.booking}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="incidents-page__detail-actions">
+              <Btn variant="primary">Escalate to Manager</Btn>
+              <Btn variant="success">Mark as Resolved</Btn>
+              <Btn variant="outline">Contact Owner</Btn>
+              <Btn variant="outline">Contact Minder</Btn>
+            </div>
           </div>
-        </Card>
+        </div>
       )}
     </div>
   );
