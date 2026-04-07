@@ -12,9 +12,14 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ─── Users ───────────────────────────────────────────────────
 INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES
-  ('u-owner-001',  'sarah_o', 'a1b2c3d4e5f6a7b8a1b2c3d4e5f6a7b8:b3a4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4', '07700900001'),
-  ('u-minder-001', 'james_m', 'b2c3d4e5f6a7b8c9b2c3d4e5f6a7b8c9:c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3', '07700900002'),
-  ('u-support-001','emma_s',  'c3d4e5f6a7b8c9d0c3d4e5f6a7b8c9d0:d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4', '07700900003');
+  ('u-owner-001',  'sarah_o', 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900001'),
+  ('u-minder-001', 'james_m', 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900002'),
+  ('u-support-001','emma_s',  'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900003');
+
+-- If these users already exist in the database, run this instead of re-seeding.
+UPDATE USER
+SET passwordHash = 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b'
+WHERE userID IN ('u-owner-001', 'u-minder-001', 'u-support-001');
 
 -- ─── User Profiles ───────────────────────────────────────────
 INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES

@@ -101,7 +101,7 @@ register('POST', '/api/auth/login', async (req, res, send) => {
   if (!rows.length) return send(res, 401, { error: 'Invalid credentials' });
   const user = rows[0];
   const ok = await verifyPassword(String(password), user.passwordHash);
-  if (!ok) return send(res, 401, { error: 'Invalid credentials' });
+  if (!ok) return send(res, 401, { error: 'Invalid credentials -  Incorrect password' });
 
   const role = await inferRoleByUserId(user.userID);
 

@@ -55,7 +55,7 @@ function normalizeRole(role) {
 // Returns a string in the form "salt:derivedKeyHex".
 function hashPassword(password) {
   return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(16).toString('hex');
+    const salt = process.env.PASSWORD_HASH_SALT || 'happytails-fixed-salt';
     crypto.scrypt(String(password), salt, 64, (err, derivedKey) => {
       if (err) return reject(err);
       resolve(`${salt}:${derivedKey.toString('hex')}`);
