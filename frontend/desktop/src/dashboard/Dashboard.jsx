@@ -3,13 +3,13 @@ import { C, NAV } from "./constants.js";
 import { Input } from "./components/input/Input.jsx";
 import { Avatar } from "./components/avatar/Avatar.jsx";
 
-import OverviewPage from "./pages/OverviewPage.jsx";
+import OverviewPage from "./pages/overview/OverviewPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
-import BookingsPage from "./pages/bookingPage/BookingsPage.jsx";
-import DisputesPage from "./pages/disputesPage/DisputesPage.jsx";
-import PaymentsPage from "./pages/PaymentsPage.jsx";
+import BookingsPage from "./pages/booking/BookingsPage.jsx";
+import DisputesPage from "./pages/disputes/DisputesPage.jsx";
+import PaymentsPage from "./pages/payments/PaymentsPage.jsx";
 import ReviewsPage from "./pages/ReviewsPage.jsx";
-import IncidentsPage from "./pages/incidentsPage/IncidentsPage.jsx";
+import IncidentsPage from "./pages/incidents/IncidentsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 

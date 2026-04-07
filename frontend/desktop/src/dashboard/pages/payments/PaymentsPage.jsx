@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { C } from "../constants.js";
-import { Badge, StatusBadge } from "../components/badge/Badge.jsx";
-import { Btn } from "../components/btn/Btn.jsx";
-import { Card, Th, Td } from "../components/card/Card.jsx";
-import { SectionHeader } from "../components/sectionHeader/SectionHeader.jsx";
+import { C } from "../../constants.js";
+import { Badge, StatusBadge } from "../../components/badge/Badge.jsx";
+import { Btn } from "../../components/btn/Btn.jsx";
+import { Card, Th, Td } from "../../components/card/Card.jsx";
+import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
+import "./PaymentsPage.css";
 
 export default function PaymentsPage() {
   const [tab, setTab] = useState("transactions");
@@ -21,57 +22,57 @@ export default function PaymentsPage() {
     { id: "#REF-117", booking: "#HT-8770", owner: "Mike T.", minder: "Priya P.", amount: "£48.00", reason: "Booking cancelled", submitted: "15 Mar", status: "escalated" },
   ];
 
-  return (
-    <div>
-      <SectionHeader title="Payments & Refunds" subtitle="Review transactions, escrow activity and refund requests." />
+  const statCards = [
+    { icon: "💷", label: "Monthly Revenue", value: "£18,340", valueClass: "payments-page__stat-value--green" },
+    { icon: "🔒", label: "In Escrow", value: "£4,820", valueClass: "payments-page__stat-value--blue" },
+    { icon: "↩️", label: "Refunds Issued", value: "£218", valueClass: "payments-page__stat-value--red" },
+    { icon: "📈", label: "Platform Fees", value: "£917", valueClass: "payments-page__stat-value--orange" },
+  ];
 
-      {/* Revenue stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
-        {[
-          ["💷", "Monthly Revenue", "£18,340", C.green],
-          ["🔒", "In Escrow", "£4,820", C.blue],
-          ["↩️", "Refunds Issued", "£218", C.red],
-          ["📈", "Platform Fees", "£917", C.orange],
-        ].map(([icon, lbl, val, col]) => (
-          <Card key={lbl} style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 20 }}>{icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.mid, textTransform: "uppercase", letterSpacing: 0.4 }}>{lbl}</span>
+  const tabs = [
+    ["transactions", "Transactions"],
+    ["refunds", "Refund Requests"],
+  ];
+
+  return (
+    <div className="payments-page">
+      <SectionHeader
+        title="Payments & Refunds"
+        subtitle="Review transactions, escrow activity and refund requests."
+      />
+
+      <div className="payments-page__stats-grid">
+        {statCards.map((item) => (
+          <Card key={item.label}>
+            <div className="payments-page__stat-card">
+              <div className="payments-page__stat-head">
+                <span className="payments-page__stat-icon">{item.icon}</span>
+                <span className="payments-page__stat-label">{item.label}</span>
+              </div>
+              <p className={`payments-page__stat-value ${item.valueClass}`}>{item.value}</p>
             </div>
-            <p style={{ margin: 0, fontWeight: 800, color: col, fontSize: 22 }}>{val}</p>
           </Card>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.light, borderRadius: 10, padding: 4, width: "fit-content" }}>
-        {[
-          ["transactions", "Transactions"],
-          ["refunds", "Refund Requests"],
-        ].map(([k, l]) => (
+      <div className="payments-page__tabs">
+        {tabs.map(([key, label]) => (
           <button
-            key={k}
-            onClick={() => setTab(k)}
-            style={{
-              padding: "8px 18px",
-              borderRadius: 8,
-              border: "none",
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              background: tab === k ? C.white : "transparent",
-              color: tab === k ? C.navy : C.mid,
-              boxShadow: tab === k ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
-            }}
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`payments-page__tab-btn ${
+              tab === key ? "payments-page__tab-btn--active" : ""
+            }`}
           >
-            {l}
+            {label}
           </button>
         ))}
       </div>
 
       {tab === "transactions" && (
         <Card>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="payments-page__table">
             <thead>
               <tr>
                 <Th>Payment ID</Th>
@@ -89,20 +90,24 @@ export default function PaymentsPage() {
               {transactions.map((t) => (
                 <tr key={t.id}>
                   <Td>
-                    <span style={{ fontWeight: 800, color: C.orange, fontSize: 12 }}>{t.id}</span>
+                    <span className="payments-page__id">{t.id}</span>
                   </Td>
                   <Td>
-                    <span style={{ color: C.blue, fontWeight: 700, fontSize: 12 }}>{t.booking}</span>
+                    <span className="payments-page__booking">{t.booking}</span>
                   </Td>
                   <Td>{t.payer}</Td>
                   <Td>
                     <strong>{t.amount}</strong>
                   </Td>
-                  <Td style={{ color: C.mid }}>{t.fee}</Td>
                   <Td>
-                    <strong style={{ color: C.green }}>{t.net}</strong>
+                    <span className="payments-page__fee">{t.fee}</span>
                   </Td>
-                  <Td style={{ fontSize: 12 }}>{t.date}</Td>
+                  <Td>
+                    <strong className="payments-page__net">{t.net}</strong>
+                  </Td>
+                  <Td>
+                    <span className="payments-page__small-text">{t.date}</span>
+                  </Td>
                   <Td>
                     {t.escrow ? (
                       <Badge color={C.blue} bg={C.blueLight}>
@@ -126,7 +131,7 @@ export default function PaymentsPage() {
 
       {tab === "refunds" && (
         <Card>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="payments-page__table">
             <thead>
               <tr>
                 <Th>Refund ID</Th>
@@ -144,24 +149,28 @@ export default function PaymentsPage() {
               {refunds.map((r) => (
                 <tr key={r.id}>
                   <Td>
-                    <span style={{ fontWeight: 800, color: C.orange, fontSize: 12 }}>{r.id}</span>
+                    <span className="payments-page__id">{r.id}</span>
                   </Td>
                   <Td>
-                    <span style={{ color: C.blue, fontWeight: 700, fontSize: 12 }}>{r.booking}</span>
+                    <span className="payments-page__booking">{r.booking}</span>
                   </Td>
                   <Td>{r.owner}</Td>
                   <Td>{r.minder}</Td>
                   <Td>
                     <strong>{r.amount}</strong>
                   </Td>
-                  <Td style={{ fontSize: 12 }}>{r.reason}</Td>
-                  <Td style={{ fontSize: 12 }}>{r.submitted}</Td>
+                  <Td>
+                    <span className="payments-page__small-text">{r.reason}</span>
+                  </Td>
+                  <Td>
+                    <span className="payments-page__small-text">{r.submitted}</span>
+                  </Td>
                   <Td>
                     <StatusBadge status={r.status} />
                   </Td>
                   <Td>
                     {r.status === "open" ? (
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div className="payments-page__actions">
                         <Btn variant="success" small>
                           Approve Refund
                         </Btn>
@@ -187,4 +196,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
