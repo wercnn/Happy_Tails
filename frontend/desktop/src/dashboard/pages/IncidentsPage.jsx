@@ -3,7 +3,7 @@ import { C } from "../constants.js";
 import { StatusBadge } from "../components/badge/Badge.jsx";
 import { Btn } from "../components/btn/Btn.jsx";
 import { Card, Th, Td } from "../components/card/Card.jsx";
-import { SectionHeader } from "../components/SectionHeader.jsx";
+import { SectionHeader } from "../components/sectionHeader/SectionHeader.jsx";
 
 export default function IncidentsPage() {
   const [selected, setSelected] = useState(null);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, NAV } from "./constants.js";
-import { Input } from "./components/Input.jsx";
+import { Input } from "./components/input/Input.jsx";
 import { Avatar } from "./components/avatar/Avatar.jsx";
 
 import OverviewPage from "./pages/OverviewPage.jsx";

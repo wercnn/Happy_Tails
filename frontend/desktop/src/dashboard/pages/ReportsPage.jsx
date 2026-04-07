@@ -2,7 +2,7 @@ import { C } from "../constants.js";
 import { Btn } from "../components/btn/Btn.jsx";
 import { Card } from "../components/card/Card.jsx";
 import { Avatar } from "../components/avatar/Avatar.jsx";
-import { SectionHeader } from "../components/SectionHeader.jsx";
+import { SectionHeader } from "../components/sectionHeader/SectionHeader.jsx";
 
 export default function ReportsPage() {
   const serviceData = [

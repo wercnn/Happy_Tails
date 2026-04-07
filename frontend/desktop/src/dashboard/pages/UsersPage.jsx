@@ -4,8 +4,8 @@ import { StatusBadge } from "../components/badge/Badge.jsx";
 import { Avatar } from "../components/avatar/Avatar.jsx";
 import { Btn } from "../components/btn/Btn.jsx";
 import { Card, Th, Td } from "../components/card/Card.jsx";
-import { Input } from "../components/Input.jsx";
-import { SectionHeader } from "../components/SectionHeader.jsx";
+import { Input } from "../components/input/Input.jsx";
+import { SectionHeader } from "../components/sectionHeader/SectionHeader.jsx";
 
 export default function UsersPage() {
   const [tab, setTab] = useState("owners");
