@@ -9,7 +9,7 @@ function toText(value) {
 }
 
 function isValidIncidentType(value) {
-  return ['PetInjury', 'PetIllness', 'LostPet', 'MinderNoShow', 'Other'].includes(value);
+  return ['PetInjury', 'PetIllness', 'LostPet', 'MinderNoShow', 'PropertyDamage', 'InappropriateBehaviour', 'Other'].includes(value);
 }
 
 function isValidSeverityLevel(value) {
@@ -62,7 +62,7 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
     send(res, 400, { error: 'description is required' });
     return;
   } if (!isValidIncidentType(incidentType)) {
-    send(res, 400, { error: 'incidentType must be one of PetInjury, PetIllness, LostPet, MinderNoShow, Other' });
+    send(res, 400, { error: 'incidentType must be one of PetInjury, PetIllness, LostPet, MinderNoShow, PropertyDamage, InappropriateBehaviour, Other' });
     return;
   } if (!isValidSeverityLevel(severityLevel)) {
     send(res, 400, { error: 'severityLevel must be one of Low, Medium, High' });
@@ -70,29 +70,29 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
   }
 
   let employeeID = bodyEmployeeID;
+  let reporterUserID = null;
 
-  // extra safety check for support staff so only those with an employee 
-  if (req.userRole === 'Support' && !employeeID) {
-    const [supportRows] = await db.query('SELECT employeeID FROM CUSTOMER_SUPPORT WHERE userID = ?', [req.userId]);
-    if (supportRows.length === 0) {
-      send(res, 403, { error: 'Support user not registered as customer support employee' });
-      return;
+  // determine employeeID and reporterUserID based on role
+  if (req.userRole === 'Support') {
+    if (!employeeID) {
+      const [supportRows] = await db.query('SELECT employeeID FROM CUSTOMER_SUPPORT WHERE userID = ?', [req.userId]);
+      if (supportRows.length === 0) {
+        send(res, 403, { error: 'Support user not registered as customer support employee' });
+        return;
+      }
+      employeeID = supportRows[0].employeeID;
     }
-    employeeID = supportRows[0].employeeID;
-  }
-
-  if (!employeeID) {
-    send(res, 400, { error: 'employeeID is required when reporting as a Minder' });
-    return;
+  } else if (req.userRole === 'Minder') {
+    reporterUserID = req.userId;
   }
 
   const incidentID = randomUUID();
   await db.query(
-    'INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, incidentType, severityLevel, description) VALUES (?, ?, ?, ?, ?, ?)',
-    [incidentID, bookingID, employeeID, incidentType, severityLevel, description]
+    'INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, incidentType, severityLevel, description, reporterUserID) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [incidentID, bookingID, employeeID || null, incidentType, severityLevel, description, reporterUserID]
   );
 
-  send(res, 201, { incidentID, bookingID, employeeID, incidentType, severityLevel, description, });
+  send(res, 201, { incidentID, bookingID, employeeID: employeeID || null, incidentType, severityLevel, description, reporterUserID: reporterUserID || null, });
 });
 
 
