@@ -8,6 +8,7 @@ import "./PaymentsPage.css";
 
 export default function PaymentsPage() {
   const [tab, setTab] = useState("transactions");
+  const [selectedRefund, setSelectedRefund] = useState(null);
 
   const transactions = [
     { id: "#PAY-441", booking: "#HT-8798", payer: "Anna B.", amount: "£105.00", fee: "£5.25", net: "£99.75", date: "2 Apr", status: "completed", escrow: false },
@@ -17,9 +18,45 @@ export default function PaymentsPage() {
   ];
 
   const refunds = [
-    { id: "#REF-119", booking: "#HT-8797", owner: "Sarah J.", minder: "Tom H.", amount: "£15.75", reason: "Minder no-show", submitted: "28 Mar", status: "open" },
-    { id: "#REF-118", booking: "#HT-8782", owner: "Rachel K.", minder: "James W.", amount: "£34.00", reason: "Service not as described", submitted: "20 Mar", status: "resolved" },
-    { id: "#REF-117", booking: "#HT-8770", owner: "Mike T.", minder: "Priya P.", amount: "£48.00", reason: "Booking cancelled", submitted: "15 Mar", status: "escalated" },
+    {
+      id: "#REF-119",
+      booking: "#HT-8797",
+      owner: "Sarah J.",
+      minder: "Tom H.",
+      amount: "£15.75",
+      reason: "Minder no-show",
+      submitted: "28 Mar",
+      status: "open",
+      notes: "Customer requested a full refund after the minder failed to attend the booking.",
+      paymentMethod: "Visa ending 4421",
+      handledBy: "Pending assignment",
+    },
+    {
+      id: "#REF-118",
+      booking: "#HT-8782",
+      owner: "Rachel K.",
+      minder: "James W.",
+      amount: "£34.00",
+      reason: "Service not as described",
+      submitted: "20 Mar",
+      status: "resolved",
+      notes: "Resolved after partial refund approval and customer follow-up.",
+      paymentMethod: "Mastercard ending 1182",
+      handledBy: "Sifat R.",
+    },
+    {
+      id: "#REF-117",
+      booking: "#HT-8770",
+      owner: "Mike T.",
+      minder: "Priya P.",
+      amount: "£48.00",
+      reason: "Booking cancelled",
+      submitted: "15 Mar",
+      status: "escalated",
+      notes: "Escalated due to timing of cancellation and dispute over payout release.",
+      paymentMethod: "Visa ending 7724",
+      handledBy: "Chadi S.",
+    },
   ];
 
   const statCards = [
@@ -180,9 +217,12 @@ export default function PaymentsPage() {
                         <Btn variant="outline" small>
                           Escalate
                         </Btn>
+                        <Btn variant="outline" small onClick={() => setSelectedRefund(r)}>
+                          View
+                        </Btn>
                       </div>
                     ) : (
-                      <Btn variant="outline" small>
+                      <Btn variant="outline" small onClick={() => setSelectedRefund(r)}>
                         View
                       </Btn>
                     )}
@@ -192,6 +232,108 @@ export default function PaymentsPage() {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {selectedRefund && (
+        <div
+          className="payments-page__overlay"
+          onClick={() => setSelectedRefund(null)}
+        >
+          <div
+            className="payments-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="payments-page__overlay-close"
+              onClick={() => setSelectedRefund(null)}
+            >
+              ✕
+            </button>
+
+            <div className="payments-page__overlay-header">
+              <div className="payments-page__overlay-header-main">
+                <p className="payments-page__overlay-id">{selectedRefund.id}</p>
+                <h2 className="payments-page__overlay-title">Refund Request</h2>
+                <p className="payments-page__overlay-subtitle">
+                  {selectedRefund.submitted} · {selectedRefund.booking}
+                </p>
+                <div className="payments-page__overlay-badges">
+                  <StatusBadge status={selectedRefund.status} />
+                </div>
+              </div>
+            </div>
+
+            <div className="payments-page__overlay-grid">
+              <div className="payments-page__overlay-section">
+                <h3 className="payments-page__overlay-section-title">Refund Details</h3>
+
+                <div className="payments-page__overlay-list">
+                  <div className="payments-page__overlay-row">
+                    <span>Owner</span>
+                    <strong>{selectedRefund.owner}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Minder</span>
+                    <strong>{selectedRefund.minder}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Booking</span>
+                    <strong>{selectedRefund.booking}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Amount</span>
+                    <strong>{selectedRefund.amount}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Reason</span>
+                    <strong>{selectedRefund.reason}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Payment Method</span>
+                    <strong>{selectedRefund.paymentMethod}</strong>
+                  </div>
+                  <div className="payments-page__overlay-row">
+                    <span>Handled By</span>
+                    <strong>{selectedRefund.handledBy}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="payments-page__overlay-section">
+                <h3 className="payments-page__overlay-section-title">Notes</h3>
+
+                <div className="payments-page__overlay-note-box">
+                  <p className="payments-page__overlay-note-text">
+                    {selectedRefund.notes}
+                  </p>
+                </div>
+
+                <div className="payments-page__overlay-stats">
+                  <div className="payments-page__overlay-stat">
+                    <span className="payments-page__overlay-stat-label">Status</span>
+                    <strong className="payments-page__overlay-stat-value">
+                      {selectedRefund.status}
+                    </strong>
+                  </div>
+                  <div className="payments-page__overlay-stat">
+                    <span className="payments-page__overlay-stat-label">Amount</span>
+                    <strong className="payments-page__overlay-stat-value">
+                      {selectedRefund.amount}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="payments-page__overlay-actions">
+              <Btn variant="success">Approve Refund</Btn>
+              <Btn variant="danger">Deny Refund</Btn>
+              <Btn variant="outline">Escalate Case</Btn>
+              <Btn variant="outline">View Booking</Btn>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
