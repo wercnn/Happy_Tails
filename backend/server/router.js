@@ -84,9 +84,7 @@ async function router(req, res) {
     // Attach helpers directly onto req so route files can use them cleanly
     req.parseBody  = () => parseBody(req);
     req.requireRole = (role) => requireRole(role, req, res);
-    req.userId     = req.headers['x-user-id']
-      ? parseInt(req.headers['x-user-id'])
-      : null;
+    req.userId     = req.headers['x-user-id'] || null;
     req.userRole   = req.headers['x-user-role'] || null;
 
     try {
