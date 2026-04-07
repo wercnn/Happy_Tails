@@ -73,8 +73,8 @@ register('POST', '/api/reviews', async (req, res, send) => {
 
   const reviewID = randomUUID();
   await db.query(
-    'INSERT INTO REVIEW (reviewID, bookingID, reviewerUserID, rating, comment) VALUES (?, ?, ?, ?, ?)',
-    [reviewID, bookingID, currentUserId, rating, toText(comment)]
+    'INSERT INTO REVIEW (reviewID, bookingID, reviewerUserID, rating, comment, status) VALUES (?, ?, ?, ?, ?, ?)',
+    [reviewID, bookingID, currentUserId, rating, toText(comment), 'Pending']
   );
 
   send(res, 201, { reviewID, bookingID, reviewerUserID: currentUserId, rating, comment: comment || null, });
