@@ -1,6 +1,6 @@
 import { useState } from "react";
-import LoginPage from "./LoginPage.jsx";
-import Dashboard from "./Dashboard.jsx";
+import LoginPage from "./login/LoginPage";
+import Dashboard from "./dashboard/Dashboard.jsx";
 import "./App.css";
 
 export default function App() {
