@@ -34,7 +34,7 @@ INSERT INTO PET_OWNER (ownerID, userID) VALUES
 INSERT INTO PET_MINDER (sitterID, userID, bio, experienceYears, ratingAvg, overallRating, medicationQualified, serviceAreaPostcode) VALUES
   ('sit-001', 'u-minder-001',
    'Experienced dog walker and boarder. I have cared for over 50 dogs and hold a pet first-aid certificate.',
-   4, 4.80, 4.80, TRUE, 'E2');
+  4, 4.80, 4.80, TRUE, 'E2');
 
 INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES
   ('emp-001', 'u-support-001', 'Support');
@@ -122,5 +122,44 @@ INSERT INTO MESSAGE (messageID, conversationID, senderUserID, receiverUserID, co
    'Of course Sarah, I will keep Buddy safe and comfortable the whole time. Will send an update after!'),
   ('msg-003', 'conv-001', 'u-minder-001', 'u-owner-001',
    'Walk done! Buddy was a star. He loved sniffing around the park. All good here.');
+
+-- ─── Additional Minder (separate queries) ───────────────────
+INSERT INTO USER (userID, username, passwordHash, phoneNumber)
+VALUES (
+  'u-minder-002',
+  'olivia_m',
+  'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b',
+  '07700900004'
+);
+
+INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email)
+VALUES ('pr-minder-002', 'u-minder-002', 'Olivia', 'Bennett', '21 Birch Road', 'London', 'E3 4AB', 'olivia@example.com');
+
+INSERT INTO PET_MINDER (sitterID, userID, bio, experienceYears, ratingAvg, overallRating, medicationQualified, serviceAreaPostcode)
+VALUES (
+  'sit-002',
+  'u-minder-002',
+  'Calm and reliable minder with experience in cat care, puppy routines, and administering oral medication.',
+  6,
+  4.90,
+  4.90,
+  TRUE,
+  'E3'
+);
+
+INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive)
+VALUES ('ms-003', 'sit-002', 'st-walk', 20.00, TRUE);
+
+INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive)
+VALUES ('ms-004', 'sit-002', 'st-daycare', 34.00, TRUE);
+
+INSERT INTO CALENDAR (calendarID, sitterID, timeZone)
+VALUES ('cal-002', 'sit-002', 'Europe/London');
+
+INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked)
+VALUES ('slot-004', 'cal-002', '2026-05-16 10:00:00', '2026-05-16 11:00:00', FALSE);
+
+INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked)
+VALUES ('slot-005', 'cal-002', '2026-05-18 15:00:00', '2026-05-18 16:00:00', FALSE);
 
 SET FOREIGN_KEY_CHECKS = 1;
