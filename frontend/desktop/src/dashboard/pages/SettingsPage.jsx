@@ -1,6 +1,6 @@
 import { C } from "../constants.js";
-import { Btn } from "../components/Btn.jsx";
-import { Card } from "../components/Card.jsx";
+import { Btn } from "../components/btn/Btn.jsx";
+import { Card } from "../components/card/Card.jsx";
 import { SectionHeader } from "../components/SectionHeader.jsx";
 
 export default function SettingsPage() {

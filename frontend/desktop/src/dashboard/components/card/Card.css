@@ -1,0 +1,26 @@
+.card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  border: var(--card-border);
+  box-shadow: 0 2px 12px rgba(26, 42, 74, 0.06);
+}
+
+.table-th {
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--th-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  background: var(--th-bg);
+  border-bottom: var(--th-border);
+}
+
+.table-td {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--td-color);
+  border-bottom: var(--td-border);
+  vertical-align: middle;
+}

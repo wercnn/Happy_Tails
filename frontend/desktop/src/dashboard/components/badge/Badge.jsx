@@ -1,21 +1,19 @@
-import { C } from "../constants.js";
+import { C } from "../../constants.js";
+import "./Badge.css";
 
-export const Badge = ({ color, bg, children, style }) => (
-  <span
-    style={{
-      background: bg,
-      color,
-      borderRadius: 20,
-      padding: "3px 10px",
-      fontSize: 11,
-      fontWeight: 700,
-      whiteSpace: "nowrap",
-      ...style,
-    }}
-  >
-    {children}
-  </span>
-);
+export const Badge = ({ color, bg, children, style }) => {
+  const badgeStyle = {
+    "--badge-bg": bg,
+    "--badge-color": color,
+    ...style,
+  };
+
+  return (
+    <span className="badge" style={badgeStyle}>
+      {children}
+    </span>
+  );
+};
 
 export const StatusBadge = ({ status }) => {
   const map = {
@@ -33,11 +31,12 @@ export const StatusBadge = ({ status }) => {
     approved: [C.green, C.greenLight],
     flagged: [C.red, C.redLight],
   };
+
   const [col, bg] = map[status] || [C.mid, C.light];
+
   return (
     <Badge color={col} bg={bg}>
       {status}
     </Badge>
   );
 };
-

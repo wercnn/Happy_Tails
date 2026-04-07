@@ -1,5 +1,5 @@
 import { C } from "../constants.js";
-import { Card } from "./Card.jsx";
+import { Card } from "./card/Card.jsx";
 
 export const StatCard = ({ icon, label, value, delta, deltaUp, color }) => (
   <Card style={{ padding: "18px 20px" }}>
