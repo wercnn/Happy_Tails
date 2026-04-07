@@ -116,13 +116,7 @@ export default function DisputesPage() {
   ];
 
   return (
-    <div
-      className="disputes-page"
-      style={{
-        ...pageVars,
-        gridTemplateColumns: dispute ? "1fr 380px" : "1fr",
-      }}
-    >
+    <div className="disputes-page" style={pageVars}>
       <div>
         <SectionHeader
           title="Disputes"
@@ -170,13 +164,7 @@ export default function DisputesPage() {
             </thead>
             <tbody>
               {disputes.map((d) => (
-                <tr
-                  key={d.id}
-                  className={`disputes-page__row ${
-                    selected === d.id ? "disputes-page__row--selected" : ""
-                  }`}
-                  onClick={() => setSelected(selected === d.id ? null : d.id)}
-                >
+                <tr key={d.id} className="disputes-page__row">
                   <Td>
                     <span className="disputes-page__id">{d.id}</span>
                   </Td>
@@ -195,10 +183,7 @@ export default function DisputesPage() {
                     <Btn
                       variant="outline"
                       small
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelected(d.id);
-                      }}
+                      onClick={() => setSelected(d.id)}
                     >
                       View
                     </Btn>
@@ -211,57 +196,86 @@ export default function DisputesPage() {
       </div>
 
       {dispute && (
-        <Card style={{ padding: 20, height: "fit-content", position: "sticky", top: 20 }}>
-          <div className="disputes-page__detail-header">
-            <div>
-              <span className="disputes-page__detail-id">{dispute.id}</span>
-              <div className="disputes-page__detail-status">
-                <StatusBadge status={dispute.status} />
-              </div>
-            </div>
+        <div
+          className="disputes-page__overlay"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="disputes-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="disputes-page__close-btn"
+              className="disputes-page__overlay-close"
             >
               ✕
             </button>
-          </div>
 
-          <h3 className="disputes-page__detail-title">{dispute.type}</h3>
-          <p className="disputes-page__detail-submitted">{dispute.submitted}</p>
-
-          <div className="disputes-page__detail-summary-box">
-            <p className="disputes-page__detail-summary-text">{dispute.summary}</p>
-          </div>
-
-          {[
-            ["Booking", dispute.booking],
-            ["Raised By", dispute.raisedBy],
-            ["Against", dispute.against],
-            ["Assigned To", dispute.assignedTo],
-            ["Refund Requested", dispute.refundRequested],
-          ].map(([k, v]) => (
-            <div key={k} className="disputes-page__detail-row">
-              <span className="disputes-page__detail-key">{k}</span>
-              <span className="disputes-page__detail-value">{v}</span>
+            <div className="disputes-page__overlay-header">
+              <div className="disputes-page__overlay-header-main">
+                <span className="disputes-page__detail-id">{dispute.id}</span>
+                <h3 className="disputes-page__detail-title">{dispute.type}</h3>
+                <p className="disputes-page__detail-submitted">{dispute.submitted}</p>
+                <div className="disputes-page__detail-status">
+                  <StatusBadge status={dispute.status} />
+                </div>
+              </div>
             </div>
-          ))}
 
-          <div className="disputes-page__evidence-section">
-            <p className="disputes-page__evidence-title">Evidence / Notes</p>
-            <div className="disputes-page__evidence-box">
-              <p className="disputes-page__evidence-text">{dispute.evidence}</p>
+            <div className="disputes-page__overlay-grid">
+              <div className="disputes-page__overlay-section">
+                <h4 className="disputes-page__overlay-section-title">Case Details</h4>
+
+                <div className="disputes-page__detail-summary-box">
+                  <p className="disputes-page__detail-summary-text">{dispute.summary}</p>
+                </div>
+
+                {[
+                  ["Booking", dispute.booking],
+                  ["Raised By", dispute.raisedBy],
+                  ["Against", dispute.against],
+                  ["Assigned To", dispute.assignedTo],
+                  ["Refund Requested", dispute.refundRequested],
+                ].map(([k, v]) => (
+                  <div key={k} className="disputes-page__detail-row">
+                    <span className="disputes-page__detail-key">{k}</span>
+                    <span className="disputes-page__detail-value">{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="disputes-page__overlay-section">
+                <h4 className="disputes-page__overlay-section-title">Evidence / Notes</h4>
+
+                <div className="disputes-page__evidence-box">
+                  <p className="disputes-page__evidence-text">{dispute.evidence}</p>
+                </div>
+
+                <div className="disputes-page__overlay-meta">
+                  <div className="disputes-page__overlay-meta-card">
+                    <span className="disputes-page__overlay-meta-label">Severity</span>
+                    <div>{severityPill(dispute.severity)}</div>
+                  </div>
+
+                  <div className="disputes-page__overlay-meta-card">
+                    <span className="disputes-page__overlay-meta-label">Status</span>
+                    <strong className="disputes-page__overlay-meta-value">
+                      {dispute.status}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="disputes-page__detail-actions">
+              <Btn variant="primary">Approve Refund</Btn>
+              <Btn variant="danger">Deny Dispute</Btn>
+              <Btn variant="outline">Escalate Case</Btn>
+              <Btn variant="outline">View Chat History</Btn>
             </div>
           </div>
-
-          <div className="disputes-page__detail-actions">
-            <Btn variant="primary">Approve Refund</Btn>
-            <Btn variant="danger">Deny Dispute</Btn>
-            <Btn variant="outline">Escalate Case</Btn>
-            <Btn variant="outline">View Chat History</Btn>
-          </div>
-        </Card>
+        </div>
       )}
     </div>
   );
