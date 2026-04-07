@@ -8,13 +8,79 @@ import "./BookingsPage.css";
 
 export default function BookingsPage() {
   const [filter, setFilter] = useState("all");
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   const bookings = [
-    { id: "#HT-8801", owner: "Sarah J.", minder: "James W.", pet: "Buddy", service: "Dog Walking (60 min)", date: "9 Apr 2026", cost: "£23.10", status: "confirmed" },
-    { id: "#HT-8802", owner: "Mike T.", minder: "Priya P.", pet: "Whiskers", service: "Pet Sitting", date: "12 Apr 2026", cost: "£48.00", status: "pending" },
-    { id: "#HT-8798", owner: "Anna B.", minder: "James W.", pet: "Max", service: "Home Boarding", date: "2 Apr 2026", cost: "£105.00", status: "completed" },
-    { id: "#HT-8797", owner: "Chris L.", minder: "Tom H.", pet: "Luna", service: "Dog Walking (30 min)", date: "28 Mar 2026", cost: "£15.75", status: "cancelled" },
-    { id: "#HT-8800", owner: "Rachel K.", minder: "Emma R.", pet: "Mochi", service: "Day Care", date: "5 Apr 2026", cost: "£34.50", status: "confirmed" },
+    {
+      id: "#HT-8801",
+      owner: "Sarah J.",
+      minder: "James W.",
+      pet: "Buddy",
+      service: "Dog Walking (60 min)",
+      date: "9 Apr 2026",
+      cost: "£23.10",
+      status: "confirmed",
+      notes: "Owner requested an extra photo update during the walk.",
+      duration: "60 minutes",
+      location: "Luton",
+      paymentStatus: "Paid",
+    },
+    {
+      id: "#HT-8802",
+      owner: "Mike T.",
+      minder: "Priya P.",
+      pet: "Whiskers",
+      service: "Pet Sitting",
+      date: "12 Apr 2026",
+      cost: "£48.00",
+      status: "pending",
+      notes: "Awaiting final confirmation from the minder.",
+      duration: "4 hours",
+      location: "Luton",
+      paymentStatus: "Held in escrow",
+    },
+    {
+      id: "#HT-8798",
+      owner: "Anna B.",
+      minder: "James W.",
+      pet: "Max",
+      service: "Home Boarding",
+      date: "2 Apr 2026",
+      cost: "£105.00",
+      status: "completed",
+      notes: "Completed successfully. Owner left positive feedback.",
+      duration: "2 nights",
+      location: "Bedford",
+      paymentStatus: "Released",
+    },
+    {
+      id: "#HT-8797",
+      owner: "Chris L.",
+      minder: "Tom H.",
+      pet: "Luna",
+      service: "Dog Walking (30 min)",
+      date: "28 Mar 2026",
+      cost: "£15.75",
+      status: "cancelled",
+      notes: "Cancelled due to minder availability issue.",
+      duration: "30 minutes",
+      location: "St Albans",
+      paymentStatus: "Refunded",
+    },
+    {
+      id: "#HT-8800",
+      owner: "Rachel K.",
+      minder: "Emma R.",
+      pet: "Mochi",
+      service: "Day Care",
+      date: "5 Apr 2026",
+      cost: "£34.50",
+      status: "confirmed",
+      notes: "Drop-off scheduled for 9:00 AM.",
+      duration: "Full day",
+      location: "Luton",
+      paymentStatus: "Paid",
+    },
   ];
 
   const filters = ["all", "confirmed", "pending", "completed", "cancelled"];
@@ -138,7 +204,7 @@ export default function BookingsPage() {
                 </Td>
                 <Td>
                   <div className="bookings-page__actions">
-                    <Btn variant="outline" small>
+                    <Btn variant="outline" small onClick={() => setSelectedBooking(b)}>
                       View
                     </Btn>
                     <Btn variant="outline" small>
@@ -156,6 +222,102 @@ export default function BookingsPage() {
           </tbody>
         </table>
       </Card>
+
+      {selectedBooking && (
+        <div
+          className="bookings-page__overlay"
+          onClick={() => setSelectedBooking(null)}
+        >
+          <div
+            className="bookings-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="bookings-page__overlay-close"
+              onClick={() => setSelectedBooking(null)}
+            >
+              ✕
+            </button>
+
+            <div className="bookings-page__overlay-header">
+              <div className="bookings-page__overlay-header-main">
+                <p className="bookings-page__overlay-id">{selectedBooking.id}</p>
+                <h2 className="bookings-page__overlay-title">{selectedBooking.service}</h2>
+                <p className="bookings-page__overlay-subtitle">
+                  {selectedBooking.date} · {selectedBooking.location}
+                </p>
+                <div className="bookings-page__overlay-badges">
+                  <StatusBadge status={selectedBooking.status} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bookings-page__overlay-grid">
+              <div className="bookings-page__overlay-section">
+                <h3 className="bookings-page__overlay-section-title">Booking Details</h3>
+                <div className="bookings-page__overlay-list">
+                  <div className="bookings-page__overlay-row">
+                    <span>Pet Owner</span>
+                    <strong>{selectedBooking.owner}</strong>
+                  </div>
+                  <div className="bookings-page__overlay-row">
+                    <span>Pet Minder</span>
+                    <strong>{selectedBooking.minder}</strong>
+                  </div>
+                  <div className="bookings-page__overlay-row">
+                    <span>Pet</span>
+                    <strong>{selectedBooking.pet}</strong>
+                  </div>
+                  <div className="bookings-page__overlay-row">
+                    <span>Duration</span>
+                    <strong>{selectedBooking.duration}</strong>
+                  </div>
+                  <div className="bookings-page__overlay-row">
+                    <span>Cost</span>
+                    <strong>{selectedBooking.cost}</strong>
+                  </div>
+                  <div className="bookings-page__overlay-row">
+                    <span>Payment</span>
+                    <strong>{selectedBooking.paymentStatus}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bookings-page__overlay-section">
+                <h3 className="bookings-page__overlay-section-title">Support Notes</h3>
+                <div className="bookings-page__overlay-note-box">
+                  <p className="bookings-page__overlay-note-text">
+                    {selectedBooking.notes}
+                  </p>
+                </div>
+
+                <div className="bookings-page__overlay-stats">
+                  <div className="bookings-page__overlay-stat">
+                    <span className="bookings-page__overlay-stat-label">Status</span>
+                    <strong className="bookings-page__overlay-stat-value">
+                      {selectedBooking.status}
+                    </strong>
+                  </div>
+                  <div className="bookings-page__overlay-stat">
+                    <span className="bookings-page__overlay-stat-label">Service</span>
+                    <strong className="bookings-page__overlay-stat-value">
+                      {selectedBooking.service}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bookings-page__overlay-actions">
+              <Btn variant="outline">Message Owner</Btn>
+              <Btn variant="outline">Message Minder</Btn>
+              <Btn variant="outline">View Payment</Btn>
+              <Btn variant="danger">Cancel Booking</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
