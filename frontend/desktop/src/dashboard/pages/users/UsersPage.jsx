@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { C } from "../constants.js";
-import { StatusBadge } from "../components/badge/Badge.jsx";
-import { Avatar } from "../components/avatar/Avatar.jsx";
-import { Btn } from "../components/btn/Btn.jsx";
-import { Card, Th, Td } from "../components/card/Card.jsx";
-import { Input } from "../components/input/Input.jsx";
-import { SectionHeader } from "../components/sectionHeader/SectionHeader.jsx";
+import { C } from "../../constants.js";
+import { StatusBadge } from "../../components/badge/Badge.jsx";
+import { Avatar } from "../../components/avatar/Avatar.jsx";
+import { Btn } from "../../components/btn/Btn.jsx";
+import { Card, Th, Td } from "../../components/card/Card.jsx";
+import { Input } from "../../components/input/Input.jsx";
+import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
+import "./UsersPage.css";
 
 export default function UsersPage() {
   const [tab, setTab] = useState("owners");
@@ -26,46 +27,44 @@ export default function UsersPage() {
     { id: "M005", name: "Dan Foster", email: "dan@email.com", location: "Watford", services: 2, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified" },
   ];
 
+  const pendingMinders = [
+    { name: "Emma Reeves", submitted: "28 Mar 2026", doc: "Passport + DBS Check", exp: "2 years" },
+    { name: "Dan Foster", submitted: "27 Mar 2026", doc: "Driving Licence", exp: "1 year" },
+    { name: "Yuki Tanaka", submitted: "26 Mar 2026", doc: "Passport + References", exp: "4 years" },
+  ];
+
+  const tabs = [
+    ["owners", "Pet Owners"],
+    ["minders", "Pet Minders"],
+    ["pending", "Pending Verification"],
+  ];
+
   return (
-    <div>
+    <div className="users-page">
       <SectionHeader
         title="User Management"
         subtitle="Review pet owner and pet minder accounts, verification status and account actions."
-        action={<Input placeholder="Search users..." icon="🔍" style={{ width: 240 }} />}
+        action={<Input placeholder="Search users..." icon="🔍" className="users-page__search" />}
       />
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.light, borderRadius: 10, padding: 4, width: "fit-content" }}>
-        {[
-          ["owners", "Pet Owners"],
-          ["minders", "Pet Minders"],
-          ["pending", "Pending Verification"],
-        ].map(([k, l]) => (
+      <div className="users-page__tabs">
+        {tabs.map(([key, label]) => (
           <button
-            key={k}
-            onClick={() => setTab(k)}
-            style={{
-              padding: "8px 18px",
-              borderRadius: 8,
-              border: "none",
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              background: tab === k ? C.white : "transparent",
-              color: tab === k ? C.navy : C.mid,
-              boxShadow: tab === k ? "0 1px 6px rgba(0,0,0,0.08)" : "none",
-              transition: "all 0.15s",
-            }}
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`users-page__tab-btn ${
+              tab === key ? "users-page__tab-btn--active" : ""
+            }`}
           >
-            {l}
+            {label}
           </button>
         ))}
       </div>
 
       {tab === "owners" && (
         <Card>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="users-page__table">
             <thead>
               <tr>
                 <Th>User</Th>
@@ -81,11 +80,11 @@ export default function UsersPage() {
               {owners.map((u) => (
                 <tr key={u.id}>
                   <Td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="users-page__person">
                       <Avatar name={u.name} size={34} />
-                      <div>
-                        <div style={{ fontWeight: 700, color: C.navy, fontSize: 13 }}>{u.name}</div>
-                        <div style={{ fontSize: 11, color: C.mid }}>{u.email}</div>
+                      <div className="users-page__person-meta">
+                        <div className="users-page__person-name">{u.name}</div>
+                        <div className="users-page__person-email">{u.email}</div>
                       </div>
                     </div>
                   </Td>
@@ -99,7 +98,7 @@ export default function UsersPage() {
                     <StatusBadge status={u.status} />
                   </Td>
                   <Td>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="users-page__actions">
                       <Btn variant="outline" small>
                         View
                       </Btn>
@@ -117,7 +116,7 @@ export default function UsersPage() {
 
       {tab === "minders" && (
         <Card>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="users-page__table">
             <thead>
               <tr>
                 <Th>Minder</Th>
@@ -134,11 +133,11 @@ export default function UsersPage() {
               {minders.map((m) => (
                 <tr key={m.id}>
                   <Td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="users-page__person">
                       <Avatar name={m.name} size={34} color={C.blue} />
-                      <div>
-                        <div style={{ fontWeight: 700, color: C.navy, fontSize: 13 }}>{m.name}</div>
-                        <div style={{ fontSize: 11, color: C.mid }}>{m.email}</div>
+                      <div className="users-page__person-meta">
+                        <div className="users-page__person-name">{m.name}</div>
+                        <div className="users-page__person-email">{m.email}</div>
                       </div>
                     </div>
                   </Td>
@@ -153,7 +152,7 @@ export default function UsersPage() {
                     <StatusBadge status={m.status} />
                   </Td>
                   <Td>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="users-page__actions">
                       <Btn variant="outline" small>
                         View
                       </Btn>
@@ -171,30 +170,20 @@ export default function UsersPage() {
 
       {tab === "pending" && (
         <div>
-          <div
-            style={{
-              marginBottom: 16,
-              padding: 16,
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              background: C.orangeLight,
-              border: `1.5px solid ${C.orange}`,
-              borderRadius: 12,
-              boxShadow: "0 2px 12px rgba(26,42,74,0.06)",
-            }}
-          >
-            <span style={{ fontSize: 22 }}>⚠️</span>
-            <div>
-              <strong style={{ color: C.navy, fontSize: 13 }}>5 minders awaiting identity verification</strong>
-              <p style={{ margin: 0, fontSize: 12, color: C.dark }}>
+          <div className="users-page__notice">
+            <span className="users-page__notice-icon">⚠️</span>
+            <div className="users-page__notice-content">
+              <strong className="users-page__notice-title">
+                5 minders awaiting identity verification
+              </strong>
+              <p className="users-page__notice-text">
                 Profiles remain hidden from pet owners until verified. Review submitted documents below.
               </p>
             </div>
           </div>
 
           <Card>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="users-page__table">
               <thead>
                 <tr>
                   <Th>Minder</Th>
@@ -205,23 +194,19 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { name: "Emma Reeves", submitted: "28 Mar 2026", doc: "Passport + DBS Check", exp: "2 years" },
-                  { name: "Dan Foster", submitted: "27 Mar 2026", doc: "Driving Licence", exp: "1 year" },
-                  { name: "Yuki Tanaka", submitted: "26 Mar 2026", doc: "Passport + References", exp: "4 years" },
-                ].map((v) => (
+                {pendingMinders.map((v) => (
                   <tr key={v.name}>
                     <Td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div className="users-page__person">
                         <Avatar name={v.name} size={34} color={C.yellow} />
-                        <span style={{ fontWeight: 700, color: C.navy, fontSize: 13 }}>{v.name}</span>
+                        <span className="users-page__pending-name">{v.name}</span>
                       </div>
                     </Td>
                     <Td>{v.submitted}</Td>
                     <Td>📄 {v.doc}</Td>
                     <Td>{v.exp}</Td>
                     <Td>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div className="users-page__actions">
                         <Btn variant="success" small>
                           Verify
                         </Btn>
@@ -243,4 +228,3 @@ export default function UsersPage() {
     </div>
   );
 }
-

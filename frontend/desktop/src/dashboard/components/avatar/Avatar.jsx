@@ -1,4 +1,4 @@
-import { C } from "../constants.js";
+import { C } from "../../constants.js";
 import "./Avatar.css";
 
 export const Avatar = ({ name, icon, size = 36, color = C.orange }) => {

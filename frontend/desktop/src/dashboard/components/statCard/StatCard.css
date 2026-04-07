@@ -1,3 +1,7 @@
+.stat-card-shell {
+  padding: 18px 20px;
+}
+
 .stat-card {
   display: flex;
   justify-content: space-between;
@@ -12,7 +16,7 @@
   margin: 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--stat-card-label-color);
+  color: #6f7a8a;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -21,24 +25,54 @@
   margin: 6px 0 0;
   font-size: 26px;
   font-weight: 800;
-  color: var(--stat-card-value-color);
+  color: #1a2a4a;
 }
 
 .stat-card__delta {
   margin: 4px 0 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--stat-card-delta-color);
+}
+
+.stat-card__delta--up {
+  color: #27ae60;
+}
+
+.stat-card__delta--down {
+  color: #eb5757;
 }
 
 .stat-card__icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--stat-card-icon-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   flex-shrink: 0;
+}
+
+.stat-card__icon--orange {
+  background: rgba(245, 147, 30, 0.18);
+}
+
+.stat-card__icon--navy {
+  background: rgba(26, 42, 74, 0.18);
+}
+
+.stat-card__icon--blue {
+  background: rgba(47, 128, 237, 0.18);
+}
+
+.stat-card__icon--green {
+  background: rgba(39, 174, 96, 0.18);
+}
+
+.stat-card__icon--red {
+  background: rgba(235, 87, 87, 0.18);
+}
+
+.stat-card__icon--yellow {
+  background: rgba(242, 201, 76, 0.18);
 }

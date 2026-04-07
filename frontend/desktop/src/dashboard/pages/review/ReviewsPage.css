@@ -1,0 +1,139 @@
+.reviews-page {
+  --reviews-mid: #6f7a8a;
+  --reviews-dark: #243557;
+  --reviews-navy: #1a2a4a;
+  --reviews-orange: #f5931e;
+  --reviews-orange-light: #fff1df;
+  --reviews-blue: #2f80ed;
+  --reviews-green: #27ae60;
+  --reviews-green-light: #eaf8ef;
+  --reviews-red: #eb5757;
+  --reviews-red-light: #fdecec;
+  --reviews-yellow: #f2c94c;
+  --reviews-yellow-light: #fff7da;
+  --reviews-flagged-row: #fffbf0;
+}
+
+.reviews-page__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.reviews-page__stat-card {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reviews-page__stat-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.reviews-page__stat-icon-box--yellow {
+  background: rgba(242, 201, 76, 0.18);
+}
+
+.reviews-page__stat-icon-box--green {
+  background: rgba(39, 174, 96, 0.18);
+}
+
+.reviews-page__stat-icon-box--red {
+  background: rgba(235, 87, 87, 0.18);
+}
+
+.reviews-page__stat-icon-box--orange {
+  background: rgba(245, 147, 30, 0.18);
+}
+
+.reviews-page__stat-content {
+  min-width: 0;
+}
+
+.reviews-page__stat-label {
+  margin: 0;
+  font-size: 11px;
+  color: var(--reviews-mid);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.reviews-page__stat-value {
+  margin: 2px 0 0;
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.reviews-page__stat-value--yellow {
+  color: var(--reviews-yellow);
+}
+
+.reviews-page__stat-value--green {
+  color: var(--reviews-green);
+}
+
+.reviews-page__stat-value--red {
+  color: var(--reviews-red);
+}
+
+.reviews-page__stat-value--orange {
+  color: var(--reviews-orange);
+}
+
+.reviews-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.reviews-page__row--flagged {
+  background: var(--reviews-flagged-row);
+}
+
+.reviews-page__id {
+  font-weight: 800;
+  color: var(--reviews-orange);
+  font-size: 12px;
+}
+
+.reviews-page__rating {
+  font-size: 12px;
+}
+
+.reviews-page__review-text {
+  display: block;
+  max-width: 200px;
+  font-size: 12px;
+  color: var(--reviews-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviews-page__review-text--flagged {
+  color: var(--reviews-red);
+}
+
+.reviews-page__booking {
+  color: var(--reviews-blue);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.reviews-page__date {
+  font-size: 12px;
+}
+
+.reviews-page__actions {
+  display: flex;
+  gap: 6px;
+}

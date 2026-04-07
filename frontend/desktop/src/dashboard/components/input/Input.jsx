@@ -1,7 +1,13 @@
 import { C } from "../../constants.js";
 import "./Input.css";
 
-export const Input = ({ placeholder, style, icon }) => {
+export const Input = ({
+  placeholder,
+  style,
+  icon,
+  className = "",
+  ...props
+}) => {
   const inputStyle = {
     "--input-border": C.border,
     "--input-text": C.navy,
@@ -11,9 +17,13 @@ export const Input = ({ placeholder, style, icon }) => {
   };
 
   return (
-    <div className="input-field" style={inputStyle}>
+    <div className={`input-field ${className}`} style={inputStyle}>
       {icon && <span className="input-field__icon">{icon}</span>}
-      <input className="input-field__control" placeholder={placeholder} />
+      <input
+        className="input-field__control"
+        placeholder={placeholder}
+        {...props}
+      />
     </div>
   );
 };

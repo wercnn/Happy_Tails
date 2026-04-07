@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { C } from "../../constants.js";
 import { StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
 import { Card, Th, Td } from "../../components/card/Card.jsx";
@@ -21,28 +20,49 @@ export default function BookingsPage() {
   const filters = ["all", "confirmed", "pending", "completed", "cancelled"];
   const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
 
-  const pageVars = {
-    "--bookings-text-muted": C.mid,
-    "--bookings-text-dark": C.dark,
-    "--bookings-text-navy": C.navy,
-    "--bookings-text-orange": C.orange,
-    "--bookings-white": C.white,
-    "--bookings-border": C.border,
-  };
-
   const summaryCards = [
-    ["📋", "Total", "387", C.navy],
-    ["✅", "Confirmed", "198", C.green],
-    ["⏳", "Pending", "83", C.orange],
-    ["❌", "Cancelled", "26", C.red],
+    {
+      icon: "📋",
+      label: "Total",
+      value: "387",
+      iconClass: "bookings-page__summary-icon--navy",
+      valueClass: "bookings-page__summary-value--navy",
+    },
+    {
+      icon: "✅",
+      label: "Confirmed",
+      value: "198",
+      iconClass: "bookings-page__summary-icon--green",
+      valueClass: "bookings-page__summary-value--green",
+    },
+    {
+      icon: "⏳",
+      label: "Pending",
+      value: "83",
+      iconClass: "bookings-page__summary-icon--orange",
+      valueClass: "bookings-page__summary-value--orange",
+    },
+    {
+      icon: "❌",
+      label: "Cancelled",
+      value: "26",
+      iconClass: "bookings-page__summary-icon--red",
+      valueClass: "bookings-page__summary-value--red",
+    },
   ];
 
   return (
-    <div className="bookings-page" style={pageVars}>
+    <div className="bookings-page">
       <SectionHeader
         title="Booking Management"
         subtitle="Monitor booking activity and step in when customer support intervention is needed."
-        action={<Input placeholder="Search bookings..." icon="🔍" style={{ width: 240 }} />}
+        action={
+          <Input
+            placeholder="Search bookings..."
+            icon="🔍"
+            className="bookings-page__search"
+          />
+        }
       />
 
       <div className="bookings-page__filters">
@@ -54,12 +74,9 @@ export default function BookingsPage() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`bookings-page__filter-btn ${isActive ? "bookings-page__filter-btn--active" : ""}`}
-              style={{
-                "--bookings-filter-border": isActive ? C.orange : C.border,
-                "--bookings-filter-bg": isActive ? C.orange : C.white,
-                "--bookings-filter-color": isActive ? C.white : C.dark,
-              }}
+              className={`bookings-page__filter-btn ${
+                isActive ? "bookings-page__filter-btn--active" : ""
+              }`}
             >
               {f === "all" ? "All Bookings" : f}
             </button>
@@ -68,25 +85,17 @@ export default function BookingsPage() {
       </div>
 
       <div className="bookings-page__summary-grid">
-        {summaryCards.map(([icon, lbl, val, col]) => (
-          <Card
-            key={lbl}
-            style={{ padding: "14px 16px" }}
-          >
+        {summaryCards.map((item) => (
+          <Card key={item.label} className="bookings-page__summary-card-shell">
             <div className="bookings-page__summary-card">
-              <div
-                className="bookings-page__summary-icon"
-                style={{ "--bookings-summary-icon-bg": `${col}18` }}
-              >
-                {icon}
+              <div className={`bookings-page__summary-icon ${item.iconClass}`}>
+                {item.icon}
               </div>
+
               <div className="bookings-page__summary-content">
-                <p className="bookings-page__summary-label">{lbl}</p>
-                <p
-                  className="bookings-page__summary-value"
-                  style={{ "--bookings-summary-value-color": col }}
-                >
-                  {val}
+                <p className="bookings-page__summary-label">{item.label}</p>
+                <p className={`bookings-page__summary-value ${item.valueClass}`}>
+                  {item.value}
                 </p>
               </div>
             </div>
@@ -109,6 +118,7 @@ export default function BookingsPage() {
               <Th>Actions</Th>
             </tr>
           </thead>
+
           <tbody>
             {filtered.map((b) => (
               <tr key={b.id}>
@@ -118,8 +128,8 @@ export default function BookingsPage() {
                 <Td>{b.owner}</Td>
                 <Td>{b.minder}</Td>
                 <Td>🐾 {b.pet}</Td>
-                <Td style={{ fontSize: 12 }}>{b.service}</Td>
-                <Td style={{ fontSize: 12 }}>{b.date}</Td>
+                <Td className="bookings-page__cell-small">{b.service}</Td>
+                <Td className="bookings-page__cell-small">{b.date}</Td>
                 <Td>
                   <strong className="bookings-page__cost">{b.cost}</strong>
                 </Td>
