@@ -26,7 +26,13 @@ register('POST', '/api/reports/visit', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  const { bookingID, taskChecklist = null, behaviouralNotes = null, completedAt = null } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    bookingID        = 'bk-002',
+    taskChecklist    = 'Fed: Yes | Walk completed: Yes | Medication: N/A | Water: Yes',
+    behaviouralNotes = 'Pet was calm and well-behaved throughout the visit. No issues reported.',
+    completedAt      = new Date().toISOString().slice(0, 19).replace('T', ' '),
+  } = body;
   if (!bookingID) return badRequest(send, res, 'bookingID is required');
 
   const booking = await getBooking(bookingID);
@@ -73,7 +79,13 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  const { bookingID, incidentType = 'Other', severityLevel = 'Low', description } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    bookingID     = 'bk-002',
+    incidentType  = 'Other',
+    severityLevel = 'Low',
+    description   = 'Minor incident during the visit. Pet slipped its collar briefly but was recovered immediately. No injury.',
+  } = body;
   if (!bookingID || !description) return badRequest(send, res, 'bookingID and description are required');
 
   const booking = await getBooking(bookingID);

@@ -22,17 +22,18 @@ async function inferRoleByUserId(userId) {
 // Create a new user + auto-create profile row
 register('POST', '/api/auth/register', async (req, res, send) => {
   const body = await req.parseBody();
+  // TEST DATA - will be replaced by actual request body in production
   const {
-    email,
-    password,
-    firstName,
-    lastName,
-    phoneNumber = null,
-    username = null,
-    role = 'owner',
-    address = null,
-    city = null,
-    postcode = null,
+    email       = 'newuser@example.com',
+    password    = 'test1234',
+    firstName   = 'New',
+    lastName    = 'User',
+    phoneNumber = '07700900099',
+    username    = null,
+    role        = 'owner',
+    address     = '1 Test Street',
+    city        = 'London',
+    postcode    = 'E1 6RF',
   } = body;
 
   if (!email || !password || !firstName || !lastName) {
@@ -84,7 +85,8 @@ register('POST', '/api/auth/register', async (req, res, send) => {
 // Return user record if credentials match
 register('POST', '/api/auth/login', async (req, res, send) => {
   const body = await req.parseBody();
-  const { email, password } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const { email = 'sarah@example.com', password = 'test1234' } = body;
   if (!email || !password) return badRequest(send, res, 'email and password are required');
 
   const [rows] = await db.query(

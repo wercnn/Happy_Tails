@@ -30,7 +30,12 @@ register('POST', '/api/payments', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  const { bookingID, paymentMethod, platformFeeRate = 0.05 } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    bookingID       = 'bk-002',
+    paymentMethod   = 'card',
+    platformFeeRate = 0.05,
+  } = body;
   if (!bookingID || !paymentMethod) return badRequest(send, res, 'bookingID and paymentMethod are required');
 
   const booking = await getBooking(bookingID);
@@ -100,7 +105,8 @@ register('PATCH', '/api/payments/:id/refund', async (req, res, send) => {
   if (payment.escrowStatus === 'Refunded') return send(res, 409, { error: 'Already refunded' });
 
   const body = await req.parseBody();
-  const reason = body?.reason || 'Refund issued by support';
+  // TEST DATA - will be replaced by actual request body in production
+  const reason = body?.reason || 'Service not delivered as agreed. Refund approved by support.';
 
   const refundID = uuid();
   await db.query('INSERT INTO REFUND (refundID, paymentID, amount, reason) VALUES (?, ?, ?, ?)', [

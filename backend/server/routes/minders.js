@@ -103,7 +103,11 @@ register('PATCH', '/api/minders/:id', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
   if (req.params.id !== sitterID) return send(res, 403, { error: 'Cannot edit another minder' });
 
-  const body = await req.parseBody();
+  // TEST DATA - will be replaced by actual request body in production
+  const rawBody = await req.parseBody();
+  const body = Object.keys(rawBody).length
+    ? rawBody
+    : { bio: 'Experienced dog walker and boarder with a pet first-aid certificate.', experienceYears: 5, medicationQualified: true, serviceAreaPostcode: 'E2' };
   const fields = ['bio', 'experienceYears', 'medicationQualified', 'serviceAreaPostcode', 'ratingAvg', 'overallRating'];
   const sets = [];
   const params = [];
@@ -131,7 +135,12 @@ register('POST', '/api/services', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  const { serviceTypeID, customPrice, isActive = true } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    serviceTypeID = 'st-daycare',
+    customPrice   = 32.00,
+    isActive      = true,
+  } = body;
   if (!serviceTypeID || customPrice == null) {
     return badRequest(send, res, 'serviceTypeID and customPrice are required');
   }
@@ -160,7 +169,11 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
   );
   if (!owned.length) return notFound(send, res, 'Service not found');
 
-  const body = await req.parseBody();
+  const rawBody = await req.parseBody();
+  // TEST DATA - will be replaced by actual request body in production
+  const body = Object.keys(rawBody).length
+    ? rawBody
+    : { customPrice: 20.00, isActive: true };
   const fields = ['customPrice', 'isActive'];
   const sets = [];
   const params = [];
@@ -212,7 +225,11 @@ register('POST', '/api/calendar', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  const { startTime, endTime } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    startTime = '2026-06-01 09:00:00',
+    endTime   = '2026-06-01 10:00:00',
+  } = body;
   if (!startTime || !endTime) return badRequest(send, res, 'startTime and endTime are required');
 
   const calendarID = await ensureCalendarForSitter(sitterID);

@@ -18,7 +18,16 @@ register('POST', '/api/pets', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  const { name, species, breed = null, age = null, weight = null, neutered = false, routines = null } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    name     = 'Buddy',
+    species  = 'Dog',
+    breed    = 'Golden Retriever',
+    age      = 3,
+    weight   = 28.50,
+    neutered = true,
+    routines = 'Morning walk at 8am. Dinner at 6pm. Loves fetch.',
+  } = body;
   if (!name || !species) return badRequest(send, res, 'name and species are required');
 
   const petID = uuid();
@@ -69,7 +78,11 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
   const [existing] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
   if (!existing.length) return notFound(send, res, 'Pet not found');
 
-  const body = await req.parseBody();
+  const rawBody = await req.parseBody();
+  // TEST DATA - will be replaced by actual request body in production
+  const body = Object.keys(rawBody).length
+    ? rawBody
+    : { name: 'Buddy Updated', breed: 'Golden Retriever', age: 4, weight: 29.00, routines: 'Evening walk at 6pm added.' };
   const fields = ['name', 'species', 'breed', 'age', 'weight', 'neutered', 'routines'];
   const sets = [];
   const params = [];

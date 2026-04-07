@@ -1,0 +1,121 @@
+-- =============================================================
+-- TEST DATA
+-- Three accounts: sarah (owner), james (minder), emma (support)
+-- All passwords: test1234
+-- Password hash format: salt_hex:scrypt_derived_key_hex
+-- Regenerate with:
+--   node -e "const c=require('crypto');const s=c.randomBytes(16).toString('hex');
+--            c.scrypt('test1234',s,64,(e,k)=>console.log(s+':'+k.toString('hex')));"
+-- =============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ─── Users ───────────────────────────────────────────────────
+INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES
+  ('u-owner-001',  'sarah_o', 'a1b2c3d4e5f6a7b8a1b2c3d4e5f6a7b8:b3a4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4', '07700900001'),
+  ('u-minder-001', 'james_m', 'b2c3d4e5f6a7b8c9b2c3d4e5f6a7b8c9:c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3', '07700900002'),
+  ('u-support-001','emma_s',  'c3d4e5f6a7b8c9d0c3d4e5f6a7b8c9d0:d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4', '07700900003');
+
+-- ─── User Profiles ───────────────────────────────────────────
+INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES
+  ('pr-owner-001',  'u-owner-001',  'Sarah', 'Thompson', '12 Maple Street', 'London', 'E1 6RF', 'sarah@example.com'),
+  ('pr-minder-001', 'u-minder-001', 'James', 'Carter',   '8 Oak Avenue',    'London', 'E2 7JT', 'james@example.com'),
+  ('pr-support-001','u-support-001','Emma',  'Clarke',   NULL,              'London', NULL,     'emma@example.com');
+
+-- ─── Role Tables ─────────────────────────────────────────────
+INSERT INTO PET_OWNER (ownerID, userID) VALUES
+  ('own-001', 'u-owner-001');
+
+INSERT INTO PET_MINDER (sitterID, userID, bio, experienceYears, ratingAvg, overallRating, medicationQualified, serviceAreaPostcode) VALUES
+  ('sit-001', 'u-minder-001',
+   'Experienced dog walker and boarder. I have cared for over 50 dogs and hold a pet first-aid certificate.',
+   4, 4.80, 4.80, TRUE, 'E2');
+
+INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES
+  ('emp-001', 'u-support-001', 'Support');
+
+-- ─── Pet Profile ─────────────────────────────────────────────
+INSERT INTO PET_PROFILE (petID, ownerID, name, species, breed, age, weight, neutered, routines) VALUES
+  ('pet-001', 'own-001', 'Buddy', 'Dog', 'Golden Retriever', 3, 28.50, TRUE,
+   'Morning walk at 8am. Dinner at 6pm. Loves fetch. Nervous around large dogs — keep on lead.');
+
+-- ─── Service Types ───────────────────────────────────────────
+INSERT INTO SERVICE_TYPE (serviceTypeID, name, description, basePrice, rateCode, duration, supportedPetTypes) VALUES
+  ('st-walk',    'Dog Walking',  '30-minute local walk, solo or small group.',       15.00, 'WALK_30',     30,   'Dog'),
+  ('st-board',   'Pet Boarding', 'Overnight stay at the minder\'s home.',            45.00, 'BOARD_NIGHT', 1440, 'Dog,Cat'),
+  ('st-daycare', 'Dog Daycare',  'Full day of play and care at the minder\'s home.', 30.00, 'DAYCARE_DAY', 480,  'Dog');
+
+-- ─── Minder Services ─────────────────────────────────────────
+INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive) VALUES
+  ('ms-001', 'sit-001', 'st-walk',  18.00, TRUE),
+  ('ms-002', 'sit-001', 'st-board', 50.00, TRUE);
+
+-- ─── Calendar & Slots ────────────────────────────────────────
+INSERT INTO CALENDAR (calendarID, sitterID, timeZone) VALUES
+  ('cal-001', 'sit-001', 'Europe/London');
+
+-- slot-001: booked (used by bk-001 completed booking)
+-- slot-002: booked (used by bk-002 pending booking)
+-- slot-003: free   (available for new booking tests)
+INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES
+  ('slot-001', 'cal-001', '2026-05-10 09:00:00', '2026-05-10 10:00:00', TRUE),
+  ('slot-002', 'cal-001', '2026-05-12 09:00:00', '2026-05-12 10:00:00', TRUE),
+  ('slot-003', 'cal-001', '2026-05-15 14:00:00', '2026-05-15 15:00:00', FALSE);
+
+-- ─── Location ────────────────────────────────────────────────
+INSERT INTO LOCATION (locationID, postcode, street, city, county, country) VALUES
+  ('loc-001', 'E1 6RF', '12 Maple Street', 'London', 'Greater London', 'UK');
+
+-- ─── Bookings ────────────────────────────────────────────────
+-- bk-001: completed — used for payment, visit report, review, messages, incident
+INSERT INTO BOOKING (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID,
+                     status, startTime, endTime, totalCost, ownerNotes) VALUES
+  ('bk-001', 'own-001', 'sit-001', 'pet-001', 'slot-001', 'st-walk', 'loc-001',
+   'completed', '2026-05-10 09:00:00', '2026-05-10 10:00:00', 18.00,
+   'Please keep Buddy on the lead at all times. He is friendly but nervous around big dogs.');
+
+-- bk-002: pending — for testing accept / reject / cancel
+INSERT INTO BOOKING (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID,
+                     status, startTime, endTime, totalCost) VALUES
+  ('bk-002', 'own-001', 'sit-001', 'pet-001', 'slot-002', 'st-walk', 'loc-001',
+   'pending', '2026-05-12 09:00:00', '2026-05-12 10:00:00', 18.00);
+
+-- ─── Payment ─────────────────────────────────────────────────
+INSERT INTO PAYMENT (paymentID, bookingID, serviceCost, platformFee, amount,
+                     paymentMethod, paymentStatus, escrowStatus) VALUES
+  ('pay-001', 'bk-001', 18.00, 0.90, 18.90, 'card', 'Released', 'Released');
+
+-- ─── Visit Report ─────────────────────────────────────────────
+INSERT INTO VISIT_REPORT (reportID, bookingID, taskChecklist, behaviouralNotes, completedAt) VALUES
+  ('vr-001', 'bk-001',
+   'Fed: Yes | Walk completed: Yes | Medication: N/A | Water: Yes',
+   'Buddy was energetic and playful throughout. No issues. He enjoyed the park.',
+   '2026-05-10 10:05:00');
+
+-- ─── Incident Report ─────────────────────────────────────────
+INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, reporterUserID, incidentType, severityLevel, description) VALUES
+  ('inc-001', 'bk-001', 'emp-001', 'u-minder-001', 'Other', 'Low',
+   'Buddy briefly slipped his collar during the walk but was recovered immediately. No injury. Owner notified.');
+
+-- ─── Review ──────────────────────────────────────────────────
+INSERT INTO REVIEW (reviewID, bookingID, reviewerUserID, rating, comment) VALUES
+  ('rev-001', 'bk-001', 'u-owner-001', 5,
+   'James was absolutely wonderful with Buddy! Very professional, caring and communicative. Will definitely book again.');
+
+-- ─── Review Flag ─────────────────────────────────────────────
+INSERT INTO REVIEW_FLAG (flagID, reviewID, flaggerUserID, reason, status) VALUES
+  ('rf-001', 'rev-001', 'u-minder-001', 'Testing the flag workflow — not a real dispute.', 'Open');
+
+-- ─── Conversation & Messages ─────────────────────────────────
+INSERT INTO CONVERSATION (conversationID, bookingID) VALUES
+  ('conv-001', 'bk-001');
+
+INSERT INTO MESSAGE (messageID, conversationID, senderUserID, receiverUserID, content) VALUES
+  ('msg-001', 'conv-001', 'u-owner-001',  'u-minder-001',
+   'Hi James! Just a reminder that Buddy gets nervous around big dogs. Please keep him on the lead.'),
+  ('msg-002', 'conv-001', 'u-minder-001', 'u-owner-001',
+   'Of course Sarah, I will keep Buddy safe and comfortable the whole time. Will send an update after!'),
+  ('msg-003', 'conv-001', 'u-minder-001', 'u-owner-001',
+   'Walk done! Buddy was a star. He loved sniffing around the park. All good here.');
+
+SET FOREIGN_KEY_CHECKS = 1;

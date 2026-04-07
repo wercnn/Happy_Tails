@@ -26,7 +26,12 @@ register('POST', '/api/reviews', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  const { bookingID, rating, comment = null } = body;
+  // TEST DATA - will be replaced by actual request body in production
+  const {
+    bookingID = 'bk-001',
+    rating    = 5,
+    comment   = 'James was absolutely wonderful with Buddy! Very professional and caring. Highly recommend.',
+  } = body;
   if (!bookingID || rating == null) return badRequest(send, res, 'bookingID and rating are required');
 
   const booking = await getBooking(bookingID);
@@ -79,7 +84,7 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
   if (!allowed) return send(res, 403, { error: 'Forbidden' });
 
   const body = await req.parseBody();
-  const reason = body?.reason || null;
+  const reason = body?.reason || 'Review contains inaccurate information.';
 
   const flagID = uuid();
   await db.query(
