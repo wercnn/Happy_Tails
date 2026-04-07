@@ -5,8 +5,8 @@ import { Avatar } from "./components/avatar/Avatar.jsx";
 
 import OverviewPage from "./pages/OverviewPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
-import BookingsPage from "./pages/BookingsPage.jsx";
-import DisputesPage from "./pages/DisputesPage.jsx";
+import BookingsPage from "./pages/bookingPage/BookingsPage.jsx";
+import DisputesPage from "./pages/disputesPage/DisputesPage.jsx";
 import PaymentsPage from "./pages/PaymentsPage.jsx";
 import ReviewsPage from "./pages/ReviewsPage.jsx";
 import IncidentsPage from "./pages/IncidentsPage.jsx";
