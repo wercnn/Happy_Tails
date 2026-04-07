@@ -10,21 +10,22 @@ import "./UsersPage.css";
 
 export default function UsersPage() {
   const [tab, setTab] = useState("owners");
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const owners = [
-    { id: "U001", name: "Sarah Johnson", email: "sarah@email.com", location: "Luton", pets: 2, bookings: 14, joined: "Jan 2025", status: "active" },
-    { id: "U002", name: "Mike Torres", email: "mike@email.com", location: "Luton", pets: 1, bookings: 8, joined: "Feb 2025", status: "active" },
-    { id: "U003", name: "Anna Brown", email: "anna@email.com", location: "Bedford", pets: 3, bookings: 21, joined: "Dec 2024", status: "active" },
-    { id: "U004", name: "Chris Lim", email: "chris@email.com", location: "St Albans", pets: 1, bookings: 3, joined: "Mar 2025", status: "inactive" },
-    { id: "U005", name: "Rachel Kim", email: "rachel@email.com", location: "Luton", pets: 2, bookings: 7, joined: "Jan 2025", status: "active" },
+    { id: "U001", name: "Sarah Johnson", email: "sarah@email.com", location: "Luton", pets: 2, bookings: 14, joined: "Jan 2025", status: "active", verification: "verified", type: "owner" },
+    { id: "U002", name: "Mike Torres", email: "mike@email.com", location: "Luton", pets: 1, bookings: 8, joined: "Feb 2025", status: "active", verification: "verified", type: "owner" },
+    { id: "U003", name: "Anna Brown", email: "anna@email.com", location: "Bedford", pets: 3, bookings: 21, joined: "Dec 2024", status: "active", verification: "verified", type: "owner" },
+    { id: "U004", name: "Chris Lim", email: "chris@email.com", location: "St Albans", pets: 1, bookings: 3, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "owner" },
+    { id: "U005", name: "Rachel Kim", email: "rachel@email.com", location: "Luton", pets: 2, bookings: 7, joined: "Jan 2025", status: "active", verification: "verified", type: "owner" },
   ];
 
   const minders = [
-    { id: "M001", name: "James Walker", email: "james@email.com", location: "Luton", services: 3, rating: 4.9, bookings: 87, joined: "Oct 2024", status: "active", verification: "verified" },
-    { id: "M002", name: "Priya Patel", email: "priya@email.com", location: "Luton", services: 2, rating: 4.7, bookings: 54, joined: "Nov 2024", status: "active", verification: "verified" },
-    { id: "M003", name: "Tom Hughes", email: "tom@email.com", location: "Bedford", services: 1, rating: 4.8, bookings: 32, joined: "Jan 2025", status: "active", verification: "verified" },
-    { id: "M004", name: "Emma Reeves", email: "emma@email.com", location: "Luton", services: 4, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified" },
-    { id: "M005", name: "Dan Foster", email: "dan@email.com", location: "Watford", services: 2, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified" },
+    { id: "M001", name: "James Walker", email: "james@email.com", location: "Luton", services: 3, rating: 4.9, bookings: 87, joined: "Oct 2024", status: "active", verification: "verified", type: "minder" },
+    { id: "M002", name: "Priya Patel", email: "priya@email.com", location: "Luton", services: 2, rating: 4.7, bookings: 54, joined: "Nov 2024", status: "active", verification: "verified", type: "minder" },
+    { id: "M003", name: "Tom Hughes", email: "tom@email.com", location: "Bedford", services: 1, rating: 4.8, bookings: 32, joined: "Jan 2025", status: "active", verification: "verified", type: "minder" },
+    { id: "M004", name: "Emma Reeves", email: "emma@email.com", location: "Luton", services: 4, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "minder" },
+    { id: "M005", name: "Dan Foster", email: "dan@email.com", location: "Watford", services: 2, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "minder" },
   ];
 
   const pendingMinders = [
@@ -72,6 +73,7 @@ export default function UsersPage() {
                 <Th>Pets</Th>
                 <Th>Bookings</Th>
                 <Th>Joined</Th>
+                <Th>Verification</Th>
                 <Th>Status</Th>
                 <Th>Actions</Th>
               </tr>
@@ -95,11 +97,14 @@ export default function UsersPage() {
                   <Td>{u.bookings}</Td>
                   <Td>{u.joined}</Td>
                   <Td>
+                    <StatusBadge status={u.verification} />
+                  </Td>
+                  <Td>
                     <StatusBadge status={u.status} />
                   </Td>
                   <Td>
                     <div className="users-page__actions">
-                      <Btn variant="outline" small>
+                      <Btn variant="outline" small onClick={() => setSelectedUser(u)}>
                         View
                       </Btn>
                       <Btn variant="danger" small>
@@ -153,7 +158,7 @@ export default function UsersPage() {
                   </Td>
                   <Td>
                     <div className="users-page__actions">
-                      <Btn variant="outline" small>
+                      <Btn variant="outline" small onClick={() => setSelectedUser(m)}>
                         View
                       </Btn>
                       <Btn variant="danger" small>
@@ -223,6 +228,107 @@ export default function UsersPage() {
               </tbody>
             </table>
           </Card>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="users-page__overlay" onClick={() => setSelectedUser(null)}>
+          <div
+            className="users-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="users-page__overlay-close"
+              onClick={() => setSelectedUser(null)}
+            >
+              ✕
+            </button>
+
+            <div className="users-page__overlay-header">
+              <Avatar
+                name={selectedUser.name}
+                size={72}
+                color={selectedUser.type === "minder" ? C.blue : C.orange}
+              />
+              <div className="users-page__overlay-header-text">
+                <h2 className="users-page__overlay-name">{selectedUser.name}</h2>
+                <p className="users-page__overlay-email">{selectedUser.email}</p>
+                <div className="users-page__overlay-badges">
+                  <StatusBadge status={selectedUser.status} />
+                  {selectedUser.verification && (
+                    <StatusBadge status={selectedUser.verification} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="users-page__overlay-grid">
+              <div className="users-page__overlay-section">
+                <h3 className="users-page__overlay-section-title">Profile Details</h3>
+                <div className="users-page__overlay-list">
+                  <div className="users-page__overlay-row">
+                    <span>ID</span>
+                    <strong>{selectedUser.id}</strong>
+                  </div>
+                  <div className="users-page__overlay-row">
+                    <span>Type</span>
+                    <strong>{selectedUser.type === "minder" ? "Pet Minder" : "Pet Owner"}</strong>
+                  </div>
+                  <div className="users-page__overlay-row">
+                    <span>Location</span>
+                    <strong>{selectedUser.location}</strong>
+                  </div>
+                  <div className="users-page__overlay-row">
+                    <span>Joined</span>
+                    <strong>{selectedUser.joined}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="users-page__overlay-section">
+                <h3 className="users-page__overlay-section-title">Activity</h3>
+                <div className="users-page__overlay-stats">
+                  <div className="users-page__overlay-stat">
+                    <span className="users-page__overlay-stat-label">Bookings</span>
+                    <strong className="users-page__overlay-stat-value">
+                      {selectedUser.bookings}
+                    </strong>
+                  </div>
+
+                  {selectedUser.type === "owner" ? (
+                    <div className="users-page__overlay-stat">
+                      <span className="users-page__overlay-stat-label">Pets</span>
+                      <strong className="users-page__overlay-stat-value">
+                        {selectedUser.pets}
+                      </strong>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="users-page__overlay-stat">
+                        <span className="users-page__overlay-stat-label">Services</span>
+                        <strong className="users-page__overlay-stat-value">
+                          {selectedUser.services}
+                        </strong>
+                      </div>
+                      <div className="users-page__overlay-stat">
+                        <span className="users-page__overlay-stat-label">Rating</span>
+                        <strong className="users-page__overlay-stat-value">
+                          {selectedUser.rating > 0 ? `⭐ ${selectedUser.rating}` : "—"}
+                        </strong>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="users-page__overlay-actions">
+              <Btn variant="outline">Message User</Btn>
+              <Btn variant="outline">View Activity</Btn>
+              <Btn variant="danger">Suspend Account</Btn>
+            </div>
+          </div>
         </div>
       )}
     </div>
