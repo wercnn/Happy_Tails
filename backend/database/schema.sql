@@ -503,3 +503,33 @@ CREATE TABLE REVIEW (
         REFERENCES USER (userID),
     CONSTRAINT CHK_REVIEW_RATING CHECK (rating BETWEEN 1 AND 5)
 );
+
+-- =============================================================
+-- REVIEW_FLAG (referenced by reviews.js routes)
+-- =============================================================
+
+CREATE TABLE REVIEW_FLAG (
+    flagID          VARCHAR(36)     NOT NULL,
+    reviewID        VARCHAR(36)     NOT NULL,
+    flaggerUserID   VARCHAR(36)     NOT NULL,
+    reason          TEXT,
+    status          ENUM('Open', 'Resolved', 'Dismissed') NOT NULL DEFAULT 'Open',
+    createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_REVIEW_FLAG PRIMARY KEY (flagID),
+    CONSTRAINT FK_RF_REVIEW FOREIGN KEY (reviewID)
+        REFERENCES REVIEW (reviewID) ON DELETE CASCADE,
+    CONSTRAINT FK_RF_USER FOREIGN KEY (flaggerUserID)
+        REFERENCES USER (userID) ON DELETE CASCADE
+);
+
+-- =============================================================
+-- PATCH: INCIDENT_REPORT — make employeeID nullable and add
+-- reporterUserID so minders can file reports directly
+-- (referenced by reports.js POST /api/reports/incident)
+-- =============================================================
+
+ALTER TABLE INCIDENT_REPORT
+    MODIFY COLUMN employeeID VARCHAR(36) NULL,
+    ADD COLUMN reporterUserID VARCHAR(36) NULL
+        COMMENT 'userID of the minder who filed the report';
+
