@@ -4,6 +4,7 @@ import { StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
 import { Card, Th, Td } from "../../components/card/Card.jsx";
 import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
+import "./DisputesPage.css";
 
 export default function DisputesPage() {
   const [selected, setSelected] = useState(null);
@@ -20,8 +21,10 @@ export default function DisputesPage() {
       status: "open",
       submitted: "Today 9:10am",
       assignedTo: "Chadi S.",
-      summary: "Owner says minder ended the walk early and did not complete the agreed service.",
-      evidence: "Chat history available, booking timeline reviewed, no incident report submitted.",
+      summary:
+        "Owner says minder ended the walk early and did not complete the agreed service.",
+      evidence:
+        "Chat history available, booking timeline reviewed, no incident report submitted.",
     },
     {
       id: "#DSP-100",
@@ -34,8 +37,10 @@ export default function DisputesPage() {
       status: "escalated",
       submitted: "Yesterday 4:20pm",
       assignedTo: "Sifat R.",
-      summary: "Owner reported the minder did not arrive and did not respond within the booking window.",
-      evidence: "Unread message thread, failed check-in, no visit report submitted.",
+      summary:
+        "Owner reported the minder did not arrive and did not respond within the booking window.",
+      evidence:
+        "Unread message thread, failed check-in, no visit report submitted.",
     },
     {
       id: "#DSP-099",
@@ -48,7 +53,8 @@ export default function DisputesPage() {
       status: "pending",
       submitted: "28 Mar 11:00am",
       assignedTo: "Shadi H.",
-      summary: "Owner disputes the quality of pet sitting and says medication instructions were not followed correctly.",
+      summary:
+        "Owner disputes the quality of pet sitting and says medication instructions were not followed correctly.",
       evidence: "Visit report submitted, owner uploaded supporting screenshots.",
     },
     {
@@ -80,15 +86,10 @@ export default function DisputesPage() {
 
     return (
       <span
+        className="disputes-page__severity-pill"
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          padding: "5px 9px",
-          borderRadius: 999,
-          background: item.bg,
-          color: item.color,
-          fontWeight: 800,
-          fontSize: 11,
+          "--severity-pill-bg": item.bg,
+          "--severity-pill-color": item.color,
         }}
       >
         {item.label}
@@ -96,57 +97,64 @@ export default function DisputesPage() {
     );
   };
 
+  const pageVars = {
+    "--disputes-orange": C.orange,
+    "--disputes-orange-light": C.orangeLight,
+    "--disputes-mid": C.mid,
+    "--disputes-dark": C.dark,
+    "--disputes-navy": C.navy,
+    "--disputes-blue": C.blue,
+    "--disputes-light": C.light,
+    "--disputes-border": C.border,
+  };
+
+  const summaryCards = [
+    ["⚖️", "Open", "6", C.red],
+    ["💷", "Refund Requests", "9", C.orange],
+    ["⬆️", "Escalated", "2", C.yellow],
+    ["✅", "Resolved", "21", C.green],
+  ];
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: dispute ? "1fr 380px" : "1fr", gap: 20 }}>
+    <div
+      className="disputes-page"
+      style={{
+        ...pageVars,
+        gridTemplateColumns: dispute ? "1fr 380px" : "1fr",
+      }}
+    >
       <div>
         <SectionHeader
           title="Disputes"
           subtitle="Review complaints, refund requests and escalated support cases"
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
-          {[
-            ["⚖️", "Open", "6", C.red],
-            ["💷", "Refund Requests", "9", C.orange],
-            ["⬆️", "Escalated", "2", C.yellow],
-            ["✅", "Resolved", "21", C.green],
-          ].map(([icon, lbl, val, col]) => (
-            <Card key={lbl} style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: col + "18",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                }}
-              >
-                {icon}
-              </div>
-              <div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 11,
-                    color: C.mid,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.4,
-                  }}
+        <div className="disputes-page__summary-grid">
+          {summaryCards.map(([icon, lbl, val, col]) => (
+            <Card key={lbl} style={{ padding: "14px 16px" }}>
+              <div className="disputes-page__summary-card">
+                <div
+                  className="disputes-page__summary-icon"
+                  style={{ "--disputes-summary-icon-bg": `${col}18` }}
                 >
-                  {lbl}
-                </p>
-                <p style={{ margin: "2px 0 0", fontWeight: 800, color: col, fontSize: 20 }}>{val}</p>
+                  {icon}
+                </div>
+                <div>
+                  <p className="disputes-page__summary-label">{lbl}</p>
+                  <p
+                    className="disputes-page__summary-value"
+                    style={{ "--disputes-summary-value-color": col }}
+                  >
+                    {val}
+                  </p>
+                </div>
               </div>
             </Card>
           ))}
         </div>
 
         <Card>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="disputes-page__table">
             <thead>
               <tr>
                 <Th>ID</Th>
@@ -164,17 +172,16 @@ export default function DisputesPage() {
               {disputes.map((d) => (
                 <tr
                   key={d.id}
-                  style={{
-                    background: selected === d.id ? C.orangeLight : "transparent",
-                    cursor: "pointer",
-                  }}
+                  className={`disputes-page__row ${
+                    selected === d.id ? "disputes-page__row--selected" : ""
+                  }`}
                   onClick={() => setSelected(selected === d.id ? null : d.id)}
                 >
                   <Td>
-                    <span style={{ fontWeight: 800, color: C.orange, fontSize: 12 }}>{d.id}</span>
+                    <span className="disputes-page__id">{d.id}</span>
                   </Td>
                   <Td>
-                    <span style={{ color: C.blue, fontWeight: 700, fontSize: 12 }}>{d.booking}</span>
+                    <span className="disputes-page__booking">{d.booking}</span>
                   </Td>
                   <Td>{d.raisedBy}</Td>
                   <Td>{d.against}</Td>
@@ -205,26 +212,27 @@ export default function DisputesPage() {
 
       {dispute && (
         <Card style={{ padding: 20, height: "fit-content", position: "sticky", top: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div className="disputes-page__detail-header">
             <div>
-              <span style={{ fontWeight: 800, color: C.orange, fontSize: 14 }}>{dispute.id}</span>
-              <div style={{ marginTop: 8 }}>
+              <span className="disputes-page__detail-id">{dispute.id}</span>
+              <div className="disputes-page__detail-status">
                 <StatusBadge status={dispute.status} />
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setSelected(null)}
-              style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: C.mid }}
+              className="disputes-page__close-btn"
             >
               ✕
             </button>
           </div>
 
-          <h3 style={{ margin: "0 0 4px", color: C.navy, fontSize: 16, fontWeight: 800 }}>{dispute.type}</h3>
-          <p style={{ margin: "0 0 16px", color: C.mid, fontSize: 12 }}>{dispute.submitted}</p>
+          <h3 className="disputes-page__detail-title">{dispute.type}</h3>
+          <p className="disputes-page__detail-submitted">{dispute.submitted}</p>
 
-          <div style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 13, color: C.dark, lineHeight: 1.6 }}>{dispute.summary}</p>
+          <div className="disputes-page__detail-summary-box">
+            <p className="disputes-page__detail-summary-text">{dispute.summary}</p>
           </div>
 
           {[
@@ -234,28 +242,20 @@ export default function DisputesPage() {
             ["Assigned To", dispute.assignedTo],
             ["Refund Requested", dispute.refundRequested],
           ].map(([k, v]) => (
-            <div
-              key={k}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "8px 0",
-                borderBottom: `1px solid ${C.border}`,
-              }}
-            >
-              <span style={{ color: C.mid, fontSize: 12 }}>{k}</span>
-              <span style={{ color: C.navy, fontWeight: 700, fontSize: 12 }}>{v}</span>
+            <div key={k} className="disputes-page__detail-row">
+              <span className="disputes-page__detail-key">{k}</span>
+              <span className="disputes-page__detail-value">{v}</span>
             </div>
           ))}
 
-          <div style={{ marginTop: 16 }}>
-            <p style={{ margin: "0 0 6px", color: C.navy, fontWeight: 800, fontSize: 13 }}>Evidence / Notes</p>
-            <div style={{ background: C.light, borderRadius: 10, padding: 12 }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.dark, lineHeight: 1.6 }}>{dispute.evidence}</p>
+          <div className="disputes-page__evidence-section">
+            <p className="disputes-page__evidence-title">Evidence / Notes</p>
+            <div className="disputes-page__evidence-box">
+              <p className="disputes-page__evidence-text">{dispute.evidence}</p>
             </div>
           </div>
 
-          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="disputes-page__detail-actions">
             <Btn variant="primary">Approve Refund</Btn>
             <Btn variant="danger">Deny Dispute</Btn>
             <Btn variant="outline">Escalate Case</Btn>

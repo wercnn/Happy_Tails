@@ -8,9 +8,9 @@ import UsersPage from "./pages/UsersPage.jsx";
 import BookingsPage from "./pages/booking/BookingsPage.jsx";
 import DisputesPage from "./pages/disputes/DisputesPage.jsx";
 import PaymentsPage from "./pages/payments/PaymentsPage.jsx";
-import ReviewsPage from "./pages/ReviewsPage.jsx";
+import ReviewsPage from "./pages/review/ReviewsPage.jsx";
 import IncidentsPage from "./pages/incidents/IncidentsPage.jsx";
-import ReportsPage from "./pages/ReportsPage.jsx";
+import ReportsPage from "./pages/reports/ReportsPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 import "./Dashboard.css";
