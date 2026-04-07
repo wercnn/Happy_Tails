@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { C } from "../../constants.js";
 import { StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
@@ -6,6 +7,8 @@ import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx"
 import "./ReviewsPage.css";
 
 export default function ReviewsPage() {
+  const [selectedReview, setSelectedReview] = useState(null);
+
   const reviews = [
     {
       id: "#RV-291",
@@ -178,9 +181,12 @@ export default function ReviewsPage() {
                       <Btn variant="danger" small>
                         Remove
                       </Btn>
+                      <Btn variant="outline" small onClick={() => setSelectedReview(r)}>
+                        View
+                      </Btn>
                     </div>
                   ) : (
-                    <Btn variant="outline" small>
+                    <Btn variant="outline" small onClick={() => setSelectedReview(r)}>
                       View
                     </Btn>
                   )}
@@ -190,6 +196,110 @@ export default function ReviewsPage() {
           </tbody>
         </table>
       </Card>
+
+      {selectedReview && (
+        <div
+          className="reviews-page__overlay"
+          onClick={() => setSelectedReview(null)}
+        >
+          <div
+            className="reviews-page__overlay-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="reviews-page__overlay-close"
+              onClick={() => setSelectedReview(null)}
+            >
+              ✕
+            </button>
+
+            <div className="reviews-page__overlay-header">
+              <div className="reviews-page__overlay-header-main">
+                <p className="reviews-page__overlay-id">{selectedReview.id}</p>
+                <h2 className="reviews-page__overlay-title">Review Details</h2>
+                <p className="reviews-page__overlay-subtitle">
+                  {selectedReview.date} · {selectedReview.booking}
+                </p>
+                <div className="reviews-page__overlay-badges">
+                  <StatusBadge status={selectedReview.status} />
+                </div>
+              </div>
+            </div>
+
+            <div className="reviews-page__overlay-grid">
+              <div className="reviews-page__overlay-section">
+                <h3 className="reviews-page__overlay-section-title">Review Info</h3>
+
+                <div className="reviews-page__overlay-list">
+                  <div className="reviews-page__overlay-row">
+                    <span>Owner</span>
+                    <strong>{selectedReview.owner}</strong>
+                  </div>
+                  <div className="reviews-page__overlay-row">
+                    <span>Minder</span>
+                    <strong>{selectedReview.minder}</strong>
+                  </div>
+                  <div className="reviews-page__overlay-row">
+                    <span>Booking</span>
+                    <strong>{selectedReview.booking}</strong>
+                  </div>
+                  <div className="reviews-page__overlay-row">
+                    <span>Rating</span>
+                    <strong>{"⭐".repeat(selectedReview.rating)}</strong>
+                  </div>
+                  <div className="reviews-page__overlay-row">
+                    <span>Date</span>
+                    <strong>{selectedReview.date}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="reviews-page__overlay-section">
+                <h3 className="reviews-page__overlay-section-title">Review Text</h3>
+
+                <div className="reviews-page__overlay-note-box">
+                  <p
+                    className={`reviews-page__overlay-note-text ${
+                      selectedReview.status === "flagged"
+                        ? "reviews-page__overlay-note-text--flagged"
+                        : ""
+                    }`}
+                  >
+                    {selectedReview.text}
+                  </p>
+                </div>
+
+                <div className="reviews-page__overlay-stats">
+                  <div className="reviews-page__overlay-stat">
+                    <span className="reviews-page__overlay-stat-label">Status</span>
+                    <strong className="reviews-page__overlay-stat-value">
+                      {selectedReview.status}
+                    </strong>
+                  </div>
+                  <div className="reviews-page__overlay-stat">
+                    <span className="reviews-page__overlay-stat-label">Score</span>
+                    <strong className="reviews-page__overlay-stat-value">
+                      {selectedReview.rating}/5
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="reviews-page__overlay-actions">
+              {selectedReview.status === "flagged" && (
+                <>
+                  <Btn variant="success">Approve Review</Btn>
+                  <Btn variant="danger">Remove Review</Btn>
+                </>
+              )}
+              <Btn variant="outline">View Booking</Btn>
+              <Btn variant="outline">Contact User</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
