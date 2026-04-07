@@ -9,7 +9,7 @@ import BookingsPage from "./pages/bookingPage/BookingsPage.jsx";
 import DisputesPage from "./pages/disputesPage/DisputesPage.jsx";
 import PaymentsPage from "./pages/PaymentsPage.jsx";
 import ReviewsPage from "./pages/ReviewsPage.jsx";
-import IncidentsPage from "./pages/IncidentsPage.jsx";
+import IncidentsPage from "./pages/incidentsPage/IncidentsPage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
