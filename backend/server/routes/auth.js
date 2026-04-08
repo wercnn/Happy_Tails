@@ -1,7 +1,26 @@
 // server/routes/auth.js
-const { randomUUID } = require('crypto');
+// ⚠️ NOTE: Keep it simple with hashing as we don't it to be random for a prototype. In production, use bcrypt or similar.
 const { register } = require('../router');
 const db = require('../db');
+const {
+  uuid,
+  badRequest,
+  requireRole,
+  normalizeRole,
+  hashPassword,
+  verifyPassword,
+} = require('../lib/helpers');
+
+// Infer the user's role by checking which profile table they have an entry in.
+async function inferRoleByUserId(userId) {
+  const [ownerRows] = await db.query('SELECT ownerID FROM PET_OWNER WHERE userID = ?', [userId]);
+  if (ownerRows.length) return 'owner';
+  const [minderRows] = await db.query('SELECT sitterID FROM PET_MINDER WHERE userID = ?', [userId]);
+  if (minderRows.length) return 'minder';
+  const [supportRows] = await db.query('SELECT employeeID FROM CUSTOMER_SUPPORT WHERE userID = ?', [userId]);
+  if (supportRows.length) return 'support';
+  return null;
+}
 
 
 // ─────────────────────────────────────────────
@@ -9,40 +28,53 @@ const db = require('../db');
 // ─────────────────────────────────────────────
 register('POST', '/api/auth/register', async (req, res, send) => {
   const body = await req.parseBody();
-  const { email, password, firstName, lastName } = body;
+  // Example: { email: 'newuser@example.com', password: 'test1234', firstName: 'New', lastName: 'User', 
+  // phoneNumber: '07700900099', username: null, role: 'owner', address: '1 Test Street', city: 'London', postcode: 'E1 6RF' }
+  const { email, password, firstName, lastName, phoneNumber, username, role, address, city, postcode } = body;
 
   if (!email || !password || !firstName || !lastName) {
-    return send(res, 400, { error: 'Missing required fields' });
+    return badRequest(send, res, 'email, password, firstName, lastName are required');
   }
 
-  // check if email already exists
-  const [existing] = await db.query(
-    'SELECT * FROM USER_PROFILE WHERE email = ?',
-    [email]
-  );
+  const userID = uuid();
+  const profileID = uuid();
+  const passwordHash = await hashPassword(String(password));
+  const normalizedRole = normalizeRole(role) || 'owner';
 
-  if (existing.length > 0) {
+  // Ensure unique email
+  const [existing] = await db.query('SELECT profileID FROM USER_PROFILE WHERE email = ?', [email]);
+  if (existing.length) {
     return send(res, 409, { error: 'Email already registered' });
   }
 
-  const userID = randomUUID();
-  const profileID = randomUUID();
-
-  // ⚠️ NOTE: no hashing yet (keep simple for now)
   await db.query(
-    'INSERT INTO USER (userID, passwordHash) VALUES (?, ?)',
-    [userID, password]
+    'INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES (?, ?, ?, ?)',
+    [userID, username, passwordHash, phoneNumber]
+  );
+  await db.query(
+    'INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [profileID, userID, firstName, lastName, address, city, postcode, email]
   );
 
-  await db.query(
-    `INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, email)
-     VALUES (?, ?, ?, ?, ?)`,
-    [profileID, userID, firstName, lastName, email]
-  );
+  if (normalizedRole === 'minder') {
+    await db.query('INSERT INTO PET_MINDER (sitterID, userID) VALUES (?, ?)', [uuid(), userID]);
+  } else if (normalizedRole === 'support') {
+    await db.query('INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES (?, ?, ?)', [
+      uuid(),
+      userID,
+      'Support',
+    ]);
+  } else {
+    await db.query('INSERT INTO PET_OWNER (ownerID, userID) VALUES (?, ?)', [uuid(), userID]);
+  }
 
   send(res, 201, {
-    message: 'User registered',
-    userID
+    userID,
+    profileID,
+    role: await inferRoleByUserId(userID),
+    email,
+    firstName,
+    lastName,
   });
 });
 
@@ -52,34 +84,37 @@ register('POST', '/api/auth/register', async (req, res, send) => {
 // ─────────────────────────────────────────────
 register('POST', '/api/auth/login', async (req, res, send) => {
   const body = await req.parseBody();
+  // Example: { email: 'sarah@example.com', password: 'test1234' }
   const { email, password } = body;
-
-  if (!email || !password) {
-    return send(res, 400, { error: 'Email and password required' });
-  }
+  if (!email || !password) return badRequest(send, res, 'email and password are required');
 
   const [rows] = await db.query(
-    `SELECT u.userID, u.passwordHash, p.firstName, p.lastName
-     FROM USER u
-     JOIN USER_PROFILE p ON u.userID = p.userID
-     WHERE p.email = ?`,
+    `SELECT U.userID, U.username, U.passwordHash, U.phoneNumber, U.createdAt,
+            P.profileID, P.firstName, P.lastName, P.email
+     FROM USER U
+     JOIN USER_PROFILE P ON P.userID = U.userID
+     WHERE P.email = ?`,
     [email]
   );
 
-  if (rows.length === 0) {
-    return send(res, 401, { error: 'Invalid credentials' });
-  }
-
+  if (!rows.length) return send(res, 401, { error: 'Invalid credentials' });
   const user = rows[0];
+  const ok = await verifyPassword(String(password), user.passwordHash);
+  if (!ok) return send(res, 401, { error: 'Invalid credentials -  Incorrect password' });
 
-  // ⚠️ plain comparison (no hashing yet)
-  if (user.passwordHash !== password) {
-    return send(res, 401, { error: 'Invalid credentials' });
-  }
+  const role = await inferRoleByUserId(user.userID);
 
   send(res, 200, {
-    message: 'Login successful',
     userID: user.userID,
-    name: `${user.firstName} ${user.lastName}`
+    username: user.username,
+    phoneNumber: user.phoneNumber,
+    createdAt: user.createdAt,
+    profile: {
+      profileID: user.profileID,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+    },
+    role,
   });
 });
