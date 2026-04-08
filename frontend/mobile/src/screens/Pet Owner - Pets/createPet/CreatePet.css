@@ -1,0 +1,273 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.cpet-screen {
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.cpet-header {
+  flex-shrink: 0;
+  background: #ee8b28;
+  padding: 20px 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cpet-back {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.cpet-back:hover { opacity: 0.8; }
+
+.cpet-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* ── Scroll ── */
+.cpet-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cpet-scroll::-webkit-scrollbar { display: none; }
+
+.cpet-form {
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Avatar Upload ── */
+.cpet-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.cpet-avatar-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2.5px dashed #ee8b28;
+  background: #f7f7f7;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+  padding: 0;
+}
+.cpet-avatar-btn:hover { background: #fef3e8; }
+
+.cpet-avatar-paw {
+  font-size: 2.4rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.cpet-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cpet-upload-label {
+  background: none;
+  border: none;
+  color: #ee8b28;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+.cpet-upload-label:hover { opacity: 0.75; }
+
+/* ── Fields ── */
+.cpet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cpet-label {
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.cpet-input {
+  width: 100%;
+  padding: 14px 14px;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.cpet-input::placeholder { color: #aaa; }
+.cpet-input:focus {
+  border-color: #ee8b28;
+  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
+}
+
+/* ── Select ── */
+.cpet-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.cpet-select {
+  width: 100%;
+  padding: 14px 42px 14px 14px;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #aaa;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.cpet-select:focus {
+  border-color: #ee8b28;
+  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
+  color: #333;
+}
+
+.cpet-select-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #555;
+  pointer-events: none;
+}
+
+/* ── Textarea ── */
+.cpet-textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 13px 14px;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 0.93rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.cpet-textarea::placeholder { color: #aaa; }
+.cpet-textarea:focus {
+  border-color: #ee8b28;
+  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
+}
+
+.cpet-textarea {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.cpet-character-count {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #888;
+  text-align: right;
+}
+
+.cpet-input--error {
+  border: 1.8px solid #dc2626;
+}
+
+.cpet-error-text {
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* ── Save ── */
+.cpet-save {
+  background: #f28c28;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
+}
+.cpet-save:hover  { filter: brightness(1.06); transform: translateY(-1px); }
+.cpet-save:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .cpet-form { padding: 20px 16px 28px; }
+}

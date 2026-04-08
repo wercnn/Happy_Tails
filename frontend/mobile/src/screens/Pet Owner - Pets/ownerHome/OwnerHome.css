@@ -1,0 +1,379 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.home-screen {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+/* ── Orange Header ── */
+.home-header {
+  flex-shrink: 0;
+  background: #f28c28;
+  padding: 22px 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-greeting-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-greeting {
+  margin: 0;
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.home-name {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.home-bell-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.home-bell-btn:hover { background: rgba(255,255,255,0.38); }
+
+/* ── Scroll body ── */
+.home-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 16px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.home-scroll::-webkit-scrollbar { display: none; }
+.home-scroll-pad { height: 8px; flex-shrink: 0; }
+
+/* ── Find a Minder Banner ── */
+.home-banner {
+  background: #f28c28;
+  border-radius: 16px;
+  padding: 22px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.home-banner-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.home-banner-sub {
+  margin: 0;
+  color: rgba(255,255,255,0.9);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.home-banner-btn {
+  margin-top: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  transition: filter 0.15s, transform 0.12s;
+}
+.home-banner-btn:hover { filter: brightness(0.97); transform: translateY(1px); }
+
+/* ── Sections ── */
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.home-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.home-pet-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.home-empty-pets {
+  margin: 0;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 8px 2px 2px;
+  text-align: center;
+}
+
+/* ── Pet Cards ── */
+.home-pet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-pet-card {
+  width: 100%;
+  background: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.home-pet-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+.home-pet-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f28c28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.home-pet-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.home-pet-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.home-pet-meta {
+  font-size: 0.82rem;
+  color: #888;
+}
+
+.home-pet-chevron {
+  color: #bbb;
+  font-size: 1.1rem;
+  font-weight: 300;
+}
+
+.home-view-all-pets {
+  border: none;
+  background: none;
+  color: #f28c28;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 4px 2px 0;
+  text-align: left;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.home-view-all-pets:hover {
+  text-decoration: underline;
+}
+
+/* ── Add a Pet ── */
+.home-add-pet {
+  background: #f28c28;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
+}
+.home-add-pet:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+/* ── Booking Cards ── */
+.home-booking-list { display: flex; flex-direction: column; gap: 10px; }
+
+.home-booking-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+
+.home-booking-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e8eaf6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.home-booking-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.home-booking-service {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.home-booking-time {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.home-booking-badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.home-booking-badge--confirmed {
+  background: #e6f9ee;
+  color: #27a85a;
+  border: 1.5px solid #b6eecb;
+}
+
+/* ── Bottom Nav ── */
+.home-nav {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: stretch;
+  padding: 6px 0 10px;
+}
+
+.home-nav-item {
+  flex: 1;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px 2px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.home-nav-item:hover { opacity: 0.75; }
+
+.home-nav-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.home-nav-label {
+  font-size: 0.63rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.home-nav-item--active .home-nav-label { color: #f28c28; }
+.home-nav-item--active .home-nav-emoji { filter: none; }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .home-scroll { padding: 14px 12px 0; }
+}

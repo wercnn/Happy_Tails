@@ -1,0 +1,138 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.rs2-screen {
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Body ── */
+.rs2-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 24px;
+  width: 100%;
+}
+
+/* ── Clipboard Icon ── */
+.rs2-icon-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #fde8cc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pop-in {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.rs2-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* ── Text ── */
+.rs2-heading {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.rs2-sub {
+  margin: -6px 0 0;
+  font-size: 0.87rem;
+  color: #888;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 280px;
+}
+
+/* ── Case Reference card ── */
+.rs2-ref-card {
+  width: 100%;
+  border: 2px solid #ee8b28;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #fff8f0;
+}
+
+.rs2-ref-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ee8b28;
+  letter-spacing: 0.02em;
+}
+
+.rs2-ref-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: 0.02em;
+}
+
+/* ── Return Home button ── */
+.rs2-home-btn {
+  width: 100%;
+  background: #ee8b28;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 10px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(238, 139, 40, 0.32);
+  transition: filter 0.15s, transform 0.12s;
+  margin-top: 4px;
+}
+.rs2-home-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
+.rs2-home-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .rs2-body { padding: 28px 18px; }
+}

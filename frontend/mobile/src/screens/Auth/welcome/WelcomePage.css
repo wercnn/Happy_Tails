@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #fff;
+}
+
+.welcome-screen {
+  min-height: 100svh;
+  width: 100%;
+  background: #f28c28;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.welcome-brand-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.welcome-brand-text {
+  margin: 0;
+  color: #fff;
+  font-family: 'Pacifico', cursive;
+  font-size: 64px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0.04rem;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  white-space: nowrap;
+  display: inline-block;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  text-align: center;
+}
+
+.welcome-actions-panel {
+  padding: 0 20px 18px;
+}
+
+.welcome-action-button {
+  width: 100%;
+  background: transparent;
+  color: #f28c28;
+  border: 2.5px solid #fff;
+  border-radius: 6px;
+  padding: 13px 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  background: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.welcome-login-button {
+  margin-bottom: 15px;
+}
+
+.welcome-action-button:hover,
+.welcome-action-button:focus-visible,
+.welcome-action-button:active {
+  filter: brightness(0.97);
+  transform: translateY(1px);
+}
+
+.welcome-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.welcome-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.welcome-divider-text {
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 430px) {
+  .welcome-actions-panel {
+    padding: 0 16px 16px;
+  }
+
+  .welcome-action-button {
+    font-size: 0.85rem;
+  }
+
+  .welcome-divider-text {
+    font-size: 0.82rem;
+  }
+
+  .welcome-brand-text {
+    font-size: 3.2rem;
+  }
+}
