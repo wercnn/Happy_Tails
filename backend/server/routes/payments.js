@@ -1,102 +1,128 @@
 // server/routes/payments.js
-const { randomUUID } = require('crypto');
 const { register } = require('../router');
 const db = require('../db');
 
-function toText(value) {
-  if (value == null) return null;
-  return typeof value === 'string' ? value : JSON.stringify(value);
+const {
+  uuid,
+  badRequest,
+  notFound,
+  requireUser,
+  requireRole,
+  getOwnerId,
+  getEmployeeId,
+} = require('../lib/helpers');
+
+async function getBooking(bookingID) {
+  const [[b]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  return b || null;
+}
+
+async function getPayment(paymentID) {
+  const [[p]] = await db.query('SELECT * FROM PAYMENT WHERE paymentID = ?', [paymentID]);
+  return p || null;
 }
 
 
-// record a payment and move booking to active
+// POST /api/payments (Owner) — record payment, move booking to active
 register('POST', '/api/payments', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const { bookingID, serviceCost, platformFee, amount, paymentMethod } = await req.parseBody();
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
-  if (!bookingID || !serviceCost || !amount || !paymentMethod) {
-    send(res, 400, { error: 'bookingID, serviceCost, amount, and paymentMethod are required' });
-    return;
+  const body = await req.parseBody();
+  // Example: { bookingID: 'bk-002', paymentMethod: 'card', platformFeeRate: 0.05 }
+  const { bookingID, paymentMethod, platformFeeRate } = body;
+  if (!bookingID || !paymentMethod) return badRequest(send, res, 'bookingID and paymentMethod are required');
+
+  const booking = await getBooking(bookingID);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
+
+  const status = String(booking.status).toLowerCase();
+  if (!['accepted', 'pending'].includes(status)) {
+    return send(res, 409, { error: 'Booking is not payable in its current state' });
   }
 
-  const [bookingRows] = await db.query('SELECT status FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  if (bookingRows.length === 0) {
-    send(res, 404, { error: 'Booking not found' });
-    return;
-  } if (bookingRows[0].status !== 'Pending') {
-    send(res, 400, { error: 'Booking is not in pending status' });
-    return;
-  }
+  const serviceCost = Number(booking.totalCost);
+  const platformFee = Math.round(serviceCost * Number(platformFeeRate) * 100) / 100;
+  const amount = Math.round((serviceCost + platformFee) * 100) / 100;
 
-  const paymentID = randomUUID();
+  const paymentID = uuid();
   await db.query(
-    'INSERT INTO PAYMENT (paymentID, bookingID, serviceCost, platformFee, amount, paymentMethod, paymentStatus, escrowStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [paymentID, bookingID, serviceCost, platformFee || 0, amount, paymentMethod, 'Completed', 'Holding']
+    `INSERT INTO PAYMENT (paymentID, bookingID, serviceCost, platformFee, amount, paymentMethod, paymentStatus, escrowStatus)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [paymentID, bookingID, serviceCost, platformFee, amount, paymentMethod, 'Paid', 'Holding']
   );
 
-  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['Active', bookingID]);
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['active', bookingID]);
 
-  send(res, 201, { paymentID, bookingID, serviceCost, platformFee, amount, paymentMethod });
+  const payment = await getPayment(paymentID);
+  send(res, 201, payment);
 });
 
 
 // release payment and move booking to completed
 register('PATCH', '/api/payments/:id/release', async (req, res, send) => {
-  if (!req.requireRole('Support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
   const paymentID = req.params.id;
+  const payment = await getPayment(paymentID);
+  if (!payment) return notFound(send, res, 'Payment not found');
 
-  const [paymentRows] = await db.query('SELECT bookingID, escrowStatus FROM PAYMENT WHERE paymentID = ?', [paymentID]);
-  if (paymentRows.length === 0) {
-    send(res, 404, { error: 'Payment not found' });
-    return;
-  }
-  if (paymentRows[0].escrowStatus !== 'Holding') {
-    send(res, 400, { error: 'Payment is not in holding status' });
-    return;
+  if (payment.escrowStatus !== 'Holding') {
+    return send(res, 409, { error: 'Payment is not in Holding escrow state' });
   }
 
-  await db.query('UPDATE PAYMENT SET escrowStatus = ? WHERE paymentID = ?', ['Released', paymentID]);
+  await db.query('UPDATE PAYMENT SET escrowStatus = ?, paymentStatus = ? WHERE paymentID = ?', [
+    'Released',
+    'Released',
+    paymentID,
+  ]);
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['completed', payment.bookingID]);
 
-  const bookingID = paymentRows[0].bookingID;
-  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['Completed', bookingID]);
-
-  send(res, 200, { paymentID, message: 'Payment released and booking completed' });
+  const updated = await getPayment(paymentID);
+  send(res, 200, updated);
 });
 
 
 // refund a payment
 register('PATCH', '/api/payments/:id/refund', async (req, res, send) => {
-  if (!req.requireRole('Support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
-  const { reason, amount } = await req.parseBody();
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
   const paymentID = req.params.id;
+  const payment = await getPayment(paymentID);
+  if (!payment) return notFound(send, res, 'Payment not found');
+  if (payment.escrowStatus === 'Refunded') return send(res, 409, { error: 'Already refunded' });
 
-  if (!reason || !amount) {
-    send(res, 400, { error: 'reason and amount are required' });
-    return;
-  }
+  const body = await req.parseBody();
+  // Example: { reason: 'Service not delivered as agreed. Refund approved by support.' }
+  const reason = body?.reason;
 
-  const [paymentRows] = await db.query('SELECT bookingID, escrowStatus, amount FROM PAYMENT WHERE paymentID = ?', [paymentID]);
-  if (paymentRows.length === 0) {
-    send(res, 404, { error: 'Payment not found' });
-    return;
-  } if (paymentRows[0].escrowStatus !== 'Holding') {
-    send(res, 400, { error: 'Payment is not in holding status' });
-    return;
-  } if (amount > paymentRows[0].amount) {
-    send(res, 400, { error: 'Refund amount cannot exceed payment amount' });
-    return;
-  }
+  const refundID = uuid();
+  await db.query('INSERT INTO REFUND (refundID, paymentID, amount, reason) VALUES (?, ?, ?, ?)', [
+    refundID,
+    paymentID,
+    payment.amount,
+    reason,
+  ]);
 
-  const refundID = randomUUID();
-  await db.query(
-    'INSERT INTO REFUND (refundID, paymentID, amount, reason) VALUES (?, ?, ?, ?)',
-    [refundID, paymentID, amount, reason]
-  );
+  await db.query('UPDATE PAYMENT SET escrowStatus = ?, paymentStatus = ? WHERE paymentID = ?', [
+    'Refunded',
+    'Refunded',
+    paymentID,
+  ]);
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['cancelled', payment.bookingID]);
 
-  await db.query('UPDATE PAYMENT SET escrowStatus = ? WHERE paymentID = ?', ['Refunded', paymentID]);
-
-  send(res, 200, { refundID, paymentID, amount, reason });
+  const updated = await getPayment(paymentID);
+  send(res, 200, { payment: updated, refundID });
 });
