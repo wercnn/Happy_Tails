@@ -1,105 +1,117 @@
 // server/routes/auth.js
-const { randomUUID } = require('crypto'); // for generating unique report IDs if you are curious
 const { register } = require('../router');
 const db = require('../db');
 
-function toText(value) {
-  if (value == null) return null;
-  return typeof value === 'string' ? value : JSON.stringify(value);
+const {
+  uuid,
+  badRequest,
+  notFound,
+  requireUser,
+  requireRole,
+  getOwnerId,
+  getSitterId,
+  getEmployeeId,
+} = require('../lib/helpers');
+
+async function getBooking(bookingID) {
+  const [[b]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  return b || null;
 }
 
-function isValidIncidentType(value) {
-  return ['PetInjury', 'PetIllness', 'LostPet', 'MinderNoShow', 'PropertyDamage', 'InappropriateBehaviour', 'Other'].includes(value);
-}
 
-function isValidSeverityLevel(value) {
-  return ['Low', 'Medium', 'High'].includes(value);
-}
-
-
-// post visit reports for ONLY minders
+// submit visit reports for ONLY minders
 register('POST', '/api/reports/visit', async (req, res, send) => {
-  if (!req.requireRole('Minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
-  const { bookingID, taskChecklist, behaviouralNotes, completedAt } = await req.parseBody();
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
-  if (!bookingID) {
-    send(res, 400, { error: 'bookingID is required' });
-    return;
-  }
+  const body = await req.parseBody();
+  // Example: { bookingID: 'bk-002', taskChecklist: 'Fed: Yes | Walk: Yes | Medication: N/A | Water: Yes', behaviouralNotes: 'Pet was calm throughout the visit.', completedAt: '2026-04-08 12:00:00' }
+  const { bookingID, taskChecklist, behaviouralNotes, completedAt } = body;
+  if (!bookingID) return badRequest(send, res, 'bookingID is required');
 
-  const reportID = randomUUID();
+  const booking = await getBooking(bookingID);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Incorrect sitter' });
+
+  const reportID = uuid();
   await db.query(
     'INSERT INTO VISIT_REPORT (reportID, bookingID, taskChecklist, behaviouralNotes, completedAt) VALUES (?, ?, ?, ?, ?)',
-    [reportID, bookingID, toText(taskChecklist), behaviouralNotes || null, completedAt || null]
+    [reportID, bookingID, taskChecklist, behaviouralNotes, completedAt]
   );
-
-  send(res, 201, { reportID, bookingID, taskChecklist, behaviouralNotes, completedAt: completedAt || null, });
+  const [[row]] = await db.query('SELECT * FROM VISIT_REPORT WHERE reportID = ?', [reportID]);
+  send(res, 201, row);
 });
 
 
-// get visit report for a booking
+// get visit report/s for a booking
 register('GET', '/api/reports/visit/:booking_id', async (req, res, send) => {
-  if (!req.requireRole(['Owner', 'Minder', 'Support'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const bookingID = req.params.booking_id;
-  const [rows] = await db.query('SELECT * FROM VISIT_REPORT WHERE bookingID = ?', [bookingID]);
+  const booking = await getBooking(bookingID);
+  if (!booking) return notFound(send, res, 'Booking not found');
+
+  const role = String(req.userRole || '').toLowerCase();
+  if (role === 'owner') {
+    const ownerID = await getOwnerId(db, req.userId);
+    if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+    if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden: Incorrect owner' });
+  } else {
+    const sitterID = await getSitterId(db, req.userId);
+    if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+    if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden: Incorrect sitter' });
+  }
+
+  const [rows] = await db.query('SELECT * FROM VISIT_REPORT WHERE bookingID = ? ORDER BY timestamp DESC', [bookingID]);
   send(res, 200, rows);
 });
 
 
-// post incident reports
+// log an incident report
 register('POST', '/api/reports/incident', async (req, res, send) => {
-  if (!req.requireRole(['Minder', 'Support'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
-  const { bookingID, incidentType = 'Other', severityLevel = 'Low', description,
-    employeeID: bodyEmployeeID,} = await req.parseBody();
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
-  if (!bookingID) {
-    send(res, 400, { error: 'bookingID is required' });
-    return;
-  } if (!description) {
-    send(res, 400, { error: 'description is required' });
-    return;
-  } if (!isValidIncidentType(incidentType)) {
-    send(res, 400, { error: 'incidentType must be one of PetInjury, PetIllness, LostPet, MinderNoShow, PropertyDamage, InappropriateBehaviour, Other' });
-    return;
-  } if (!isValidSeverityLevel(severityLevel)) {
-    send(res, 400, { error: 'severityLevel must be one of Low, Medium, High' });
-    return;
-  }
+  const body = await req.parseBody();
+  // Example: { bookingID: 'bk-003', incidentType: 'Other', severityLevel: 'Low', description: 'Minor incident during the visit — pet slipped its collar briefly.' }
+  const { bookingID, incidentType, severityLevel, description } = body;
+  if (!bookingID || !description) return badRequest(send, res, 'bookingID and description are required');
 
-  let employeeID = bodyEmployeeID;
-  let reporterUserID = null;
+  const booking = await getBooking(bookingID);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden: Incorrect sitter' });
 
-  // determine employeeID and reporterUserID based on role
-  if (req.userRole === 'Support') {
-    if (!employeeID) {
-      const [supportRows] = await db.query('SELECT employeeID FROM CUSTOMER_SUPPORT WHERE userID = ?', [req.userId]);
-      if (supportRows.length === 0) {
-        send(res, 403, { error: 'Support user not registered as customer support employee' });
-        return;
-      }
-      employeeID = supportRows[0].employeeID;
-    }
-  } else if (req.userRole === 'Minder') {
-    reporterUserID = req.userId;
-  }
-
-  const incidentID = randomUUID();
+  // INCIDENT_REPORT in schema is support-centric; we store reporterUserID (added in schema patch)
+  const incidentID = uuid();
   await db.query(
-    'INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, incidentType, severityLevel, description, reporterUserID) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [incidentID, bookingID, employeeID || null, incidentType, severityLevel, description, reporterUserID]
+    'INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, reporterUserID, incidentType, severityLevel, description) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [incidentID, bookingID, null, req.userId, incidentType, severityLevel, description]
   );
-
-  send(res, 201, { incidentID, bookingID, employeeID: employeeID || null, incidentType, severityLevel, description, reporterUserID: reporterUserID || null, });
+  const [[row]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  send(res, 201, row);
 });
 
 
 // get all incident reports for ONLY support staff
 register('GET', '/api/reports/incidents', async (req, res, send) => {
-  if (!req.requireRole('Support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
-  const [rows] = await db.query('SELECT * FROM INCIDENT_REPORT ORDER BY reportedAt DESC');
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [rows] = await db.query(
+    `SELECT IR.*, B.ownerID, B.sitterID, B.status AS bookingStatus
+     FROM INCIDENT_REPORT IR
+     JOIN BOOKING B ON B.bookingID = IR.bookingID
+     ORDER BY IR.reportedAt DESC`
+  );
   send(res, 200, rows);
 });
