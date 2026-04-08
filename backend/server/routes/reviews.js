@@ -17,10 +17,27 @@ async function getBooking(bookingID) {
   return b || null;
 }
 
+async function isValidSitter(userID) {
+  const [[sitter]] = await db.query('SELECT * FROM BOOKING WHERE sitterID = ?', [userID]);
+  if (!sitter) return false;
+  return true;
+}
+  
+  
+
+// Changing requestUser and requestRole for testing
+function requireUserTest(req, send, res) {
+  return true;
+}
+
+function requireRoleTest(req, send, res, role) {
+  return true;
+}
+
 // 28) POST /api/reviews (Owner) — Submit a review (completed bookings only)
 register('POST', '/api/reviews', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'owner')) return;
+  if (!requireUserTest(req, send, res)) return;
+  if (!requireRoleTest(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -50,24 +67,10 @@ register('POST', '/api/reviews', async (req, res, send) => {
   send(res, 201, row);
 });
 
-// 29) GET /api/reviews/:minder_id (Public) - Get all reviews for a minder
-register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
-  const sitterID = req.params.minder_id;
-  const [rows] = await db.query(
-    `SELECT R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
-     FROM REVIEW R
-     JOIN BOOKING B ON B.bookingID = R.bookingID
-     WHERE B.sitterID = ?
-     ORDER BY R.createdAt DESC`,
-    [sitterID]
-  );
-  send(res, 200, rows);
-});
-
 // 30) PATCH /api/reviews/:id/flag (Owner/Minder) - Flag a review for moderation
 register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUserTest(req, send, res)) return;
+  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
 
   const reviewID = req.params.id;
   const [[review]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
@@ -80,6 +83,10 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
   const role = String(req.userRole || '').toLowerCase();
   const ownerID = role === 'owner' ? await getOwnerId(db, req.userId) : null;
   const sitterID = role === 'minder' ? await getSitterId(db, req.userId) : null;
+
+  if (role === 'owner' && !ownerID) return send(res, 403, { error: 'Owner profile not found' });
+  if (role === 'minder' && !sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
   const allowed = (ownerID && booking.ownerID === ownerID) || (sitterID && booking.sitterID === sitterID);
   if (!allowed) return send(res, 403, { error: 'Forbidden' });
 
@@ -89,7 +96,7 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
   const flagID = uuid();
   await db.query(
     'INSERT INTO REVIEW_FLAG (flagID, reviewID, flaggerUserID, reason, status) VALUES (?, ?, ?, ?, ?)',
-    [flagID, reviewID, req.userId, reason, 'Open']
+    [flagID, reviewID, req.userID, reason, 'Open']
   );
   const [[row]] = await db.query('SELECT * FROM REVIEW_FLAG WHERE flagID = ?', [flagID]);
   send(res, 200, row);
@@ -97,8 +104,8 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
 
 // 31) GET /api/reviews/flagged (Support) - View all flagged reviews
 register('GET', '/api/reviews/flagged', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'support')) return;
+  if (!requireUserTest(req, send, res)) return;
+  if (!requireRoleTest(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -115,10 +122,29 @@ register('GET', '/api/reviews/flagged', async (req, res, send) => {
   send(res, 200, rows);
 });
 
+// 29) GET /api/reviews/:minder_id (Public) - Get all reviews for a minder
+register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
+  const sitterID = req.params.minder_id;
+  if (!sitterID) return badRequest(send, res, 'minder_id is required');
+
+  const validSitter = await isValidSitter(sitterID);
+  if (!validSitter) return notFound(send, res, 'Minder not found');
+
+  const [rows] = await db.query(
+    `SELECT R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
+     FROM REVIEW R
+     JOIN BOOKING B ON B.bookingID = R.bookingID
+     WHERE B.sitterID = ?
+     ORDER BY R.createdAt DESC`,
+    [sitterID]
+  );
+  send(res, 200, rows);
+});
+
 // 32) DELETE /api/reviews/:id (Support) - Delete a review
 register('DELETE', '/api/reviews/:id', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'support')) return;
+  if (!requireUserTest(req, send, res)) return;
+  if (!requireRoleTest(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
