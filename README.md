@@ -3,7 +3,7 @@
 ![Status](https://img.shields.io/badge/status-in%20development-yellow)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-blue)
 ![Frontend](https://img.shields.io/badge/frontend-React%20Native-61DAFB)
-![Backend](https://img.shields.io/badge/backend-PHP-777BB4)
+![Backend](https://img.shields.io/badge/backend-Node.js-339933)
 ![Database](https://img.shields.io/badge/database-MySQL-orange)
 ---
 
@@ -120,7 +120,7 @@ The platform is designed to solve real-world issues in the pet care industry, in
 | Layer        | Technology     |
 | ------------ | -------------- |
 | Frontend     | React Native   |
-| Backend      | PHP            |
+| Backend      | Node.js (HTTP) |
 | Database     | MySQL          |
 | Architecture | Modular Design |
 
@@ -131,7 +131,6 @@ The platform is designed to solve real-world issues in the pet care industry, in
 ### 📋 Prerequisites
 
 * Node.js (v18+)
-* PHP (v8+)
 * MySQL
 * Android Studio / Xcode
 
@@ -161,9 +160,64 @@ npm start
 # Navigate to backend
 cd backend
 
-# Start PHP server
-php -S localhost:8000
+# Install dependencies
+npm install
+
+# Start backend in dev mode (nodemon)
+npm run dev
 ```
+
+### 🧩 Backend Environment
+
+Create a `.env` file inside the `backend` folder:
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=your_mysql_user
+DB_PASSWORD=your_mysql_password
+DB_NAME=happytails
+API_PORT=3000
+```
+
+Notes:
+
+* `DB_PORT=3306` is for MySQL.
+* `API_PORT` must be different from `3306` (use `3000` by default).
+* If `API_PORT` is accidentally set to `3306`, the backend falls back to `3000` to avoid port conflicts.
+
+### 🗄️ Database Setup
+
+Run the schema file in MySQL Workbench (or your SQL tool of choice):
+
+```sql
+CREATE DATABASE IF NOT EXISTS happytails;
+USE happytails;
+-- then execute backend/database/schema.sql
+```
+
+### 🔌 How The Backend Works
+
+* `backend/server/server.js` creates a Node HTTP server and registers all route modules.
+* `backend/server/router.js` provides lightweight route matching, params, query parsing, and JSON body parsing.
+* `backend/server/db.js` creates a MySQL connection pool and runs a startup health check (`SELECT 1`).
+* Route handlers in `backend/server/routes/` call MySQL via the shared pool.
+
+### ✅ Quick API Check
+
+After starting the server, test the bookings endpoint:
+
+```http
+GET http://localhost:3000/api/bookings
+```
+
+This endpoint returns the result of:
+
+```sql
+SELECT * FROM BOOKING;
+```
+
+If no rows exist, it returns an empty JSON array `[]`.
 
 ---
 
