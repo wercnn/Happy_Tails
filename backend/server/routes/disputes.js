@@ -21,6 +21,7 @@ async function getBooking(bookingID) {
   return b || null;
 }
 
+
 // Changing requestUser and requestRole for testing
 function requireUserTest(req, send, res) {
   return true;
@@ -112,7 +113,7 @@ register('GET', '/api/disputes/:id', async (req, res, send) => {
   if (!requireUserTest(req, send, res)) return;
   if (!requireRoleTest(req, send, res, 'support')) return;
 
-  const employeeID = await getEmployeeId(db, req.userId);
+  const employeeID = await getEmployeeId(db, "u-support-001");
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
   const disputeID = req.params.id;

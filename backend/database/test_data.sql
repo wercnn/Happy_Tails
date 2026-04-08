@@ -163,3 +163,12 @@ INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked)
 VALUES ('slot-005', 'cal-002', '2026-05-18 15:00:00', '2026-05-18 16:00:00', FALSE);
 
 SET FOREIGN_KEY_CHECKS = 1;
+-- ─── Dispute ─────────────────────────────────────────────────
+INSERT INTO DISPUTE (
+  disputeID, bookingID, userID, employeeID, disputeType, reason, status, isRefundRequested, resolutionNotes, severityLevel,
+  assignedAt, createdAt
+) VALUES
+  ('disp-001', 'bk-001', 'u-owner-001', 'emp-001', 'ServiceQuality', 'Review flag escalated to dispute for resolution.', 'Open', FALSE, NULL, 'Medium', NOW(), NOW()),
+  ('disp-002', 'bk-001', 'u-owner-001', NULL, 'RefundRequest', 'Service quality concerns regarding pet care standards.', 'Open', TRUE, NULL, 'High', NULL, NOW()),
+  ('disp-003', 'bk-002', 'u-owner-001', NULL, 'PaymentDispute', 'Payment discrepancy for daycare service.', 'Pending', TRUE, NULL, 'Medium', NULL, NOW()),
+  ('disp-004', 'bk-002', 'u-owner-001', 'emp-001', 'NoShowComplaint', 'Scheduling conflict and cancellation policy dispute.', 'Resolved', FALSE, 'Issue resolved by support after case review.', 'Low', NOW(), NOW());
