@@ -1,49 +1,40 @@
 // server/routes/pets.js
-const { randomUUID } = require('crypto');
 const { register } = require('../router');
 const db = require('../db');
 
-// helper: get ownerID from userID
-async function getOwnerID(userID) {
-  const [rows] = await db.query(
-    'SELECT ownerID FROM PET_OWNER WHERE userID = ?',
-    [userID]
-  );
-  return rows[0] ? rows[0].ownerID : null;
-}
+const {
+  uuid,
+  badRequest,
+  notFound,
+  requireUser,
+  requireRole,
+  getOwnerId,
+} = require('../lib/helpers');
 
 
 // ─────────────────────────────────────────────
 // POST /api/pets → create pet
 // ─────────────────────────────────────────────
 register('POST', '/api/pets', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const userID = req.userId;
-  console.log("USER ID:", userID);
-
-  const ownerID = await getOwnerID(userID);
-
-  if (!ownerID) {
-    return send(res, 404, { error: 'Owner profile not found' });
-  }
+  const ownerID = await getOwnerId(db, req.userId );
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  const { name, species, breed, age, weight } = body;
+  // Example: { name: 'Buddy', species: 'Dog', breed: 'Golden Retriever', age: 3, weight: 28.5, neutered: true, routines: 'Morning walk at 8am. Dinner at 6pm.' }
+  const { name, species, breed, age, weight, neutered, routines } = body;
+  if (!name || !species) return badRequest(send, res, 'name and species are required');
 
-  if (!name || !species) {
-    return send(res, 400, { error: 'name and species required' });
-  }
-
-  const petID = randomUUID();
-
+  const petID = uuid();
   await db.query(
-    `INSERT INTO PET_PROFILE (petID, ownerID, name, species, breed, age, weight)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [petID, ownerID, name, species, breed || null, age || null, weight || null]
+    'INSERT INTO PET_PROFILE (petID, ownerID, name, species, breed, age, weight, neutered, routines) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [petID, ownerID, name, species, breed, age, weight, !!neutered, routines]
   );
 
-  send(res, 201, { petID, message: 'Pet created' });
+  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ?', [petID]);
+  send(res, 201, rows[0]);
 });
 
 
@@ -51,21 +42,13 @@ register('POST', '/api/pets', async (req, res, send) => {
 // GET /api/pets → list pets for owner
 // ─────────────────────────────────────────────
 register('GET', '/api/pets', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const userID = req.headers['x-user-id'];
-  console.log("USER ID:", userID);
-  const ownerID = await getOwnerID(userID);
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
-  if (!ownerID) {
-    return send(res, 404, { error: 'Owner profile not found' });
-  }
-
-  const [rows] = await db.query(
-    'SELECT * FROM PET_PROFILE WHERE ownerID = ?',
-    [ownerID]
-  );
-
+  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE ownerID = ? ORDER BY name', [ownerID]);
   send(res, 200, rows);
 });
 
@@ -74,63 +57,52 @@ register('GET', '/api/pets', async (req, res, send) => {
 // GET /api/pets/:id → single pet
 // ─────────────────────────────────────────────
 register('GET', '/api/pets/:id', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const userID = req.userId;
-  const ownerID = await getOwnerID(userID);
-  const petID = req.params.id;
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
-  const [rows] = await db.query(
-    'SELECT * FROM PET_PROFILE WHERE petID = ? AND ownerID = ?',
-    [petID, ownerID]
-  );
-
-  if (rows.length === 0) {
-    return send(res, 404, { error: 'Pet not found' });
-  }
-
+  const petID = req.params.id; // ID from URL path
+  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!rows.length) return notFound(send, res, 'Pet not found');
   send(res, 200, rows[0]);
 });
+
 
 
 // ─────────────────────────────────────────────
 // PATCH /api/pets/:id → update pet
 // ─────────────────────────────────────────────
 register('PATCH', '/api/pets/:id', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const userID = req.userId;
-  const ownerID = await getOwnerID(userID);
-  const petID = req.params.id;
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
+  const petID = req.params.id; // pet Id from URL path
+  const [existing] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!existing.length) return notFound(send, res, 'Pet not found');
+
+  // Example: { name: 'Buddy Updated', breed: 'Golden Retriever', age: 4, weight: 29.0, routines: 'Evening walk at 6pm added.' }
   const body = await req.parseBody();
-  const { name, species, breed, age, weight } = body;
-
-  const fields = [];
+  const fields = ['name', 'species', 'breed', 'age', 'weight', 'neutered', 'routines'];
+  const sets = [];
   const params = [];
-
-  if (name !== undefined)    { fields.push('name = ?'); params.push(name); }
-  if (species !== undefined) { fields.push('species = ?'); params.push(species); }
-  if (breed !== undefined)   { fields.push('breed = ?'); params.push(breed); }
-  if (age !== undefined)     { fields.push('age = ?'); params.push(age); }
-  if (weight !== undefined)  { fields.push('weight = ?'); params.push(weight); }
-
-  if (fields.length === 0) {
-    return send(res, 400, { error: 'No fields to update' });
+  for (const f of fields) {
+    if (Object.prototype.hasOwnProperty.call(body, f)) {
+      sets.push(`${f} = ?`);
+      params.push(f === 'neutered' ? !!body[f] : body[f]);
+    }
   }
+  if (!sets.length) return badRequest(send, res, 'No updatable fields provided');
 
   params.push(petID, ownerID);
+  await db.query(`UPDATE PET_PROFILE SET ${sets.join(', ')} WHERE petID = ? AND ownerID = ?`, params);
 
-  const [result] = await db.query(
-    `UPDATE PET_PROFILE SET ${fields.join(', ')} WHERE petID = ? AND ownerID = ?`,
-    params
-  );
-
-  if (result.affectedRows === 0) {
-    return send(res, 404, { error: 'Pet not found or not yours' });
-  }
-
-  send(res, 200, { message: 'Pet updated' });
+  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  send(res, 200, rows[0]);
 });
 
 
@@ -138,20 +110,14 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
 // DELETE /api/pets/:id → delete pet
 // ─────────────────────────────────────────────
 register('DELETE', '/api/pets/:id', async (req, res, send) => {
-  if (!req.requireRole('Owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
-  const userID = req.userId;
-  const ownerID = await getOwnerID(userID);
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
   const petID = req.params.id;
-
-  const [result] = await db.query(
-    'DELETE FROM PET_PROFILE WHERE petID = ? AND ownerID = ?',
-    [petID, ownerID]
-  );
-
-  if (result.affectedRows === 0) {
-    return send(res, 404, { error: 'Pet not found or not yours' });
-  }
-
-  send(res, 200, { message: 'Pet deleted' });
+  const [result] = await db.query('DELETE FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!result.affectedRows) return notFound(send, res, 'Pet not found');
+  send(res, 200, { ok: true });
 });
