@@ -463,11 +463,14 @@ CREATE TABLE INCIDENT_REPORT (
     severityLevel   ENUM('Low', 'Medium', 'High') NOT NULL DEFAULT 'Low',
     description     TEXT            NOT NULL,
     reportedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reporterUserID   VARCHAR(36)     NULL,                        -- #7: userID of the minder who filed the report (nullable for employee-filed reports)
     CONSTRAINT PK_INCIDENT_REPORT PRIMARY KEY (incidentID),
     CONSTRAINT FK_INCIDENT_BOOKING FOREIGN KEY (bookingID)
         REFERENCES BOOKING (bookingID),
     CONSTRAINT FK_INCIDENT_EMPLOYEE FOREIGN KEY (employeeID)
         REFERENCES CUSTOMER_SUPPORT (employeeID)
+    CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
+        REFERENCES USER (userID) ON DELETE SET NULL;
 );
 
 -- #7: Deferred FK from MEDIA to INCIDENT_REPORT
@@ -476,8 +479,20 @@ ALTER TABLE MEDIA
         REFERENCES INCIDENT_REPORT (incidentID) ON DELETE SET NULL;
 
 -- =============================================================
--- PAYMENTS & REVIEWS DOMAIN
+-- PATCH: INCIDENT_REPORT — make employeeID nullable and add
+-- reporterUserID so minders can file reports directly
+-- (referenced by reports.js POST /api/reports/incident)
+-- However, it is already implemented in the database
 -- =============================================================
+
+-- ALTER TABLE INCIDENT_REPORT
+--     ADD COLUMN reporterUserID VARCHAR(36) NULL
+--         COMMENT 'userID of the minder who filed the report';
+
+-- ALTER TABLE INCIDENT_REPORT
+--     ADD CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
+--         REFERENCES USER (userID) ON DELETE SET NULL;
+
 
 CREATE TABLE PAYMENT (
     paymentID       VARCHAR(36)     NOT NULL,
@@ -539,16 +554,6 @@ CREATE TABLE REVIEW_FLAG (
         REFERENCES USER (userID) ON DELETE CASCADE
 );
 
--- =============================================================
--- PATCH: INCIDENT_REPORT — make employeeID nullable and add
--- reporterUserID so minders can file reports directly
--- (referenced by reports.js POST /api/reports/incident)
--- =============================================================
-
-ALTER TABLE INCIDENT_REPORT
-    MODIFY COLUMN employeeID VARCHAR(36) NULL,
-    ADD COLUMN reporterUserID VARCHAR(36) NULL
-        COMMENT 'userID of the minder who filed the report';
 
 -- =============================================================
 -- PLATFORM SETTINGS (desktop: SettingsPage configuration)
