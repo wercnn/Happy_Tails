@@ -382,18 +382,6 @@ CREATE TABLE VISIT_REPORT (
         REFERENCES BOOKING (bookingID) ON DELETE CASCADE
 );
 
-CREATE TABLE MEDIA (
-    mediaID     VARCHAR(36)     NOT NULL,
-    reportID    VARCHAR(36)     NULL,
-    messageID   VARCHAR(36)     NULL,
-    incidentID  VARCHAR(36)     NULL,                               -- #7: link media to incident reports
-    fileURL     VARCHAR(500)    NOT NULL,
-    mediaType   VARCHAR(50)     NOT NULL,
-    timestamp   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT PK_MEDIA PRIMARY KEY (mediaID),
-    CONSTRAINT FK_MEDIA_REPORT FOREIGN KEY (reportID)
-        REFERENCES VISIT_REPORT (reportID) ON DELETE SET NULL
-);
 
 -- =============================================================
 -- COMMUNICATION & SUPPORT DOMAIN
@@ -423,15 +411,8 @@ CREATE TABLE MESSAGE (
     CONSTRAINT FK_MESSAGE_SENDER FOREIGN KEY (senderUserID)
         REFERENCES USER (userID),
     CONSTRAINT FK_MESSAGE_RECEIVER FOREIGN KEY (receiverUserID)
-        REFERENCES USER (userID),
-    CONSTRAINT FK_MESSAGE_MEDIA FOREIGN KEY (mediaID)
-        REFERENCES MEDIA (mediaID) ON DELETE SET NULL
+        REFERENCES USER (userID)
 );
-
--- Now add FKs from MEDIA back to MESSAGE and INCIDENT_REPORT (deferred to avoid circular refs)
-ALTER TABLE MEDIA
-    ADD CONSTRAINT FK_MEDIA_MESSAGE FOREIGN KEY (messageID)
-        REFERENCES MESSAGE (messageID) ON DELETE SET NULL;
 
 CREATE TABLE DISPUTE (
     disputeID           VARCHAR(36)     NOT NULL,
@@ -463,38 +444,34 @@ CREATE TABLE INCIDENT_REPORT (
     severityLevel   ENUM('Low', 'Medium', 'High') NOT NULL DEFAULT 'Low',
     description     TEXT            NOT NULL,
     reportedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reporterUserID   VARCHAR(36)     NULL,                        -- #7: userID of the minder who filed the report (nullable for employee-filed reports)
+    status          ENUM('Open', 'Escalated', 'Resolved') NOT NULL DEFAULT 'Open',
+    reporterUserID  VARCHAR(36)     NULL,                        -- #7: userID of the minder who filed the report (nullable for employee-filed reports)
     CONSTRAINT PK_INCIDENT_REPORT PRIMARY KEY (incidentID),
     CONSTRAINT FK_INCIDENT_BOOKING FOREIGN KEY (bookingID)
         REFERENCES BOOKING (bookingID),
     CONSTRAINT FK_INCIDENT_EMPLOYEE FOREIGN KEY (employeeID)
-        REFERENCES CUSTOMER_SUPPORT (employeeID)
+        REFERENCES CUSTOMER_SUPPORT (employeeID),
     CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
-        REFERENCES USER (userID) ON DELETE SET NULL;
+        REFERENCES USER (userID) ON DELETE SET NULL
 );
 
--- #7: Deferred FK from MEDIA to INCIDENT_REPORT
-ALTER TABLE MEDIA
-    ADD CONSTRAINT FK_MEDIA_INCIDENT FOREIGN KEY (incidentID)
-        REFERENCES INCIDENT_REPORT (incidentID) ON DELETE SET NULL;
-
-ALTER TABLE INCIDENT_REPORT
-    ADD COLUMN status ENUM('Open', 'Escalated', 'Resolved') NOT NULL DEFAULT 'Open';
-
--- =============================================================
--- PATCH: INCIDENT_REPORT — make employeeID nullable and add
--- reporterUserID so minders can file reports directly
--- (referenced by reports.js POST /api/reports/incident)
--- However, it is already implemented in the database
--- =============================================================
-
--- ALTER TABLE INCIDENT_REPORT
---     ADD COLUMN reporterUserID VARCHAR(36) NULL
---         COMMENT 'userID of the minder who filed the report';
-
--- ALTER TABLE INCIDENT_REPORT
---     ADD CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
---         REFERENCES USER (userID) ON DELETE SET NULL;
+-- #7: MEDIA linked to VISIT_REPORT, MESSAGE, and INCIDENT_REPORT
+CREATE TABLE MEDIA (
+    mediaID     VARCHAR(36)     NOT NULL,
+    reportID    VARCHAR(36)     NULL,
+    messageID   VARCHAR(36)     NULL,
+    incidentID  VARCHAR(36)     NULL,                               -- #7: link media to incident reports
+    fileURL     VARCHAR(500)    NOT NULL,
+    mediaType   VARCHAR(50)     NOT NULL,
+    timestamp   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT PK_MEDIA PRIMARY KEY (mediaID),
+    CONSTRAINT FK_MEDIA_REPORT FOREIGN KEY (reportID)
+        REFERENCES VISIT_REPORT (reportID) ON DELETE SET NULL,
+    CONSTRAINT FK_MEDIA_MESSAGE FOREIGN KEY (messageID)
+        REFERENCES MESSAGE (messageID) ON DELETE SET NULL,
+    CONSTRAINT FK_MEDIA_INCIDENT FOREIGN KEY (incidentID)
+        REFERENCES INCIDENT_REPORT (incidentID) ON DELETE SET NULL
+);
 
 
 CREATE TABLE PAYMENT (
