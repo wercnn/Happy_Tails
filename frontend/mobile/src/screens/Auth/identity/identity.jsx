@@ -12,7 +12,6 @@ export default function IdentityVerification() {
     dob: "",
     idType: "",
     idNumber: "",
-    address: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -44,10 +43,6 @@ export default function IdentityVerification() {
 
     if (!form.idNumber.trim()) {
       newErrors.idNumber = "ID number is required.";
-    }
-
-    if (!form.address.trim()) {
-      newErrors.address = "Address is required.";
     }
 
     return newErrors;
@@ -149,23 +144,6 @@ export default function IdentityVerification() {
                 />
                 {errors.idNumber && (
                   <p className="verify-error-text">{errors.idNumber}</p>
-                )}
-              </div>
-
-              <div className="verify-field">
-                <label className="verify-label" htmlFor="address">
-                  Address
-                </label>
-                <textarea
-                  id="address"
-                  name="address"
-                  className={`verify-textarea ${errors.address ? "verify-input--error" : ""}`}
-                  placeholder="Enter your home address"
-                  value={form.address}
-                  onChange={handleChange}
-                />
-                {errors.address && (
-                  <p className="verify-error-text">{errors.address}</p>
                 )}
               </div>
 
