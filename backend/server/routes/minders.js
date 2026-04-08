@@ -10,19 +10,11 @@ const {
   getSitterId,
 } = require('../lib/helpers');
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 8) GET /api/minders (Owner) — List all minders with optional filters
 register('GET', '/api/minders', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const sql = `
     SELECT
@@ -40,8 +32,8 @@ register('GET', '/api/minders', async (req, res, send) => {
 
 // 9) GET /api/minders/:id (Owner) — Full profile — bio, services, slots, reviews
 register('GET', '/api/minders/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const sitterID = req.params.id;
   const [[profile]] = await db.query(
@@ -87,8 +79,8 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
 
 // 10) PATCH /api/minders/:id (Minder) — Update own bio and experience
 register('PATCH', '/api/minders/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   // For req.params.id, it must be PET_MINDER.sitterID, not USER.userID, so we need to look up the sitterID for the logged-in user and compare it to the id in the URL path to ensure they can only edit their own profile.
 
@@ -121,8 +113,8 @@ register('PATCH', '/api/minders/:id', async (req, res, send) => {
 
 // 11) POST /api/services (Minder) — create a service listing
 register('POST', '/api/services', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -149,8 +141,8 @@ register('POST', '/api/services', async (req, res, send) => {
 
 // 12) PATCH /api/services/:id (Minder) - Update a service
 register('PATCH', '/api/services/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -190,8 +182,8 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
 
 // 13) DELETE /api/services/:id (Minder) - Delete a service
 register('DELETE', '/api/services/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, "u-minder-001");
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -224,8 +216,8 @@ async function ensureCalendarForSitter(sitterID) {
 
 // 14) POST /api/calendar (Minder) — add available slot
 register('POST', '/api/calendar', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -253,8 +245,8 @@ register('POST', '/api/calendar', async (req, res, send) => {
 
 // 15) DELETE /api/calendar/:id (Minder) — remove slot
 register('DELETE', '/api/calendar/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });

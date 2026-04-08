@@ -25,19 +25,11 @@ async function isValidSitter(userID) {
   
   
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 28) POST /api/reviews (Owner) — Submit a review (completed bookings only)
 register('POST', '/api/reviews', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -69,8 +61,8 @@ register('POST', '/api/reviews', async (req, res, send) => {
 
 // 30) PATCH /api/reviews/:id/flag (Owner/Minder) - Flag a review for moderation
 register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const reviewID = req.params.id;
   const [[review]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
@@ -104,8 +96,8 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
 
 // 31) GET /api/reviews/flagged (Support) - View all flagged reviews
 register('GET', '/api/reviews/flagged', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -143,8 +135,8 @@ register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
 
 // 32) DELETE /api/reviews/:id (Support) - Delete a review
 register('DELETE', '/api/reviews/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });

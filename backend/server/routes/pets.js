@@ -9,19 +9,11 @@ const {
   getOwnerId,
 } = require('../lib/helpers');
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // Create a pet profile
 register('POST', '/api/pets', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId );
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -51,8 +43,8 @@ register('POST', '/api/pets', async (req, res, send) => {
 
 // List all pets for the logged-in owner
 register('GET', '/api/pets', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, 'u-owner-001');
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -63,8 +55,8 @@ register('GET', '/api/pets', async (req, res, send) => {
 
 // Get a single pet
 register('GET', '/api/pets/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, 'u-owner-001');
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -77,8 +69,8 @@ register('GET', '/api/pets/:id', async (req, res, send) => {
 
 // Update pet details
 register('PATCH', '/api/pets/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -112,8 +104,8 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
 
 // Delete a pet profile
 register('DELETE', '/api/pets/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });

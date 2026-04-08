@@ -34,19 +34,11 @@ async function getUserIdForSitter(sitterID) {
   return row?.userID || null;
 }
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 26) POST /api/messages (Owner/Minder) — send a message on booking thread
 register('POST', '/api/messages', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const body = await req.parseBody();
   // TEST DATA - will be replaced by actual request body in production
@@ -89,8 +81,8 @@ register('POST', '/api/messages', async (req, res, send) => {
 
 // 27) GET /api/messages/:booking_id (Owner/Minder) — get the full message thread
 register('GET', '/api/messages/:booking_id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const bookingID = req.params.booking_id;
   const booking = await getBooking(bookingID);

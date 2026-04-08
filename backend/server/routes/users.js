@@ -20,19 +20,11 @@ async function getUserRole(userID) {
   return null;
 }
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 41) GET /api/users (Support) — list all users with optional filters
 register('GET', '/api/users', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -85,8 +77,8 @@ register('GET', '/api/users', async (req, res, send) => {
 
 // 42) GET /api/users/:id (Support) — full profile of any user
 register('GET', '/api/users/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -156,8 +148,8 @@ register('GET', '/api/users/:id', async (req, res, send) => {
 
 // 43) PATCH /api/users/:id/suspend (Support) — suspend or reactivate a user account
 register('PATCH', '/api/users/:id/suspend', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });

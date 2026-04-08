@@ -17,19 +17,11 @@ async function getBooking(bookingID) {
   return b || null;
 }
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 22) POST /api/reports/visit (Minder) - Submit a visit report
 register('POST', '/api/reports/visit', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -59,8 +51,8 @@ register('POST', '/api/reports/visit', async (req, res, send) => {
 
 // 23) GET /api/reports/visit/:booking_id (Owner/Minder) - View visit reports for a booking
 register('GET', '/api/reports/visit/:booking_id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const bookingID = req.params.booking_id;
   const booking = await getBooking(bookingID);
@@ -83,8 +75,8 @@ register('GET', '/api/reports/visit/:booking_id', async (req, res, send) => {
 
 // 24) POST /api/reports/incident (Minder) - Log an incident
 register('POST', '/api/reports/incident', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -115,8 +107,8 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
 
 // 25) GET /api/reports/incidents (Support) - View all incident reports
 register('GET', '/api/reports/incidents', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });

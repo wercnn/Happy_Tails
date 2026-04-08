@@ -17,19 +17,11 @@ async function canAccessBooking(booking, ownerID, sitterID) {
   return false;
 }
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 16) POST /api/bookings (Owner) — create booking + totalCost
 register('POST', '/api/bookings', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -102,8 +94,8 @@ register('POST', '/api/bookings', async (req, res, send) => {
 
 // 17) GET /api/bookings (Owner/Minder) — list own Bookings
 register('GET', '/api/bookings', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const role = String(req.userRole || '').toLowerCase();
 
@@ -138,8 +130,8 @@ register('GET', '/api/bookings', async (req, res, send) => {
 
 // 18) GET /api/bookings/:id (Owner/Minder) — get single Booking
 register('GET', '/api/bookings/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, ['owner', 'minder'])) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const role = String(req.userRole || '').toLowerCase();
 
@@ -166,8 +158,8 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
 
 // 19) PATCH /api/bookings/:id/accept (Minder) - Accept a pending booking
 register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -185,8 +177,8 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
 
 // 20) PATCH /api/bookings/:id/reject (Minder) - Reject a pending booking
 register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'minder')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
 
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
@@ -206,8 +198,8 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
 
 // 21) PATCH /api/bookings/:id/cancel (Owner) - Cancel a booking
 register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });

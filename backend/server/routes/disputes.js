@@ -22,19 +22,11 @@ async function getBooking(bookingID) {
 }
 
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // 36) POST /api/disputes (Owner) — raise a dispute on a booking
 register('POST', '/api/disputes', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'owner')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
 
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
@@ -71,8 +63,8 @@ register('POST', '/api/disputes', async (req, res, send) => {
 
 // 37) GET /api/disputes (Support) — list all disputes
 register('GET', '/api/disputes', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -110,8 +102,8 @@ register('GET', '/api/disputes', async (req, res, send) => {
 
 // 38) GET /api/disputes/:id (Support) — single dispute detail
 register('GET', '/api/disputes/:id', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, "u-support-001");
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -136,8 +128,8 @@ register('GET', '/api/disputes/:id', async (req, res, send) => {
 
 // 39) PATCH /api/disputes/:id/resolve (Support) — resolve a dispute
 register('PATCH', '/api/disputes/:id/resolve', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -163,8 +155,8 @@ register('PATCH', '/api/disputes/:id/resolve', async (req, res, send) => {
 
 // 40) PATCH /api/disputes/:id/escalate (Support) — escalate a dispute
 register('PATCH', '/api/disputes/:id/escalate', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });

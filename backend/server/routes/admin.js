@@ -20,21 +20,13 @@ const {
 } = require('../lib/helpers');
 
 
-// Changing requestUser and requestRole for testing
-function requireUserTest(req, send, res) {
-  return true;
-}
-
-function requireRoleTest(req, send, res, role) {
-  return true;
-}
 
 // ─── Overview Stats ──────────────────────────────────────────────────────────
 
 // 44) GET /api/stats (Support) — platform-wide aggregate counts for the Overview page
 register('GET', '/api/stats', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -57,8 +49,8 @@ register('GET', '/api/stats', async (req, res, send) => {
 // 45) GET /api/minders/pending (Support) — minders with pending identity verification
 // NOTE: Must be registered BEFORE GET /api/minders/:id (ensured by loading admin.js first in server.js)
 register('GET', '/api/minders/pending', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -81,8 +73,8 @@ register('GET', '/api/minders/pending', async (req, res, send) => {
 
 // 46) PATCH /api/minders/:id/verify (Support) — approve minder identity verification
 register('PATCH', '/api/minders/:id/verify', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -118,8 +110,8 @@ register('PATCH', '/api/minders/:id/verify', async (req, res, send) => {
 
 // 47) PATCH /api/minders/:id/reject (Support) — reject minder identity verification
 register('PATCH', '/api/minders/:id/reject', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -161,8 +153,8 @@ register('PATCH', '/api/minders/:id/reject', async (req, res, send) => {
 
 // 48) PATCH /api/payments/:id/deny (Support) — deny a refund request, keep payment in escrow
 register('PATCH', '/api/payments/:id/deny', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -197,8 +189,8 @@ register('PATCH', '/api/payments/:id/deny', async (req, res, send) => {
 // 49) PATCH /api/reports/incident/:id/escalate (Support) — escalate an incident
 // Requires: INCIDENT_REPORT.status VARCHAR(50) DEFAULT 'Open'
 register('PATCH', '/api/reports/incident/:id/escalate', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -229,8 +221,8 @@ register('PATCH', '/api/reports/incident/:id/escalate', async (req, res, send) =
 // 50) PATCH /api/reports/incident/:id/resolve (Support) — mark an incident as resolved
 // Requires: INCIDENT_REPORT.status VARCHAR(50) DEFAULT 'Open'
 register('PATCH', '/api/reports/incident/:id/resolve', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
@@ -262,8 +254,8 @@ register('PATCH', '/api/reports/incident/:id/resolve', async (req, res, send) =>
 
 // 51) PATCH /api/reviews/:id/approve (Support) — approve a flagged review (dismiss the flag)
 register('PATCH', '/api/reviews/:id/approve', async (req, res, send) => {
-  if (!requireUserTest(req, send, res)) return;
-  if (!requireRoleTest(req, send, res, 'support')) return;
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
 
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
