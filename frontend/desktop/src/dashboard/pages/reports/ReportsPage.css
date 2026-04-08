@@ -1,0 +1,270 @@
+.reports-page {
+  --reports-navy: #1a2a4a;
+  --reports-mid: #6f7a8a;
+  --reports-dark: #243557;
+  --reports-light: #f6f8fc;
+  --reports-border: #e3e8f0;
+  --reports-orange: #f5931e;
+  --reports-orange-mid: #f5a623;
+  --reports-orange-light: #fff1df;
+  --reports-blue: #2f80ed;
+  --reports-green: #27ae60;
+  --reports-yellow: #f2c94c;
+  --reports-green-mid: #22a45d55;
+}
+
+.reports-page__header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reports-page__top-grid,
+.reports-page__bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.reports-page__top-grid {
+  margin-bottom: 24px;
+}
+
+.reports-page__card--padded {
+  padding: 20px;
+}
+
+.reports-page__card-title {
+  margin: 0 0 4px;
+  color: var(--reports-navy);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.reports-page__card-title--spaced {
+  margin-bottom: 16px;
+}
+
+.reports-page__card-subtitle {
+  margin: 0 0 16px;
+  color: var(--reports-mid);
+  font-size: 12px;
+}
+
+.reports-page__chart {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 80px;
+}
+
+.reports-page__chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.reports-page__chart-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+}
+
+.reports-page__bar--orange {
+  background: var(--reports-orange);
+}
+
+.reports-page__bar--orange-mid {
+  background: var(--reports-orange-mid);
+}
+
+.reports-page__bar--green {
+  background: var(--reports-green);
+}
+
+.reports-page__bar--green-mid {
+  background: var(--reports-green-mid);
+}
+
+.reports-page__chart-label {
+  font-size: 10px;
+  color: var(--reports-mid);
+  font-weight: 600;
+}
+
+.reports-page__bar-height--bookings-oct {
+  height: 37.2px;
+}
+
+.reports-page__bar-height--bookings-nov {
+  height: 43.4px;
+}
+
+.reports-page__bar-height--bookings-dec {
+  height: 60px;
+}
+
+.reports-page__bar-height--bookings-jan {
+  height: 66.1px;
+}
+
+.reports-page__bar-height--bookings-feb {
+  height: 73.6px;
+}
+
+.reports-page__bar-height--bookings-mar {
+  height: 80px;
+}
+
+.reports-page__bar-height--revenue-oct {
+  height: 40.1px;
+}
+
+.reports-page__bar-height--revenue-nov {
+  height: 49.7px;
+}
+
+.reports-page__bar-height--revenue-dec {
+  height: 68px;
+}
+
+.reports-page__bar-height--revenue-jan {
+  height: 73.3px;
+}
+
+.reports-page__bar-height--revenue-feb {
+  height: 75px;
+}
+
+.reports-page__bar-height--revenue-mar {
+  height: 80px;
+}
+
+.reports-page__service-item {
+  margin-bottom: 14px;
+}
+
+.reports-page__service-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  gap: 12px;
+}
+
+.reports-page__service-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--reports-dark);
+}
+
+.reports-page__service-meta {
+  display: flex;
+  gap: 8px;
+}
+
+.reports-page__service-bookings {
+  font-size: 12px;
+  color: var(--reports-mid);
+}
+
+.reports-page__service-revenue {
+  font-size: 13px;
+  color: var(--reports-navy);
+}
+
+.reports-page__service-track {
+  height: 8px;
+  background: var(--reports-light);
+  border-radius: 4px;
+}
+
+.reports-page__service-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.reports-page__service-fill--orange {
+  background: var(--reports-orange);
+}
+
+.reports-page__service-fill--blue {
+  background: var(--reports-blue);
+}
+
+.reports-page__service-fill--green {
+  background: var(--reports-green);
+}
+
+.reports-page__service-fill--yellow {
+  background: var(--reports-yellow);
+}
+
+.reports-page__service-fill--51 {
+  width: 51%;
+}
+
+.reports-page__service-fill--22 {
+  width: 22%;
+}
+
+.reports-page__service-fill--17 {
+  width: 17%;
+}
+
+.reports-page__service-fill--10 {
+  width: 10%;
+}
+
+.reports-page__minder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.reports-page__minder-row--bordered {
+  border-bottom: 1px solid var(--reports-border);
+}
+
+.reports-page__minder-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--reports-orange-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--reports-orange);
+}
+
+.reports-page__minder-info {
+  flex: 1;
+}
+
+.reports-page__minder-name {
+  font-weight: 700;
+  color: var(--reports-navy);
+  font-size: 13px;
+}
+
+.reports-page__minder-meta {
+  font-size: 11px;
+  color: var(--reports-mid);
+}
+
+.reports-page__minder-stats {
+  text-align: right;
+}
+
+.reports-page__minder-revenue {
+  font-weight: 800;
+  color: var(--reports-green);
+  font-size: 13px;
+}
+
+.reports-page__minder-bookings {
+  font-size: 11px;
+  color: var(--reports-mid);
+}

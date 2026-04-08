@@ -1,0 +1,28 @@
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.section-header__content {
+  min-width: 0;
+}
+
+.section-header__title {
+  margin: 0;
+  color: var(--section-header-title-color);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.section-header__subtitle {
+  margin: 4px 0 0;
+  color: var(--section-header-subtitle-color);
+  font-size: 13px;
+}
+
+.section-header__action {
+  flex-shrink: 0;
+}
