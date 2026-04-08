@@ -39,6 +39,12 @@ INSERT INTO PET_MINDER (sitterID, userID, bio, experienceYears, ratingAvg, overa
 INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES
   ('emp-001', 'u-support-001', 'Support');
 
+-- ─── Identity Verification ───────────────────────────────────
+INSERT INTO IDENTITY_VERIFICATION (verificationID, userID, documentURL, status, outcome, submittedAt, resolvedAt) VALUES
+  ('iv-001', 'u-minder-001', 'https://example.com/docs/james-id.pdf', 'UnderReview', 'Pending', '2026-05-01 09:30:00', NULL),
+  ('iv-002', 'u-owner-001',  'https://example.com/docs/sarah-id.pdf', 'Pending',     'Pending', '2026-05-03 14:15:00', NULL),
+  ('iv-003', 'u-support-001','https://example.com/docs/emma-id.pdf',  'Verified',    'Approved','2026-04-20 11:00:00', '2026-04-21 16:45:00');
+
 -- ─── Pet Profile ─────────────────────────────────────────────
 INSERT INTO PET_PROFILE (petID, ownerID, name, species, breed, age, weight, neutered, routines) VALUES
   ('pet-001', 'own-001', 'Buddy', 'Dog', 'Golden Retriever', 3, 28.50, TRUE,
@@ -172,3 +178,5 @@ INSERT INTO DISPUTE (
   ('disp-002', 'bk-001', 'u-owner-001', NULL, 'RefundRequest', 'Service quality concerns regarding pet care standards.', 'Open', TRUE, NULL, 'High', NULL, NOW()),
   ('disp-003', 'bk-002', 'u-owner-001', NULL, 'PaymentDispute', 'Payment discrepancy for daycare service.', 'Pending', TRUE, NULL, 'Medium', NULL, NOW()),
   ('disp-004', 'bk-002', 'u-owner-001', 'emp-001', 'NoShowComplaint', 'Scheduling conflict and cancellation policy dispute.', 'Resolved', FALSE, 'Issue resolved by support after case review.', 'Low', NOW(), NOW());
+
+  

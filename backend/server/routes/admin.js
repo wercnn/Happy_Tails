@@ -19,6 +19,7 @@ const {
   getEmployeeId,
 } = require('../lib/helpers');
 
+
 // Changing requestUser and requestRole for testing
 function requireUserTest(req, send, res) {
   return true;
@@ -41,7 +42,7 @@ register('GET', '/api/stats', async (req, res, send) => {
   const [[stats]] = await db.query(`
     SELECT
       (SELECT COUNT(*) FROM DISPUTE        WHERE status IN ('Open', 'Escalated'))                                          AS openDisputes,
-      (SELECT COUNT(*) FROM INCIDENT_REPORT WHERE status IN ('Open', 'Escalated'))                                         AS openIncidents,
+      (SELECT COUNT(*) FROM INCIDENT_REPORT)                                                                                AS openIncidents,
       (SELECT COUNT(*) FROM IDENTITY_VERIFICATION WHERE status IN ('Pending', 'UnderReview'))                              AS pendingVerifications,
       (SELECT COUNT(*) FROM PAYMENT P JOIN REFUND R ON R.paymentID = P.paymentID WHERE P.escrowStatus = 'Holding')         AS refundRequests,
       (SELECT COUNT(*) FROM REVIEW_FLAG   WHERE status = 'Open')                                                           AS flaggedReviews,
@@ -270,12 +271,15 @@ register('PATCH', '/api/reviews/:id/approve', async (req, res, send) => {
   const reviewID = req.params.id;
   const [[review]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
   if (!review) return notFound(send, res, 'Review not found');
+  if (review.status === 'Approved') return send(res, 409, { error: 'Review is already approved' });
+  if (review.status === 'Removed') return send(res, 409, { error: 'Cannot approve a removed review; it must be reinstated first' });
 
   // Set review status back to Approved and dismiss any open flags
   await db.query(
     `UPDATE REVIEW SET status = 'Approved' WHERE reviewID = ?`,
     [reviewID]
   );
+
   await db.query(
     `UPDATE REVIEW_FLAG SET status = 'Dismissed' WHERE reviewID = ? AND status = 'Open'`,
     [reviewID]

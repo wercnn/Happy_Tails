@@ -478,6 +478,9 @@ ALTER TABLE MEDIA
     ADD CONSTRAINT FK_MEDIA_INCIDENT FOREIGN KEY (incidentID)
         REFERENCES INCIDENT_REPORT (incidentID) ON DELETE SET NULL;
 
+ALTER TABLE INCIDENT_REPORT
+    ADD COLUMN status ENUM('Open', 'Escalated', 'Resolved') NOT NULL DEFAULT 'Open';
+
 -- =============================================================
 -- PATCH: INCIDENT_REPORT — make employeeID nullable and add
 -- reporterUserID so minders can file reports directly
