@@ -5,12 +5,15 @@ const { router } = require('./router');
 // Load all route files — each one calls register() to add its routes
 require('./routes/auth');
 require('./routes/pets');
+require('./routes/admin');    // must come before minders — registers /api/minders/pending before the :id wildcard
 require('./routes/minders');
 require('./routes/bookings');
 require('./routes/reports');
 require('./routes/messages');
 require('./routes/reviews');
 require('./routes/payments');
+require('./routes/disputes');
+require('./routes/users');
 
 const server = http.createServer((req, res) => {
   // CORS headers — allow the React frontend to call this server from any origin
