@@ -1,0 +1,209 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.pp-screen {
+  height: 100%;
+  width: 100%;
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Orange Header ── */
+.pp-header {
+  flex-shrink: 0;
+  background: #ee8b28;
+  padding: 18px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pp-header-top {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pp-back,
+.pp-edit {
+  background: none;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.pp-back {
+  font-size: 1.7rem;
+  line-height: 1;
+  justify-self: start;
+}
+
+.pp-edit {
+  font-size: 1rem;
+  justify-self: end;
+}
+
+.pp-back:hover,
+.pp-edit:hover { opacity: 0.8; }
+
+.pp-header-label {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.pp-header-spacer {
+  width: 40px;
+  height: 1px;
+  justify-self: end;
+}
+
+.pp-avatar {
+  font-size: 3.4rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.pp-name {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.pp-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ── Scroll ── */
+.pp-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pp-scroll::-webkit-scrollbar { display: none; }
+
+.pp-body {
+  padding: 18px 16px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Info List ── */
+.pp-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pp-info-row {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.07);
+}
+
+.pp-info-label {
+  font-size: 0.92rem;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.pp-info-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+/* ── Routines & Notes ── */
+.pp-notes-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.pp-notes-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.07);
+}
+
+.pp-notes-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ── Add Health Data ── */
+.pp-health-btn {
+  background: #f28c28;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
+}
+.pp-health-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
+.pp-health-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .pp-body { padding: 16px 12px 24px; }
+}

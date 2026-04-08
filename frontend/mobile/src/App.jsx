@@ -1,0 +1,77 @@
+import './App.css'
+import { Routes, Route } from 'react-router-dom'
+
+/* Authentication screens */
+import WelcomePage from './screens/Auth/welcome/WelcomePage'
+import LoginPage from './screens/Auth/login/LoginPage'
+import RoleSelect from './screens/Auth/roleSelect/RoleSelect'
+import OwnerRegistration from './screens/Auth/ownerRegistration/OwnerRegister'
+import MinderRegistration from './screens/Auth/minderRegistration/MinderRegister'
+import OTP from './screens/Auth/otp/OTP'
+import Identity from './screens/Auth/identity/identity'
+
+/* Pet Minder screens */
+import MindDash from './screens/Pet Minder/dashboard/Dashboard'
+import MindService from './screens/Pet Minder/services/Service'
+import MindAvailability from './screens/Pet Minder/availability/Availability'
+import MindRequests from './screens/Pet Minder/requests/Requests'
+import AcceptReject from './screens/Pet Minder/accept/Accept'
+import AddService from './screens/Pet Minder/services/addService/AddService'
+
+/* Pet Owner screens */
+import OwnerDash from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
+import OwnerPets from './screens/Pet Owner - Pets/myPets/MyPets'
+import OwnerSearch from './screens/Search & Discovery/searchMinders/SearchMinders'
+import OwnerBooking from './screens/Booking Flow/history/History'
+import AddPet from './screens/Pet Owner - Pets/createPet/CreatePet'
+import PetProfile from './screens/Pet Owner - Pets/petDetail/PetDetail'
+import SearchFilters from './screens/Search & Discovery/filters/Filters'
+import ViewMinders from './screens/Search & Discovery/minderProfile/MinderProfile'
+import SelectService from './screens/Booking Flow/selectService/SelectService'
+import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
+import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
+import BookingSummary from './screens/Booking Flow/summary/Summary'
+import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
+
+
+/* Pet Minder and Pet Owner profile screens */
+import Profile from './screens/profile/ProfileSettings'
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<WelcomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RoleSelect />} />
+      <Route path="/ownerReg" element={<OwnerRegistration />} />
+      <Route path="/minderReg" element={<MinderRegistration />} />
+      <Route path="/otp" element={<OTP />} />
+      <Route path="/identity" element={<Identity />} />
+
+      <Route path="/mindDash" element={<MindDash />} />
+      <Route path="/mindService" element={<MindService />} />
+      <Route path="/mindAvailability" element={<MindAvailability />} />
+      <Route path="/mindRequests" element={<MindRequests />} />
+      <Route path="/acceptReject" element={<AcceptReject />} />
+      <Route path="/addService" element={<AddService />} />
+
+      <Route path="/ownerDash" element={<OwnerDash />} />
+      <Route path="/ownerPets" element={<OwnerPets />} />
+      <Route path="/ownerSearch" element={<OwnerSearch />} />
+      <Route path="/ownerBooking" element={<OwnerBooking />} />
+      <Route path="/addPet" element={<AddPet />} />
+      <Route path="/petProfile" element={<PetProfile />} />
+      <Route path="/searchFilters" element={<SearchFilters />} />
+      <Route path="/viewMinders" element={<ViewMinders />} />
+      <Route path="/selectService" element={<SelectService />} />
+      <Route path="/selectDates" element={<SelectDates />} />
+      <Route path="/availabilityCalendar" element={<AvailabilityCalender />} />
+      <Route path="/bookingSummary" element={<BookingSummary />} />
+      <Route path="/requestSent" element={<RequestSent />} />
+
+      <Route path="/profile" element={<Profile />} />
+    </Routes>
+  )
+}
+
+export default App

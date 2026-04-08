@@ -1,0 +1,346 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+/* ── Stage & Frame ── */
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0,0,0,0.25);
+  background: #111;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Screen ── */
+.mreg-screen {
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Sticky Header ── */
+.mreg-header {
+  flex-shrink: 0;
+  background: #f28c28;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mreg-back-icon {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.mreg-back-icon:hover { opacity: 0.8; }
+
+.mreg-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-family: 'nunito', sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+/* ── Scroll body ── */
+.mreg-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mreg-scroll::-webkit-scrollbar { display: none; }
+
+.mreg-form {
+  padding: 22px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Step heading ── */
+.mreg-step-heading { margin-bottom: 20px; }
+.mreg-step-title { 
+    margin: 0 0 4px; 
+    font-size: 1.3rem; 
+    font-weight: 800; 
+    font-family: 'nunito', sans-serif;
+    color: #1a1a1a; 
+}
+.mreg-step-sub { margin: 0; font-size: 0.82rem; color: #888; }
+
+/* ── Fields ── */
+.mreg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.mreg-label {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.mreg-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.mreg-input::placeholder { color: #aaa; }
+.mreg-input:focus {
+  border-color: #f28c28;
+  box-shadow: 0 0 0 3px rgba(238,139,40,0.15);
+}
+
+/* Textarea */
+.mreg-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 13px 14px;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 0.93rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.mreg-textarea::placeholder { color: #aaa; }
+.mreg-textarea:focus {
+  border-color: #f28c28;
+  box-shadow: 0 0 0 3px rgba(238,139,40,0.15);
+}
+
+/* ── Dropzone ── */
+.mreg-dropzone {
+  border: 2px dashed #a0b4d6;
+  border-radius: 10px;
+  background: #f4f7fc;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+.mreg-dropzone--active { background: #eaf0fb; border-color: #3b6fcf; }
+
+.mreg-upload-icon {
+  width: 44px;
+  height: 44px;
+  border: 2.5px solid #3b6fcf;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b6fcf;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mreg-drop-text { margin: 0; font-size: 0.93rem; color: #222; text-align: center; }
+.mreg-drop-sub  { margin: 0; font-size: 0.83rem; color: #666; text-align: center; }
+.mreg-select-link { color: #3b6fcf; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* ── Chip sections ── */
+.mreg-chip-section { margin-bottom: 20px; }
+
+.mreg-chip-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.mreg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mreg-chip {
+  background: #fde8cc;
+  color: #f28c28;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+}
+.mreg-chip:hover { background: #fbd4a0; transform: translateY(-1px); }
+.mreg-chip--active {
+  background: #f28c28;
+  color: #fff;
+}
+
+.mreg-chip--day {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+/* ── Hourly Rate ── */
+.mreg-rate-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1.8px solid #c8c8c8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mreg-rate-currency {
+  background: #f0f0f0;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-right: 1.8px solid #c8c8c8;
+  flex-shrink: 0;
+}
+
+.mreg-rate-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px 10px;
+}
+
+.mreg-rate-hint {
+  font-size: 0.68rem;
+  color: #aaa;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.mreg-rate-input {
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #333;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+}
+.mreg-rate-input::placeholder { color: #aaa; }
+
+.mreg-input--error {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
+}
+
+.mreg-input--error:focus {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.18);
+}
+
+.mreg-error-text {
+  margin: 2px 0 0;
+  color: #d93025;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* ── Divider between steps ── */
+.mreg-divider-section {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 8px 0 22px;
+}
+
+/* ── Submit ── */
+.mreg-submit {
+  width: 100%;
+  background: transparent;
+  color: #fff;
+  border: 2.5px solid #f28c28;
+  border-radius: 6px;
+  padding: 13px 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  background: #f28c28;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  margin-top: 10px;
+}
+.mreg-submit:hover  { filter: brightness(1.06); transform: translateY(-1px); }
+.mreg-submit:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Login prompt ── */
+.mreg-login-prompt {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #999;
+}
+
+.mreg-login-link {
+  background: none;
+  border: none;
+  color: #f28c28;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+.mreg-login-link:hover { opacity: 0.8; }
+
+/* ── Responsive ── */
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
+  .mreg-form { padding: 18px 16px 32px; }
+}
