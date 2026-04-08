@@ -19,16 +19,8 @@ register('POST', '/api/pets', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    name     = 'Buddy',
-    species  = 'Dog',
-    breed    = 'Golden Retriever',
-    age      = 3,
-    weight   = 28.50,
-    neutered = true,
-    routines = 'Morning walk at 8am. Dinner at 6pm. Loves fetch.',
-  } = body;
+  // Example: { name: 'Buddy', species: 'Dog', breed: 'Golden Retriever', age: 3, weight: 28.5, neutered: true, routines: 'Morning walk at 8am. Dinner at 6pm.' }
+  const { name, species, breed, age, weight, neutered, routines } = body;
   if (!name || !species) return badRequest(send, res, 'name and species are required');
 
   const petID = uuid();
@@ -46,7 +38,7 @@ register('GET', '/api/pets', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
 
-  const ownerID = await getOwnerId(db, 'u-owner-001');
+  const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE ownerID = ? ORDER BY name', [ownerID]);
@@ -58,7 +50,7 @@ register('GET', '/api/pets/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
 
-  const ownerID = await getOwnerId(db, 'u-owner-001');
+  const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const petID = req.params.id; // ID from URL path
@@ -79,11 +71,8 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
   const [existing] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
   if (!existing.length) return notFound(send, res, 'Pet not found');
 
-  const rawBody = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const body = Object.keys(rawBody).length
-    ? rawBody
-    : { name: 'Buddy Updated', breed: 'Golden Retriever', age: 4, weight: 29.00, routines: 'Evening walk at 6pm added.' };
+  // Example: { name: 'Buddy Updated', breed: 'Golden Retriever', age: 4, weight: 29.0, routines: 'Evening walk at 6pm added.' }
+  const body = await req.parseBody();
   const fields = ['name', 'species', 'breed', 'age', 'weight', 'neutered', 'routines'];
   const sets = [];
   const params = [];

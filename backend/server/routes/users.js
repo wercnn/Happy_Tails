@@ -159,8 +159,8 @@ register('PATCH', '/api/users/:id/suspend', async (req, res, send) => {
   if (!user) return notFound(send, res, 'User not found');
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const newStatus = body?.status || 'Suspended';
+  // Example: { status: 'Suspended' } — valid values: 'Active', 'Suspended', 'Inactive'
+  const newStatus = body?.status;
 
   const validStatuses = ['Active', 'Suspended', 'Inactive'];
   if (!validStatuses.includes(newStatus)) {

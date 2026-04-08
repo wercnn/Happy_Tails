@@ -32,14 +32,8 @@ register('POST', '/api/disputes', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    bookingID        = 'bk-001',
-    disputeType      = 'Other',
-    reason           = 'Service was not completed as agreed during the booking window.',
-    severityLevel    = 'Low',
-    isRefundRequested = false,
-  } = body;
+  // Example: { bookingID: 'bk-001', disputeType: 'Other', reason: 'Service was not completed as agreed.', severityLevel: 'Low', isRefundRequested: false }
+  const { bookingID, disputeType, reason, severityLevel, isRefundRequested } = body;
 
   if (!bookingID || !reason) return badRequest(send, res, 'bookingID and reason are required');
 
@@ -105,7 +99,7 @@ register('GET', '/api/disputes/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'support')) return;
 
-  const employeeID = await getEmployeeId(db, "u-support-001");
+  const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
   const disputeID = req.params.id;
@@ -140,8 +134,8 @@ register('PATCH', '/api/disputes/:id/resolve', async (req, res, send) => {
   if (dispute.status === 'Resolved') return send(res, 409, { error: 'Dispute is already resolved' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const resolutionNotes = body?.resolutionNotes || 'Dispute reviewed and resolved by support team.';
+  // Example: { resolutionNotes: 'Dispute reviewed and resolved by support team.' }
+  const resolutionNotes = body?.resolutionNotes;
 
   await db.query(
     `UPDATE DISPUTE SET status = 'Resolved', resolutionNotes = ?, employeeID = ?, assignedAt = COALESCE(assignedAt, NOW())

@@ -27,15 +27,8 @@ register('POST', '/api/bookings', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    sitterID      = 'sit-001',
-    petID         = 'pet-001',
-    slotID        = 'slot-003',
-    serviceTypeID = 'st-walk',
-    location      = { postcode: 'E1 6RF', street: '12 Maple Street', city: 'London', county: 'Greater London', country: 'UK' },
-    ownerNotes    = 'Please keep Buddy on the lead. He is nervous around large dogs.',
-  } = body;
+  // Example: { sitterID: 'sit-001', petID: 'pet-001', slotID: 'slot-003', serviceTypeID: 'st-walk', location: { postcode: 'E1 6RF', street: '12 Maple Street', city: 'London', county: 'Greater London', country: 'UK' }, ownerNotes: 'Please keep Buddy on the lead.' }
+  const { sitterID, petID, slotID, serviceTypeID, location, ownerNotes } = body;
 
   if (!sitterID || !petID || !slotID || !serviceTypeID || !location?.postcode || !location?.country) {
     return badRequest(send, res, 'sitterID, petID, slotID, serviceTypeID, and location {postcode,country} are required');
@@ -210,8 +203,8 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const reason = body?.cancellationReason || 'Change of plans.';
+  // Example: { cancellationReason: 'Change of plans.' }
+  const reason = body?.cancellationReason;
 
   const status = String(booking.status).toLowerCase();
   if (['completed', 'cancelled'].includes(status)) return send(res, 409, { error: 'Booking cannot be cancelled' });

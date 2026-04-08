@@ -41,11 +41,8 @@ register('POST', '/api/messages', async (req, res, send) => {
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    bookingID = 'bk-001',
-    content   = 'Hi, just checking in — everything going well with the visit?',
-  } = body;
+  // Example: { bookingID: 'bk-001', content: 'Hi, just checking in — everything going well with the visit?' }
+  const { bookingID, content } = body;
   if (!bookingID || !content) return badRequest(send, res, 'bookingID and content are required');
 
   const booking = await getBooking(bookingID);

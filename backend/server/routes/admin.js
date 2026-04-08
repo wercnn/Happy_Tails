@@ -132,8 +132,8 @@ register('PATCH', '/api/minders/:id/reject', async (req, res, send) => {
   if (!iv) return send(res, 409, { error: 'No pending verification found for this minder' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const reason = body?.reason || 'Documents could not be verified. Please resubmit with valid ID.';
+  // Example: { reason: 'Documents could not be verified. Please resubmit with valid ID.' }
+  const reason = body?.reason;
 
   await db.query(
     `UPDATE IDENTITY_VERIFICATION
@@ -171,8 +171,8 @@ register('PATCH', '/api/payments/:id/deny', async (req, res, send) => {
   }
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const reason = body?.reason || 'Refund request denied after support review. Payment will be released to minder.';
+  // Example: { reason: 'Refund request denied after support review. Payment will be released to minder.' }
+  const reason = body?.reason;
 
   // Denial keeps payment in Holding but records the decision; release must still be triggered separately
   await db.query(

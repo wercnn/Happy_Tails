@@ -88,11 +88,8 @@ register('PATCH', '/api/minders/:id', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
   if (req.params.id !== sitterID) return send(res, 403, { error: 'Cannot edit another minder' });
 
-  // TEST DATA - will be replaced by actual request body in production
-  const rawBody = await req.parseBody();
-  const body = Object.keys(rawBody).length
-    ? rawBody
-    : { bio: 'Experienced dog walker and boarder with a pet first-aid certificate.', experienceYears: 5, medicationQualified: true, serviceAreaPostcode: 'E2' };
+  // Example: { bio: 'Experienced dog walker and boarder with a pet first-aid certificate.', experienceYears: 5, medicationQualified: true, serviceAreaPostcode: 'E2' }
+  const body = await req.parseBody();
   const fields = ['bio', 'experienceYears', 'medicationQualified', 'serviceAreaPostcode', 'ratingAvg', 'overallRating'];
   const sets = [];
   const params = [];
@@ -120,12 +117,8 @@ register('POST', '/api/services', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    serviceTypeID = 'st-daycare',
-    customPrice   = 32.00,
-    isActive      = true,
-  } = body;
+  // Example: { serviceTypeID: 'st-daycare', customPrice: 32.00, isActive: true }
+  const { serviceTypeID, customPrice, isActive } = body;
   if (!serviceTypeID || customPrice == null) {
     return badRequest(send, res, 'serviceTypeID and customPrice are required');
   }
@@ -158,11 +151,8 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
   }
 
   
-  const rawBody = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const body = Object.keys(rawBody).length
-    ? rawBody
-    : { customPrice: 20.00, isActive: true };
+  // Example: { customPrice: 20.00, isActive: true }
+  const body = await req.parseBody();
   const fields = ['customPrice', 'isActive'];
   const sets = [];
   const params = [];
@@ -185,7 +175,7 @@ register('DELETE', '/api/services/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
 
-  const sitterID = await getSitterId(db, "u-minder-001");
+  const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const minderServiceID = req.params.id;
@@ -223,11 +213,8 @@ register('POST', '/api/calendar', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    startTime = '2026-06-01 09:00:00',
-    endTime   = '2026-06-01 10:00:00',
-  } = body;
+  // Example: { startTime: '2026-06-01 09:00:00', endTime: '2026-06-01 10:00:00' }
+  const { startTime, endTime } = body;
   if (!startTime || !endTime) return badRequest(send, res, 'startTime and endTime are required');
 
   const calendarID = await ensureCalendarForSitter(sitterID);

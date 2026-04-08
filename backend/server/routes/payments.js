@@ -31,12 +31,8 @@ register('POST', '/api/payments', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const {
-    bookingID       = 'bk-002',
-    paymentMethod   = 'card',
-    platformFeeRate = 0.05,
-  } = body;
+  // Example: { bookingID: 'bk-002', paymentMethod: 'card', platformFeeRate: 0.05 }
+  const { bookingID, paymentMethod, platformFeeRate } = body;
   if (!bookingID || !paymentMethod) return badRequest(send, res, 'bookingID and paymentMethod are required');
 
   const booking = await getBooking(bookingID);
@@ -97,7 +93,7 @@ register('PATCH', '/api/payments/:id/refund', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'support')) return;
 
-  const employeeID = await getEmployeeId(db, "u-support-001");
+  const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
   const paymentID = req.params.id;
@@ -106,8 +102,8 @@ register('PATCH', '/api/payments/:id/refund', async (req, res, send) => {
   if (payment.escrowStatus === 'Refunded') return send(res, 409, { error: 'Already refunded' });
 
   const body = await req.parseBody();
-  // TEST DATA - will be replaced by actual request body in production
-  const reason = body?.reason || 'Service not delivered as agreed. Refund approved by support.';
+  // Example: { reason: 'Service not delivered as agreed. Refund approved by support.' }
+  const reason = body?.reason;
 
   const refundID = uuid();
   await db.query('INSERT INTO REFUND (refundID, paymentID, amount, reason) VALUES (?, ?, ?, ?)', [
