@@ -127,7 +127,6 @@ export default function HappyTailsMinderDashboard() {
       if (!res.ok) throw new Error(`Failed to fetch rating (${res.status})`);
       const data = await res.json();
       const status = data.status;
-      console.log("Fetched status:", status);
       setStatus(status !== null ? status : "N/A");
     } catch (err) {
       console.error("Error fetching status:", err);
