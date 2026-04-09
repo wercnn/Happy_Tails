@@ -32,8 +32,6 @@ export default function HappyTailsFindMinder() {
   useEffect(() => {
     if (location.state?.filters) {
       setAppliedFilters(location.state.filters);
-    } else {
-      setAppliedFilters(DEFAULT_FILTERS);
     }
   }, [location.state]);
 
@@ -61,8 +59,6 @@ export default function HappyTailsFindMinder() {
           setIsLoading(false);
           return;
         }
-
-        console.log("RAW MINDERS FROM /api/minders:", data);
 
         const detailedMinders = await Promise.all(
           data.map(async (minder) => {
@@ -122,8 +118,7 @@ export default function HappyTailsFindMinder() {
                 ratingText: String(detailData.ratingAvg || "0.0"),
                 reviews: (detailData.reviews || []).length,
               };
-            } catch (err) {
-              console.error("Detail fetch failed for minder:", minder.sitterID, err);
+            } catch {
               return {
                 ...minder,
                 id: minder.sitterID,
@@ -143,7 +138,6 @@ export default function HappyTailsFindMinder() {
           })
         );
 
-        console.log("DETAILED MINDERS:", detailedMinders);
         setMinders(detailedMinders);
       } catch (err) {
         console.error("Failed to load minders:", err);
@@ -179,11 +173,6 @@ export default function HappyTailsFindMinder() {
         alert("Placeholder route");
         break;
     }
-  };
-
-  const handleResetFilters = () => {
-    setAppliedFilters(DEFAULT_FILTERS);
-    setQuery("");
   };
 
   const filtered = useMemo(() => {
@@ -240,9 +229,6 @@ export default function HappyTailsFindMinder() {
         break;
     }
 
-    console.log("APPLIED FILTERS:", appliedFilters);
-    console.log("FILTERED MINDERS:", result.map((m) => m.name));
-
     return result;
   }, [query, appliedFilters, minders]);
 
@@ -274,19 +260,8 @@ export default function HappyTailsFindMinder() {
                       state: { filters: appliedFilters },
                     })
                   }
-                  type="button"
                 >
                   ☰
-                </button>
-              </div>
-
-              <div style={{ marginBottom: "12px" }}>
-                <button
-                  type="button"
-                  className="fm-filter-btn"
-                  onClick={handleResetFilters}
-                >
-                  Reset Filters
                 </button>
               </div>
 
@@ -305,11 +280,7 @@ export default function HappyTailsFindMinder() {
                     <button
                       key={m.id}
                       className="fm-minder-card"
-                      onClick={() => {
-                        localStorage.setItem("selectedMinderID", m.sitterID || m.id);
-                        navigate("/viewMinders", { state: { minder: m } });
-                      }}
-                      type="button"
+                      onClick={() => navigate("/viewMinders", { state: { minder: m } })}
                     >
                       <span className="fm-minder-avatar">🐾</span>
                       <div className="fm-minder-info">
@@ -341,7 +312,6 @@ export default function HappyTailsFindMinder() {
                 key={item.id}
                 className={`fm-nav-item${activeNav === item.id ? " fm-nav-item--active" : ""}`}
                 onClick={() => handleNavClick(item.id)}
-                type="button"
               >
                 <span className="fm-nav-emoji">{item.emoji}</span>
                 <span className="fm-nav-label">{item.label}</span>
