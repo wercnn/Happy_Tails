@@ -21,6 +21,7 @@ export default function HappyTailsCreatePet() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function HappyTailsCreatePet() {
         species: editingPet.species || "Dog",
         breed: editingPet.breed || "",
         age: editingPet.age || "",
-        notes: editingPet.notes || "",
+        notes: editingPet.routines || editingPet.notes || "",
       });
       setPhoto(editingPet.photo || null);
     }
@@ -40,11 +41,11 @@ export default function HappyTailsCreatePet() {
     const { name, value } = e.target;
     const nextValue = name === "notes" ? value.slice(0, 200) : value;
 
-    setForm((f) => ({ ...f, [name]: nextValue }));
-
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     setErrors((prev) => ({
       ...prev,
       [name]: "",
+      submit: "",
     }));
   };
 
@@ -66,70 +67,67 @@ export default function HappyTailsCreatePet() {
     return newErrors;
   };
 
-  const getPetEmoji = (species) => {
-    switch (species.toLowerCase()) {
-      case "dog":
-        return "🐶";
-      case "cat":
-        return "🐱";
-      case "rabbit":
-        return "🐰";
-      case "bird":
-        return "🐦";
-      case "reptile":
-        return "🦎";
-      default:
-        return "🐾";
-    }
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validationErrors = validateForm();
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) return;
 
-    const existingPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
+    setIsSubmitting(true);
 
-    if (editingPet) {
-      const updatedPet = {
-        ...editingPet,
-        emoji: getPetEmoji(form.species),
-        name: form.name.trim(),
-        breed: form.breed.trim(),
-        age: form.age.trim(),
-        species: form.species,
-        notes: form.notes.trim(),
-        photo: photo || null,
-      };
+    const payload = {
+      name: form.name.trim(),
+      species: form.species,
+      breed: form.breed.trim(),
+      age: form.age.trim(),
+      routines: form.notes.trim(),
+      // optional fields if you want later:
+      weight: null,
+      neutered: false,
+    };
 
-      const updatedPets = existingPets.map((pet) =>
-        pet.id === editingPet.id ? updatedPet : pet
-      );
+    try {
+      const url = editingPet
+        ? `http://localhost:3000/api/pets/${editingPet.petID || editingPet.id}`
+        : "http://localhost:3000/api/pets";
 
-      localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+      const method = editingPet ? "PATCH" : "POST";
 
-      if (returnTo === "petDetail") {
-        navigate("/petProfile", { state: { pet: updatedPet } });
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userID") || "",
+          "x-user-role": localStorage.getItem("userRole") || "",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrors((prev) => ({
+          ...prev,
+          submit: data.error || "Failed to save pet profile.",
+        }));
         return;
       }
-    } else {
-      const newPet = {
-        id: Date.now(),
-        emoji: getPetEmoji(form.species),
-        name: form.name.trim(),
-        breed: form.breed.trim(),
-        age: form.age.trim(),
-        species: form.species,
-        notes: form.notes.trim(),
-        photo: photo || null,
-      };
 
-      const updatedPets = [...existingPets, newPet];
-      localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+      if (editingPet && returnTo === "petDetail") {
+        navigate("/petProfile", { state: { pet: data } });
+        return;
+      }
+
+      navigate("/ownerPets");
+    } catch (error) {
+      console.error("Pet save failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        submit: "Server error. Please try again.",
+      }));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate("/ownerPets");
   };
 
   const handleBack = () => {
@@ -146,7 +144,7 @@ export default function HappyTailsCreatePet() {
       <div className="mobile-frame">
         <div className="cpet-screen">
           <header className="cpet-header">
-            <button className="cpet-back" onClick={handleBack}>
+            <button className="cpet-back" onClick={handleBack} type="button">
               ←
             </button>
             <h1 className="cpet-title">
@@ -264,8 +262,19 @@ export default function HappyTailsCreatePet() {
                 {errors.notes && <p className="cpet-error-text">{errors.notes}</p>}
               </div>
 
-              <button className="cpet-save" onClick={handleSubmit}>
-                {editingPet ? "Update Pet Profile" : "Save Pet Profile"}
+              {errors.submit && <p className="cpet-error-text">{errors.submit}</p>}
+
+              <button
+                className="cpet-save"
+                onClick={handleSubmit}
+                type="button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingPet
+                  ? "Update Pet Profile"
+                  : "Save Pet Profile"}
               </button>
             </div>
           </div>
