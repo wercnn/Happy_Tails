@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C } from "../../constants.js";
 import { Badge, StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
@@ -6,70 +6,156 @@ import { Card, Th, Td } from "../../components/card/Card.jsx";
 import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
 import "./PaymentsPage.css";
 
-export default function PaymentsPage() {
+const API = "http://localhost:3000/api";
+
+function authHeaders(user) {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": user.userID,
+    "X-User-Role": user.role,
+  };
+}
+
+function fmt(amount) {
+  return `£${Number(amount).toFixed(2)}`;
+}
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+export default function PaymentsPage({ user }) {
   const [tab, setTab] = useState("transactions");
+  const [payments, setPayments] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [selectedRefund, setSelectedRefund] = useState(null);
-
-  const transactions = [
-    { id: "#PAY-441", booking: "#HT-8798", payer: "Anna B.", amount: "£105.00", fee: "£5.25", net: "£99.75", date: "2 Apr", status: "completed", escrow: false },
-    { id: "#PAY-440", booking: "#HT-8801", payer: "Sarah J.", amount: "£23.10", fee: "£1.16", net: "£21.94", date: "9 Apr", status: "pending", escrow: true },
-    { id: "#PAY-439", booking: "#HT-8802", payer: "Mike T.", amount: "£48.00", fee: "£2.40", net: "£45.60", date: "12 Apr", status: "pending", escrow: true },
-    { id: "#PAY-438", booking: "#HT-8797", payer: "Chris L.", amount: "£15.75", fee: "£0.00", net: "£0.00", date: "28 Mar", status: "refunded", escrow: false },
-  ];
-
-  const refunds = [
-    {
-      id: "#REF-119",
-      booking: "#HT-8797",
-      owner: "Sarah J.",
-      minder: "Tom H.",
-      amount: "£15.75",
-      reason: "Minder no-show",
-      submitted: "28 Mar",
-      status: "open",
-      notes: "Customer requested a full refund after the minder failed to attend the booking.",
-      paymentMethod: "Visa ending 4421",
-      handledBy: "Pending assignment",
-    },
-    {
-      id: "#REF-118",
-      booking: "#HT-8782",
-      owner: "Rachel K.",
-      minder: "James W.",
-      amount: "£34.00",
-      reason: "Service not as described",
-      submitted: "20 Mar",
-      status: "resolved",
-      notes: "Resolved after partial refund approval and customer follow-up.",
-      paymentMethod: "Mastercard ending 1182",
-      handledBy: "Sifat R.",
-    },
-    {
-      id: "#REF-117",
-      booking: "#HT-8770",
-      owner: "Mike T.",
-      minder: "Priya P.",
-      amount: "£48.00",
-      reason: "Booking cancelled",
-      submitted: "15 Mar",
-      status: "escalated",
-      notes: "Escalated due to timing of cancellation and dispute over payout release.",
-      paymentMethod: "Visa ending 7724",
-      handledBy: "Chadi S.",
-    },
-  ];
-
-  const statCards = [
-    { icon: "💷", label: "Monthly Revenue", value: "£18,340", valueClass: "payments-page__stat-value--green" },
-    { icon: "🔒", label: "In Escrow", value: "£4,820", valueClass: "payments-page__stat-value--blue" },
-    { icon: "↩️", label: "Refunds Issued", value: "£218", valueClass: "payments-page__stat-value--red" },
-    { icon: "📈", label: "Platform Fees", value: "£917", valueClass: "payments-page__stat-value--orange" },
-  ];
 
   const tabs = [
     ["transactions", "Transactions"],
     ["refunds", "Refund Requests"],
   ];
+
+  useEffect(() => {
+    fetchPayments();
+    fetchDisputes();
+  }, []);
+
+  async function fetchPayments() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/payments`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPayments(data);
+    } catch (e) {
+      setError(e.message || "Failed to load payments");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchDisputes() {
+    try {
+      const res = await fetch(`${API}/disputes`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDisputes(data);
+    } catch (e) {
+      // disputes error is non-blocking; transactions still show
+    }
+  }
+
+  async function handleRelease(paymentID) {
+    try {
+      const res = await fetch(`${API}/payments/${paymentID}/release`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPayments((prev) =>
+        prev.map((p) => (p.paymentID === paymentID ? { ...p, escrowStatus: data.escrowStatus, paymentStatus: data.paymentStatus } : p))
+      );
+    } catch (e) {
+      alert(e.message || "Failed to release payment");
+    }
+  }
+
+  async function handleApproveRefund(paymentID, disputeID) {
+    try {
+      const res = await fetch(`${API}/payments/${paymentID}/refund`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+        body: JSON.stringify({ reason: "Refund approved by support" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPayments((prev) =>
+        prev.map((p) => (p.paymentID === paymentID ? { ...p, escrowStatus: "Refunded", paymentStatus: "Refunded" } : p))
+      );
+      setDisputes((prev) =>
+        prev.map((d) => (d.disputeID === disputeID ? { ...d, status: "Resolved" } : d))
+      );
+      setSelectedRefund(null);
+    } catch (e) {
+      alert(e.message || "Failed to approve refund");
+    }
+  }
+
+  async function handleDenyRefund(disputeID) {
+    try {
+      const res = await fetch(`${API}/disputes/${disputeID}/resolve`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+        body: JSON.stringify({ resolutionNotes: "Refund request denied after review" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDisputes((prev) =>
+        prev.map((d) => (d.disputeID === disputeID ? { ...d, status: "Resolved" } : d))
+      );
+      setSelectedRefund(null);
+    } catch (e) {
+      alert(e.message || "Failed to deny refund");
+    }
+  }
+
+  async function handleEscalate(disputeID) {
+    try {
+      const res = await fetch(`${API}/disputes/${disputeID}/escalate`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDisputes((prev) =>
+        prev.map((d) => (d.disputeID === disputeID ? { ...d, status: "Escalated" } : d))
+      );
+      setSelectedRefund(null);
+    } catch (e) {
+      alert(e.message || "Failed to escalate");
+    }
+  }
+
+  // Compute stat cards from live data
+  const totalRevenue = payments.reduce((s, p) => s + Number(p.serviceCost), 0);
+  const inEscrow = payments.filter((p) => p.escrowStatus === "Holding").reduce((s, p) => s + Number(p.amount), 0);
+  const refundsIssued = payments.filter((p) => p.escrowStatus === "Refunded").reduce((s, p) => s + Number(p.amount), 0);
+  const platformFees = payments.reduce((s, p) => s + Number(p.platformFee), 0);
+
+  const statCards = [
+    { icon: "💷", label: "Total Revenue", value: fmt(totalRevenue), valueClass: "payments-page__stat-value--green" },
+    { icon: "🔒", label: "In Escrow", value: fmt(inEscrow), valueClass: "payments-page__stat-value--blue" },
+    { icon: "↩️", label: "Refunds Issued", value: fmt(refundsIssued), valueClass: "payments-page__stat-value--red" },
+    { icon: "📈", label: "Platform Fees", value: fmt(platformFees), valueClass: "payments-page__stat-value--orange" },
+  ];
+
+  const refunds = disputes.filter((d) => d.isRefundRequested);
+  const activeStatuses = ["Open", "Pending"];
 
   return (
     <div className="payments-page">
@@ -98,16 +184,17 @@ export default function PaymentsPage() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`payments-page__tab-btn ${
-              tab === key ? "payments-page__tab-btn--active" : ""
-            }`}
+            className={`payments-page__tab-btn ${tab === key ? "payments-page__tab-btn--active" : ""}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {tab === "transactions" && (
+      {error && <p style={{ color: C.red, padding: "12px 0" }}>⚠️ {error}</p>}
+      {loading && <p style={{ color: C.mid, padding: "12px 0" }}>Loading...</p>}
+
+      {!loading && tab === "transactions" && (
         <Card>
           <table className="payments-page__table">
             <thead>
@@ -121,57 +208,52 @@ export default function PaymentsPage() {
                 <Th>Date</Th>
                 <Th>Escrow</Th>
                 <Th>Status</Th>
+                <Th>Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t) => (
-                <tr key={t.id}>
+              {payments.map((p) => (
+                <tr key={p.paymentID}>
+                  <Td><span className="payments-page__id">{p.paymentID.slice(0, 8).toUpperCase()}</span></Td>
+                  <Td><span className="payments-page__booking">{p.bookingID.slice(0, 8).toUpperCase()}</span></Td>
+                  <Td>{p.payerFirstName} {p.payerLastName}</Td>
+                  <Td><strong>{fmt(p.amount)}</strong></Td>
+                  <Td><span className="payments-page__fee">{fmt(p.platformFee)}</span></Td>
+                  <Td><strong className="payments-page__net">{fmt(p.serviceCost)}</strong></Td>
+                  <Td><span className="payments-page__small-text">{formatDate(p.paidAt)}</span></Td>
                   <Td>
-                    <span className="payments-page__id">{t.id}</span>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__booking">{t.booking}</span>
-                  </Td>
-                  <Td>{t.payer}</Td>
-                  <Td>
-                    <strong>{t.amount}</strong>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__fee">{t.fee}</span>
-                  </Td>
-                  <Td>
-                    <strong className="payments-page__net">{t.net}</strong>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__small-text">{t.date}</span>
-                  </Td>
-                  <Td>
-                    {t.escrow ? (
-                      <Badge color={C.blue} bg={C.blueLight}>
-                        🔒 Held
-                      </Badge>
+                    {p.escrowStatus === "Holding" ? (
+                      <Badge color={C.blue} bg={C.blueLight}>🔒 Held</Badge>
+                    ) : p.escrowStatus === "Refunded" ? (
+                      <Badge color={C.red} bg={C.redLight}>Refunded</Badge>
                     ) : (
-                      <Badge color={C.green} bg={C.greenLight}>
-                        Released
-                      </Badge>
+                      <Badge color={C.green} bg={C.greenLight}>Released</Badge>
                     )}
                   </Td>
+                  <Td><StatusBadge status={p.paymentStatus?.toLowerCase()} /></Td>
                   <Td>
-                    <StatusBadge status={t.status} />
+                    {p.escrowStatus === "Holding" && (
+                      <Btn variant="success" small onClick={() => handleRelease(p.paymentID)}>
+                        Release
+                      </Btn>
+                    )}
                   </Td>
                 </tr>
               ))}
+              {payments.length === 0 && (
+                <tr><Td colSpan={10} style={{ textAlign: "center", color: C.mid }}>No transactions found.</Td></tr>
+              )}
             </tbody>
           </table>
         </Card>
       )}
 
-      {tab === "refunds" && (
+      {!loading && tab === "refunds" && (
         <Card>
           <table className="payments-page__table">
             <thead>
               <tr>
-                <Th>Refund ID</Th>
+                <Th>Dispute ID</Th>
                 <Th>Booking</Th>
                 <Th>Owner</Th>
                 <Th>Minder</Th>
@@ -184,37 +266,25 @@ export default function PaymentsPage() {
             </thead>
             <tbody>
               {refunds.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.disputeID}>
+                  <Td><span className="payments-page__id">{r.disputeID.slice(0, 8).toUpperCase()}</span></Td>
+                  <Td><span className="payments-page__booking">{r.bookingID.slice(0, 8).toUpperCase()}</span></Td>
+                  <Td>{r.raisedByFirstName} {r.raisedByLastName}</Td>
+                  <Td>{r.minderFirstName ? `${r.minderFirstName} ${r.minderLastName}` : "—"}</Td>
+                  <Td><strong>{r.paymentAmount ? fmt(r.paymentAmount) : "—"}</strong></Td>
+                  <Td><span className="payments-page__small-text">{r.reason}</span></Td>
+                  <Td><span className="payments-page__small-text">{formatDate(r.createdAt)}</span></Td>
+                  <Td><StatusBadge status={r.status?.toLowerCase()} /></Td>
                   <Td>
-                    <span className="payments-page__id">{r.id}</span>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__booking">{r.booking}</span>
-                  </Td>
-                  <Td>{r.owner}</Td>
-                  <Td>{r.minder}</Td>
-                  <Td>
-                    <strong>{r.amount}</strong>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__small-text">{r.reason}</span>
-                  </Td>
-                  <Td>
-                    <span className="payments-page__small-text">{r.submitted}</span>
-                  </Td>
-                  <Td>
-                    <StatusBadge status={r.status} />
-                  </Td>
-                  <Td>
-                    {r.status === "open" ? (
+                    {activeStatuses.includes(r.status) ? (
                       <div className="payments-page__actions">
-                        <Btn variant="success" small>
-                          Approve Refund
+                        <Btn variant="success" small onClick={() => handleApproveRefund(r.paymentID, r.disputeID)}>
+                          Approve
                         </Btn>
-                        <Btn variant="danger" small>
-                          Deny Refund
+                        <Btn variant="danger" small onClick={() => handleDenyRefund(r.disputeID)}>
+                          Deny
                         </Btn>
-                        <Btn variant="outline" small>
+                        <Btn variant="outline" small onClick={() => handleEscalate(r.disputeID)}>
                           Escalate
                         </Btn>
                         <Btn variant="outline" small onClick={() => setSelectedRefund(r)}>
@@ -222,44 +292,33 @@ export default function PaymentsPage() {
                         </Btn>
                       </div>
                     ) : (
-                      <Btn variant="outline" small onClick={() => setSelectedRefund(r)}>
-                        View
-                      </Btn>
+                      <Btn variant="outline" small onClick={() => setSelectedRefund(r)}>View</Btn>
                     )}
                   </Td>
                 </tr>
               ))}
+              {refunds.length === 0 && (
+                <tr><Td colSpan={9} style={{ textAlign: "center", color: C.mid }}>No refund requests found.</Td></tr>
+              )}
             </tbody>
           </table>
         </Card>
       )}
 
       {selectedRefund && (
-        <div
-          className="payments-page__overlay"
-          onClick={() => setSelectedRefund(null)}
-        >
-          <div
-            className="payments-page__overlay-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="payments-page__overlay-close"
-              onClick={() => setSelectedRefund(null)}
-            >
-              ✕
-            </button>
+        <div className="payments-page__overlay" onClick={() => setSelectedRefund(null)}>
+          <div className="payments-page__overlay-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="payments-page__overlay-close" onClick={() => setSelectedRefund(null)}>✕</button>
 
             <div className="payments-page__overlay-header">
               <div className="payments-page__overlay-header-main">
-                <p className="payments-page__overlay-id">{selectedRefund.id}</p>
+                <p className="payments-page__overlay-id">{selectedRefund.disputeID.slice(0, 8).toUpperCase()}</p>
                 <h2 className="payments-page__overlay-title">Refund Request</h2>
                 <p className="payments-page__overlay-subtitle">
-                  {selectedRefund.submitted} · {selectedRefund.booking}
+                  {formatDate(selectedRefund.createdAt)} · {selectedRefund.bookingID.slice(0, 8).toUpperCase()}
                 </p>
                 <div className="payments-page__overlay-badges">
-                  <StatusBadge status={selectedRefund.status} />
+                  <StatusBadge status={selectedRefund.status?.toLowerCase()} />
                 </div>
               </div>
             </div>
@@ -267,71 +326,61 @@ export default function PaymentsPage() {
             <div className="payments-page__overlay-grid">
               <div className="payments-page__overlay-section">
                 <h3 className="payments-page__overlay-section-title">Refund Details</h3>
-
                 <div className="payments-page__overlay-list">
-                  <div className="payments-page__overlay-row">
-                    <span>Owner</span>
-                    <strong>{selectedRefund.owner}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Minder</span>
-                    <strong>{selectedRefund.minder}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Booking</span>
-                    <strong>{selectedRefund.booking}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Amount</span>
-                    <strong>{selectedRefund.amount}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Reason</span>
-                    <strong>{selectedRefund.reason}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Payment Method</span>
-                    <strong>{selectedRefund.paymentMethod}</strong>
-                  </div>
-                  <div className="payments-page__overlay-row">
-                    <span>Handled By</span>
-                    <strong>{selectedRefund.handledBy}</strong>
-                  </div>
+                  {[
+                    ["Owner", `${selectedRefund.raisedByFirstName} ${selectedRefund.raisedByLastName}`],
+                    ["Minder", selectedRefund.minderFirstName ? `${selectedRefund.minderFirstName} ${selectedRefund.minderLastName}` : "—"],
+                    ["Booking", selectedRefund.bookingID.slice(0, 8).toUpperCase()],
+                    ["Amount", selectedRefund.paymentAmount ? fmt(selectedRefund.paymentAmount) : "—"],
+                    ["Reason", selectedRefund.reason],
+                    ["Type", selectedRefund.disputeType],
+                  ].map(([k, v]) => (
+                    <div key={k} className="payments-page__overlay-row">
+                      <span>{k}</span>
+                      <strong>{v}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="payments-page__overlay-section">
                 <h3 className="payments-page__overlay-section-title">Notes</h3>
-
                 <div className="payments-page__overlay-note-box">
                   <p className="payments-page__overlay-note-text">
-                    {selectedRefund.notes}
+                    {selectedRefund.resolutionNotes || "No resolution notes yet."}
                   </p>
                 </div>
-
                 <div className="payments-page__overlay-stats">
                   <div className="payments-page__overlay-stat">
                     <span className="payments-page__overlay-stat-label">Status</span>
-                    <strong className="payments-page__overlay-stat-value">
-                      {selectedRefund.status}
-                    </strong>
+                    <strong className="payments-page__overlay-stat-value">{selectedRefund.status}</strong>
                   </div>
                   <div className="payments-page__overlay-stat">
-                    <span className="payments-page__overlay-stat-label">Amount</span>
-                    <strong className="payments-page__overlay-stat-value">
-                      {selectedRefund.amount}
-                    </strong>
+                    <span className="payments-page__overlay-stat-label">Severity</span>
+                    <strong className="payments-page__overlay-stat-value">{selectedRefund.severityLevel}</strong>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="payments-page__overlay-actions">
-              <Btn variant="success">Approve Refund</Btn>
-              <Btn variant="danger">Deny Refund</Btn>
-              <Btn variant="outline">Escalate Case</Btn>
-              <Btn variant="outline">View Booking</Btn>
-            </div>
+            {activeStatuses.includes(selectedRefund.status) && (
+              <div className="payments-page__overlay-actions">
+                <Btn variant="success" onClick={() => handleApproveRefund(selectedRefund.paymentID, selectedRefund.disputeID)}>
+                  Approve Refund
+                </Btn>
+                <Btn variant="danger" onClick={() => handleDenyRefund(selectedRefund.disputeID)}>
+                  Deny Refund
+                </Btn>
+                <Btn variant="outline" onClick={() => handleEscalate(selectedRefund.disputeID)}>
+                  Escalate Case
+                </Btn>
+              </div>
+            )}
+            {!activeStatuses.includes(selectedRefund.status) && (
+              <div className="payments-page__overlay-actions">
+                <Btn variant="outline" onClick={() => setSelectedRefund(null)}>Close</Btn>
+              </div>
+            )}
           </div>
         </div>
       )}

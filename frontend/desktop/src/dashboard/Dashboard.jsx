@@ -180,7 +180,7 @@ export default function Dashboard({ user, onLogout }) {
           </header>
 
           <main className="dashboard-content">
-            <PageComponent />
+            <PageComponent user={user} />
           </main>
         </div>
       </div>

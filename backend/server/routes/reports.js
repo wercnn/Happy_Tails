@@ -107,11 +107,66 @@ register('GET', '/api/reports/incidents', async (req, res, send) => {
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
-  const [rows] = await db.query(
-    `SELECT IR.*, B.ownerID, B.sitterID, B.status AS bookingStatus
-     FROM INCIDENT_REPORT IR
-     JOIN BOOKING B ON B.bookingID = IR.bookingID
-     ORDER BY IR.reportedAt DESC`
-  );
+  const [rows] = await db.query(`
+    SELECT
+      IR.incidentID, IR.bookingID, IR.incidentType, IR.severityLevel,
+      IR.description, IR.reportedAt, IR.status, IR.reporterUserID, IR.employeeID,
+      B.ownerID, B.sitterID, B.status AS bookingStatus, B.petID,
+      OP.firstName AS ownerFirstName, OP.lastName AS ownerLastName,
+      MP.firstName AS minderFirstName, MP.lastName AS minderLastName,
+      PP.name AS petName
+    FROM INCIDENT_REPORT IR
+    JOIN BOOKING B ON B.bookingID = IR.bookingID
+    JOIN PET_OWNER PO ON PO.ownerID = B.ownerID
+    JOIN USER_PROFILE OP ON OP.userID = PO.userID
+    JOIN PET_MINDER PM ON PM.sitterID = B.sitterID
+    JOIN USER_PROFILE MP ON MP.userID = PM.userID
+    JOIN PET_PROFILE PP ON PP.petID = B.petID
+    ORDER BY IR.reportedAt DESC
+  `);
   send(res, 200, rows);
+});
+
+
+// PATCH /api/reports/incidents/:id/escalate (Support)
+register('PATCH', '/api/reports/incidents/:id/escalate', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const incidentID = req.params.id;
+  const [[incident]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  if (!incident) return notFound(send, res, 'Incident not found');
+  if (incident.status === 'Resolved') return send(res, 409, { error: 'Cannot escalate a resolved incident' });
+
+  await db.query(
+    'UPDATE INCIDENT_REPORT SET status = ?, employeeID = ? WHERE incidentID = ?',
+    ['Escalated', employeeID, incidentID]
+  );
+  const [[updated]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  send(res, 200, updated);
+});
+
+
+// PATCH /api/reports/incidents/:id/resolve (Support)
+register('PATCH', '/api/reports/incidents/:id/resolve', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const incidentID = req.params.id;
+  const [[incident]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  if (!incident) return notFound(send, res, 'Incident not found');
+  if (incident.status === 'Resolved') return send(res, 409, { error: 'Incident is already resolved' });
+
+  await db.query(
+    'UPDATE INCIDENT_REPORT SET status = ?, employeeID = ? WHERE incidentID = ?',
+    ['Resolved', employeeID, incidentID]
+  );
+  const [[updated]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  send(res, 200, updated);
 });
