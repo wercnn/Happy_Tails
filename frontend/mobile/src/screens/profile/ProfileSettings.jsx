@@ -123,7 +123,7 @@ export default function HappyTailsProfile() {
   const isVerified = profile?.status === "Active";
 
   const minderStats = profile?.role === "minder" ? {
-    rating:     profile.ratingAvg      != null ? profile.ratingAvg      : "—",
+    rating:     profile.ratingAvg      != null ? Number(profile.ratingAvg || 0).toFixed(1)      : "—",
     experience: profile.experienceYears != null ? profile.experienceYears : "—",
   } : null;
 

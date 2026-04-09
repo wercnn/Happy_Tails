@@ -105,7 +105,7 @@ export default function HappyTailsMinderProfile() {
       ? `${displayMinder.distance} away`
       : displayMinder.city || displayMinder.postcode || "Location unavailable";
 
-  const rating = Number(displayMinder.ratingAvg || displayMinder.rating || 0);
+  const rating = Number(displayMinder.ratingAvg || 0).toFixed(1);
   const reviews = displayMinder.reviews || [];
   const reviewCount = Array.isArray(reviews)
     ? reviews.length
@@ -126,7 +126,7 @@ export default function HappyTailsMinderProfile() {
     location: locationText,
     services_tags: tags,
     stats: [
-      { emoji: "⭐", value: rating ? rating.toFixed(1) : "N/A", label: "Rating" },
+      { emoji: "⭐", value: rating ? rating : "N/A", label: "Rating" },
       { emoji: "📋", value: String(reviewCount), label: "Reviews" },
       {
         emoji: "🏅",
