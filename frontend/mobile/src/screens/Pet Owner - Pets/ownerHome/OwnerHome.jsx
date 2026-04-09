@@ -2,9 +2,41 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./OwnerHome.css";
 
-const BOOKINGS = [
-  { id: 1, emoji: "🚶", service: "Dog Walking", minder: "James W.", time: "Today, 2pm", status: "Confirmed" },
-];
+const API_BASE = "http://localhost:3000";
+
+const SERVICE_NAMES = {
+  "st-walk":    "Dog Walking",
+  "st-board":   "Pet Boarding",
+  "st-daycare": "Dog Daycare",
+};
+
+const SERVICE_EMOJI = {
+  "st-walk":    "🚶",
+  "st-board":   "🏠",
+  "st-daycare": "🌞",
+};
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "x-user-id":   localStorage.getItem("userID")   || "",
+    "x-user-role": localStorage.getItem("userRole") || "",
+  };
+}
+
+function formatBookingTime(dateStr) {
+  const date = new Date(dateStr.replace(" ", "T"));
+  const now  = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth()    === now.getMonth()    &&
+    date.getDate()     === now.getDate();
+
+  const timeStr = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (isToday) return `Today, ${timeStr}`;
+
+  return date.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + `, ${timeStr}`;
+}
 
 const NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
@@ -20,35 +52,51 @@ export default function HappyTailsHome() {
   const [pets, setPets] = useState([]);
   const [ownerName, setOwnerName] = useState("");
   const [error, setError] = useState("");
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
 
   useEffect(() => {
     const loadOwnerHomeData = async () => {
       const firstName = localStorage.getItem("firstName") || "";
-      const lastName = localStorage.getItem("lastName") || "";
-      const fullName = `${firstName} ${lastName}`.trim();
-      setOwnerName(fullName || "Owner");
+      const lastName  = localStorage.getItem("lastName")  || "";
+      setOwnerName(`${firstName} ${lastName}`.trim() || "Owner");
 
+      // Fetch pets
       try {
-        const res = await fetch("http://localhost:3000/api/pets", {
+        const res  = await fetch(`${API_BASE}/api/pets`, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": localStorage.getItem("userID") || "",
-            "x-user-role": localStorage.getItem("userRole") || "",
-          },
+          headers: getAuthHeaders(),
         });
-
         const data = await res.json();
-
         if (!res.ok) {
           setError(data.error || "Failed to load pets.");
-          return;
+        } else {
+          setPets(data);
         }
-
-        setPets(data);
       } catch (err) {
-        console.error("Failed to load owner home pets:", err);
+        console.error("Failed to load pets:", err);
         setError("Server error. Please try again.");
+      }
+
+      // Fetch bookings — GET /api/bookings (owner role returns own bookings)
+      try {
+        const res  = await fetch(`${API_BASE}/api/bookings`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const filtered = data.filter((b) =>
+            ["rejected", "completed", "cancelled"].includes(b.status)
+          );
+          const sorted = filtered.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          );
+          setBookings(sorted.slice(0, 3));
+        }
+      } catch (err) {
+        console.error("Failed to load bookings:", err);
+      } finally {
+        setBookingsLoading(false);
       }
     };
 
@@ -187,16 +235,24 @@ export default function HappyTailsHome() {
             <section className="home-section">
               <h3 className="home-section-title">Recent Bookings</h3>
               <div className="home-booking-list">
-                {BOOKINGS.map((b) => (
-                  <div key={b.id} className="home-booking-card">
-                    <span className="home-booking-avatar">{b.emoji}</span>
+                {bookingsLoading && (
+                  <p className="home-empty-pets">Loading...</p>
+                )}
+                {!bookingsLoading && bookings.length === 0 && (
+                  <p className="home-empty-pets">No bookings yet</p>
+                )}
+                {!bookingsLoading && bookings.map((b) => (
+                  <div key={b.bookingID} className="home-booking-card">
+                    <span className="home-booking-avatar">
+                      {SERVICE_EMOJI[b.serviceTypeID] || "🐾"}
+                    </span>
                     <div className="home-booking-info">
                       <span className="home-booking-service">
-                        {b.service}
-                        <br />
-                        with {b.minder}
+                        {SERVICE_NAMES[b.serviceTypeID] || b.serviceTypeID}
                       </span>
-                      <span className="home-booking-time">{b.time}</span>
+                      <span className="home-booking-time">
+                        {formatBookingTime(b.startTime)}
+                      </span>
                     </div>
                     <span className={`home-booking-badge home-booking-badge--${b.status.toLowerCase()}`}>
                       {b.status}
