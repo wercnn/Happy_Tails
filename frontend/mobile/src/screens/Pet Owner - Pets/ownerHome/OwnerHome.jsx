@@ -18,10 +18,17 @@ export default function HappyTailsHome() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
   const [pets, setPets] = useState([]);
+  const [ownerName, setOwnerName] = useState("");
 
   useEffect(() => {
     const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
     setPets(savedPets);
+
+    const firstName = localStorage.getItem("firstName") || "";
+    const lastName = localStorage.getItem("lastName") || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    setOwnerName(fullName || "Owner");
   }, []);
 
   const handleNavClick = (id) => {
@@ -59,7 +66,7 @@ export default function HappyTailsHome() {
           <header className="home-header">
             <div className="home-greeting-block">
               <h1 className="home-greeting">Good morning 👋</h1>
-              <p className="home-name">Sarah Johnson</p>
+              <p className="home-name">{ownerName}</p>
             </div>
             <button className="home-bell-btn" onClick={() => alert("Notifications")}>
               🔔
