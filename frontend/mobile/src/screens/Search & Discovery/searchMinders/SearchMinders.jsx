@@ -95,10 +95,10 @@ export default function HappyTailsFindMinder() {
                 (service) => service.isActive
               );
 
-              const firstPrice =
-                activeServices.length > 0
-                  ? Number(activeServices[0].customPrice || activeServices[0].basePrice || 0)
-                  : 0;
+              const servicePrices = activeServices
+                .map((service) => Number(service.customPrice ?? service.basePrice ?? 0))
+                .filter((price) => Number.isFinite(price) && price > 0);
+              const startingPrice = servicePrices.length > 0 ? Math.min(...servicePrices) : 0;
 
               return {
                 ...detailData,
@@ -111,11 +111,11 @@ export default function HappyTailsFindMinder() {
                 serviceList: activeServices.map((s) => s.name),
                 petTypes: detailData.petTypes || [],
                 availability: (detailData.slots || []).length > 0 ? ["Available"] : [],
-                price: firstPrice,
-                rate: firstPrice > 0 ? `£${firstPrice}/hr` : "Price unavailable",
+                price: startingPrice,
+                rate: startingPrice > 0 ? `From £${startingPrice}/hr` : "Price unavailable",
                 distance: `${detailData.city || detailData.postcode || "Local"}`,
-                rating: Number(detailData.ratingAvg || 0),
-                ratingText: String(detailData.ratingAvg || "0.0"),
+                rating: Number(detailData.ratingAvg || 0).toFixed(1),
+                ratingText: String(Number(detailData.ratingAvg || 0).toFixed(1)|| "0.0"),
                 reviews: (detailData.reviews || []).length,
               };
             } catch {
@@ -130,8 +130,8 @@ export default function HappyTailsFindMinder() {
                 price: 0,
                 rate: "Price unavailable",
                 distance: `${minder.city || minder.postcode || "Local"}`,
-                rating: Number(minder.ratingAvg || 0),
-                ratingText: String(minder.ratingAvg || "0.0"),
+                rating: Number(minder.ratingAvg || 0).toFixed(1),
+                ratingText: String(Number(minder.ratingAvg || 0).toFixed(1)|| "0.0"),
                 reviews: 0,
               };
             }
