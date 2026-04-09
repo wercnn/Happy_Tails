@@ -215,6 +215,11 @@ register('POST', '/api/calendar', async (req, res, send) => {
   if (!startTime || !endTime) return badRequest(send, res, 'startTime and endTime are required');
 
   const calendarID = await ensureCalendarForSitter(sitterID);
+
+  // Reset previous availability slots for this calendar before creating the new slot.
+  // Keep booked slots untouched for safety/history.
+  await db.query('DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE', [calendarID]);
+
   const slotID = uuid();
   await db.query('INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)', [
     slotID,
