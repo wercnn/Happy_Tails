@@ -255,7 +255,7 @@ register('DELETE', '/api/calendar/:id', async (req, res, send) => {
 //   - Reviews left by owners
 register('GET', '/api/minders/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'owner')) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const sitterID = req.params.id;
   const [[profile]] = await db.query(
@@ -265,7 +265,7 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
        P.firstName, P.lastName, P.city, P.postcode
      FROM PET_MINDER M
      JOIN USER_PROFILE P ON P.userID = M.userID
-     WHERE M.sitterID = ?`,
+     WHERE M.userID = ?`,
     [sitterID]
   );
   if (!profile) return notFound(send, res, 'Minder not found');

@@ -78,12 +78,20 @@ register('GET', '/api/users', async (req, res, send) => {
 // GET /api/users/:id (Support) — full profile of any user
 register('GET', '/api/users/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'support')) return;
-
-  const employeeID = await getEmployeeId(db, req.userId);
-  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+  if (!requireRole(req, send, res, ['support', 'owner', 'minder'])) return;
 
   const userID = req.params.id;
+  const isSupport = String(req.userRole || '').toLowerCase() === 'support';
+  const isSelf = req.userId === userID;
+
+  if (!isSupport && !isSelf) {
+    return send(res, 403, { error: 'Forbidden: can only access your own profile' });
+  }
+
+  if (isSupport) {
+    const employeeID = await getEmployeeId(db, req.userId);
+    if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+  }
 
   const [[user]] = await db.query(
     `SELECT
