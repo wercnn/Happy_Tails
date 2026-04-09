@@ -57,7 +57,7 @@ function formatDate(dateStr) {
 export default function HappyTailsMinderDashboard() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("dashboard");
-  const [ownerName, setOwnerName] = useState("");
+  const [minderName, setMinderName] = useState("");
   const [pendingRequests, setPendingRequests] = useState([]);
   const [todaySchedule, setTodaySchedule] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
@@ -66,7 +66,7 @@ export default function HappyTailsMinderDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [avgRating, setAvgRating] = useState("N/A");
-  const [status, setStatus] = useState("N/A");
+  const [status] = useState("Active");
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -104,44 +104,34 @@ export default function HappyTailsMinderDashboard() {
     }
   }, []);
 
-  const getAvgRating = async (userID) => {
+  const getAvgRating = useCallback(async () => {
+    const sitterID = localStorage.getItem("sitterID");
+    if (!sitterID) {
+      setAvgRating("N/A");
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_BASE}/api/minders/${userID}`, {
+      const res = await fetch(`${API_BASE}/api/minders/${sitterID}`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`Failed to fetch rating (${res.status})`);
       const data = await res.json();
-      const rating = data.ratingAvg;
-      setAvgRating(rating !== null ? rating : "N/A");
+      setAvgRating(data.ratingAvg != null ? String(data.ratingAvg) : "N/A");
     } catch (err) {
       console.error("Error fetching average rating:", err);
       setAvgRating("N/A");
     }
-  };
-
-  const getStatus = async (userID) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/users/${userID}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error(`Failed to fetch rating (${res.status})`);
-      const data = await res.json();
-      const status = data.status;
-      setStatus(status !== null ? status : "N/A");
-    } catch (err) {
-      console.error("Error fetching status:", err);
-      setStatus("N/A");
-    }
-  }
+  }, []);
 
   useEffect(() => {
     const firstName = localStorage.getItem("firstName") || "";
     const lastName = localStorage.getItem("lastName") || "";
-    setOwnerName(`${firstName} ${lastName}`.trim() || "Minder");
+    setMinderName(`${firstName} ${lastName}`.trim() || "Minder");
+
     fetchBookings();
-    getAvgRating(localStorage.getItem("userID"));
-    getStatus(localStorage.getItem("userID"));
-  }, [fetchBookings]);
+    getAvgRating();
+  }, [fetchBookings, getAvgRating]);
 
   const handleRequest = async (bookingID, action) => {
     const endpoint = action === "accept" ? "accept" : "reject";
@@ -157,16 +147,26 @@ export default function HappyTailsMinderDashboard() {
     }
   };
 
-
   const handleNavClick = (id) => {
     setActiveNav(id);
     switch (id) {
-      case "dashboard": navigate("/mindDash"); break;
-      case "services": navigate("/mindService"); break;
-      case "availability": navigate("/mindAvailability"); break;
-      case "requests": navigate("/mindRequests"); break;
-      case "profile": navigate("/profile"); break;
-      default: break;
+      case "dashboard":
+        navigate("/mindDash");
+        break;
+      case "services":
+        navigate("/mindService");
+        break;
+      case "availability":
+        navigate("/mindAvailability");
+        break;
+      case "requests":
+        navigate("/mindRequests");
+        break;
+      case "profile":
+        navigate("/profile");
+        break;
+      default:
+        break;
     }
   };
 
@@ -183,7 +183,7 @@ export default function HappyTailsMinderDashboard() {
           <header className="md-header">
             <div className="md-greeting-block">
               <h1 className="md-greeting">Welcome back 👋</h1>
-              <p className="md-name">{ownerName}</p>
+              <p className="md-name">{minderName}</p>
             </div>
             <button className="md-status-btn">
               <span className="md-status-dot" />
