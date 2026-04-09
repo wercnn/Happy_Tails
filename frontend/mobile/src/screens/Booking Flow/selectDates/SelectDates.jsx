@@ -12,8 +12,6 @@ export default function HappyTailsDateTime() {
   const minder = location.state?.minder || null;
   const selectedService = location.state?.service || null;
 
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [timeSlot, setTimeSlot] = useState(null);
   const [pet, setPet] = useState(PETS[0]);
   const [petOpen, setPetOpen] = useState(false);
@@ -30,11 +28,14 @@ export default function HappyTailsDateTime() {
 
   const handleCheckAvailability = () => {
     navigate("/availabilityCalendar", {
-    state: {
-      minder,
-      service: selectedService,
-    },
-  })
+      state: {
+        minder,
+        service: selectedService,
+        timeSlot,
+        pet,
+        notes,
+      },
+    });
   };
 
   return (
@@ -43,33 +44,11 @@ export default function HappyTailsDateTime() {
         <div className="dt-screen">
           <header className="dt-header">
             <button className="dt-back" onClick={handleBack}>←</button>
-            <h1 className="dt-title">Select Dates &amp; Times</h1>
+            <h1 className="dt-title">Select Date &amp; Time</h1>
           </header>
 
           <div className="dt-scroll">
             <div className="dt-body">
-              <div className="dt-field">
-                <label className="dt-label">Start Date</label>
-                <input
-                  className="dt-input"
-                  type="text"
-                  placeholder="dd/mm/yyyy"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-
-              <div className="dt-field">
-                <label className="dt-label">End Date (optional)</label>
-                <input
-                  className="dt-input"
-                  type="text"
-                  placeholder="dd/mm/yyyy"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-
               <div className="dt-field">
                 <label className="dt-label">Preferred Time</label>
                 <div className="dt-time-grid">
