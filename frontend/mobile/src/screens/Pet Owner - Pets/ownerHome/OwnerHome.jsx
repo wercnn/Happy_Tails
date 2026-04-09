@@ -19,17 +19,58 @@ export default function HappyTailsHome() {
   const [activeNav, setActiveNav] = useState("home");
   const [pets, setPets] = useState([]);
   const [ownerName, setOwnerName] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
-    setPets(savedPets);
+    const loadOwnerHomeData = async () => {
+      const firstName = localStorage.getItem("firstName") || "";
+      const lastName = localStorage.getItem("lastName") || "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      setOwnerName(fullName || "Owner");
 
-    const firstName = localStorage.getItem("firstName") || "";
-    const lastName = localStorage.getItem("lastName") || "";
-    const fullName = `${firstName} ${lastName}`.trim();
+      try {
+        const res = await fetch("http://localhost:3000/api/pets", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
 
-    setOwnerName(fullName || "Owner");
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load pets.");
+          return;
+        }
+
+        setPets(data);
+      } catch (err) {
+        console.error("Failed to load owner home pets:", err);
+        setError("Server error. Please try again.");
+      }
+    };
+
+    loadOwnerHomeData();
   }, []);
+
+  const getPetEmoji = (species) => {
+    switch ((species || "").toLowerCase()) {
+      case "dog":
+        return "🐶";
+      case "cat":
+        return "🐱";
+      case "rabbit":
+        return "🐰";
+      case "bird":
+        return "🐦";
+      case "reptile":
+        return "🦎";
+      default:
+        return "🐾";
+    }
+  };
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -88,11 +129,13 @@ export default function HappyTailsHome() {
               </div>
 
               <div className="home-pet-list">
-                {pets.length > 0 ? (
+                {error ? (
+                  <p className="home-empty-pets">{error}</p>
+                ) : pets.length > 0 ? (
                   <>
                     {visiblePets.map((pet) => (
                       <button
-                        key={pet.id}
+                        key={pet.petID || pet.id}
                         className="home-pet-card"
                         onClick={() => navigate("/ownerPets")}
                       >
@@ -104,7 +147,7 @@ export default function HappyTailsHome() {
                               className="home-pet-avatar-img"
                             />
                           ) : (
-                            pet.emoji || "🐾"
+                            getPetEmoji(pet.species)
                           )}
                         </span>
 
