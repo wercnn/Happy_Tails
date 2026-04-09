@@ -279,7 +279,7 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
        P.firstName, P.lastName, P.city, P.postcode
      FROM PET_MINDER M
      JOIN USER_PROFILE P ON P.userID = M.userID
-     WHERE M.userID = ?`,
+     WHERE M.sitterID = ?`,
     [sitterID]
   );
   if (!profile) return notFound(send, res, 'Minder not found');

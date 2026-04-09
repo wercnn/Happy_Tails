@@ -19,22 +19,26 @@ function Stars({ count }) {
 export default function HappyTailsMinderProfile() {
   const navigate = useNavigate();
   const location = useLocation();
-  const minder = location.state?.minder;
 
-  const [fullMinder, setFullMinder] = useState(minder || null);
-  const [isLoading, setIsLoading] = useState(Boolean(minder?.sitterID || minder?.id));
+  const minderFromState = location.state?.minder || null;
+  const storedSitterID = localStorage.getItem("selectedMinderID") || "";
+  const initialSitterID =
+    minderFromState?.sitterID || minderFromState?.id || storedSitterID;
+
+  const [fullMinder, setFullMinder] = useState(minderFromState);
+  const [isLoading, setIsLoading] = useState(Boolean(initialSitterID));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const sitterID = minder?.sitterID || minder?.id;
-    if (!sitterID) {
+    if (!initialSitterID) {
       setIsLoading(false);
+      setError("Please go back and select a minder again.");
       return;
     }
 
     const loadMinder = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/minders/${sitterID}`, {
+        const res = await fetch(`http://localhost:3000/api/minders/${initialSitterID}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -51,6 +55,7 @@ export default function HappyTailsMinderProfile() {
         }
 
         setFullMinder(data);
+        localStorage.setItem("selectedMinderID", data.sitterID || initialSitterID);
       } catch (err) {
         console.error("Failed to load minder profile:", err);
         setError("Server error. Please try again.");
@@ -60,9 +65,9 @@ export default function HappyTailsMinderProfile() {
     };
 
     loadMinder();
-  }, [minder]);
+  }, [initialSitterID]);
 
-  if (!minder) {
+  if (!initialSitterID && !isLoading) {
     return (
       <div className="mobile-stage">
         <div className="mobile-frame">
@@ -89,7 +94,7 @@ export default function HappyTailsMinderProfile() {
     );
   }
 
-  const displayMinder = fullMinder || minder;
+  const displayMinder = fullMinder || minderFromState || {};
   const name =
     displayMinder.name ||
     `${displayMinder.firstName || ""} ${displayMinder.lastName || ""}`.trim() ||
@@ -235,7 +240,11 @@ export default function HappyTailsMinderProfile() {
           <div className="mp-footer">
             <button
               className="mp-book-btn"
-              onClick={() => navigate("/selectService", { state: { minder: displayMinder } })}
+              onClick={() =>
+                navigate("/selectService", {
+                  state: { minder: displayMinder },
+                })
+              }
             >
               BOOK NOW →
             </button>
