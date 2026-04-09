@@ -84,23 +84,33 @@ register('POST', '/api/auth/register', async (req, res, send) => {
 // ─────────────────────────────────────────────
 register('POST', '/api/auth/login', async (req, res, send) => {
   const body = await req.parseBody();
-  // Example: { email: 'sarah@example.com', password: 'test1234' }
-  const { email, password } = body;
-  if (!email || !password) return badRequest(send, res, 'email and password are required');
+  // Example: { identifier: 'sarah@example.com', password: 'test1234' }
+  // Example: { identifier: 'sarah_o', password: 'test1234' }
+  const { identifier, password } = body;
+
+  if (!identifier || !password) {
+    return badRequest(send, res, 'identifier and password are required');
+  }
 
   const [rows] = await db.query(
     `SELECT U.userID, U.username, U.passwordHash, U.phoneNumber, U.createdAt,
             P.profileID, P.firstName, P.lastName, P.email
      FROM USER U
      JOIN USER_PROFILE P ON P.userID = U.userID
-     WHERE P.email = ?`,
-    [email]
+     WHERE P.email = ? OR U.username = ?`,
+    [identifier, identifier]
   );
 
-  if (!rows.length) return send(res, 401, { error: 'Invalid credentials' });
+  if (!rows.length) {
+    return send(res, 401, { error: 'Invalid credentials' });
+  }
+
   const user = rows[0];
   const ok = await verifyPassword(String(password), user.passwordHash);
-  if (!ok) return send(res, 401, { error: 'Invalid credentials -  Incorrect password' });
+
+  if (!ok) {
+    return send(res, 401, { error: 'Invalid credentials' });
+  }
 
   const role = await inferRoleByUserId(user.userID);
 
