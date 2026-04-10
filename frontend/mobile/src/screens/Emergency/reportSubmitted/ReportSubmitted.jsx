@@ -1,5 +1,16 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./ReportSubmitted.css";
+
+const API_BASE = "http://localhost:3000";
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id":   localStorage.getItem("userID")   || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
 
 export default function HappyTailsReportSubmitted() {
   const navigate  = useNavigate();
@@ -10,6 +21,15 @@ export default function HappyTailsReportSubmitted() {
   const caseRef = incidentID
     ? `#INC-${incidentID.slice(0, 8).toUpperCase()}`
     : "#INC-UNKNOWN";
+
+  useEffect(() => {
+    if (!incidentID) return;
+    fetch(`${API_BASE}/api/reports/incident/${incidentID}/case-reference`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ caseReference: caseRef }),
+    }).catch(() => {});
+  }, [incidentID, caseRef]);
 
   return (
     <div className="mobile-stage">

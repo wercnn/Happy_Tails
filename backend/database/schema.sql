@@ -446,6 +446,7 @@ CREATE TABLE INCIDENT_REPORT (
     reportedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status          ENUM('Open', 'Escalated', 'Resolved') NOT NULL DEFAULT 'Open',
     reporterUserID  VARCHAR(36)     NULL,                        -- #7: userID of the minder who filed the report (nullable for employee-filed reports)
+    caseReference   VARCHAR(20)     NULL,                        -- short reference shown on confirmation screen e.g. #INC-XXXXXXXX
     CONSTRAINT PK_INCIDENT_REPORT PRIMARY KEY (incidentID),
     CONSTRAINT FK_INCIDENT_BOOKING FOREIGN KEY (bookingID)
         REFERENCES BOOKING (bookingID),
@@ -454,6 +455,11 @@ CREATE TABLE INCIDENT_REPORT (
     CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
         REFERENCES USER (userID) ON DELETE SET NULL
 );
+
+-- ALTER TABLE INCIDENT_REPORT
+--   ADD COLUMN caseReference VARCHAR(20) NULL
+--     COMMENT 'Short case reference shown on confirmation screen e.g. #INC-XXXXXXXX';
+
 
 -- #7: MEDIA linked to VISIT_REPORT, MESSAGE, and INCIDENT_REPORT
 CREATE TABLE MEDIA (
