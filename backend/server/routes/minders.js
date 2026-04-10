@@ -11,17 +11,27 @@ const {
 } = require('../lib/helpers');
 
 
+function toMySqlDateTime(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+}
+
 // ─── Minder routes ───────────────────────────────────────────────────────
 
 // GET /api/minders
-// List all active minders. Supports optional query filters:
-//   ?postcode=  — filter by serviceAreaPostcode
-//   ?medication=true  — only minders who are medication-qualified
-//   ?serviceTypeID=   — only minders who offer that service type
 register('GET', '/api/minders', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
-  
+
   const { postcode, medication, serviceTypeID } = req.query;
 
   let query = `
@@ -40,15 +50,17 @@ register('GET', '/api/minders', async (req, res, send) => {
     JOIN USER_PROFILE p ON p.userID = m.userID
   `;
   const params = [];
-
   const conditions = [];
+
   if (postcode) {
     conditions.push('m.serviceAreaPostcode = ?');
     params.push(postcode);
   }
+
   if (medication === 'true') {
     conditions.push('m.medicationQualified = TRUE');
   }
+
   if (serviceTypeID) {
     conditions.push(
       'EXISTS (SELECT 1 FROM MINDER_SERVICE ms WHERE ms.sitterID = m.sitterID AND ms.serviceTypeID = ? AND ms.isActive = TRUE)'
@@ -67,7 +79,6 @@ register('GET', '/api/minders', async (req, res, send) => {
 });
 
 // GET /api/minders/me
-// Returns the logged-in minder's own sitterID and full profile, resolved from their userID.
 register('GET', '/api/minders/me', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -76,44 +87,41 @@ register('GET', '/api/minders/me', async (req, res, send) => {
   if (!sitterID) return send(res, 404, { error: 'Minder profile not found' });
 
   const [[profile]] = await db.query(
-    `SELECT M.sitterID, M.userID, M.bio, M.experienceYears, M.ratingAvg, M.overallRating,
-            M.medicationQualified, M.serviceAreaPostcode,
-            P.firstName, P.lastName, P.city, P.postcode
+    `SELECT
+       M.sitterID, M.userID, M.bio, M.experienceYears, M.ratingAvg, M.overallRating,
+       M.medicationQualified, M.serviceAreaPostcode,
+       P.firstName, P.lastName, P.city, P.postcode
      FROM PET_MINDER M
      JOIN USER_PROFILE P ON P.userID = M.userID
      WHERE M.sitterID = ?`,
     [sitterID]
   );
-  if (!profile) return send(res, 404, { error: 'Minder profile not found' });
 
+  if (!profile) return send(res, 404, { error: 'Minder profile not found' });
   send(res, 200, profile);
 });
 
-
 // PATCH /api/minders/:id
-// Minder updates their own bio, experience, medication flag, or service area.
-// Only the minder themselves can update their profile.
 register('PATCH', '/api/minders/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
 
-  // For req.params.id, it must be PET_MINDER.sitterID, not USER.userID, so we need to look up the sitterID for the logged-in user and compare it to the id in the URL path to ensure they can only edit their own profile.
-
-  const sitterID = await getSitterId(db, req.userId); // Use the userId
+  const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
   if (req.params.id !== sitterID) return send(res, 403, { error: 'Cannot edit another minder' });
 
-  // Example: { bio: 'Experienced dog walker and boarder with a pet first-aid certificate.', experienceYears: 5, medicationQualified: true, serviceAreaPostcode: 'E2' }
   const body = await req.parseBody();
   const fields = ['bio', 'experienceYears', 'medicationQualified', 'serviceAreaPostcode', 'ratingAvg', 'overallRating'];
   const sets = [];
   const params = [];
+
   for (const f of fields) {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
       sets.push(`${f} = ?`);
       params.push(f === 'medicationQualified' ? !!body[f] : body[f]);
     }
   }
+
   if (!sets.length) return badRequest(send, res, 'No updatable fields provided');
 
   params.push(sitterID);
@@ -124,7 +132,6 @@ register('PATCH', '/api/minders/:id', async (req, res, send) => {
 });
 
 // POST /api/services
-// Minder creates a new service listing linking them to a service type.
 register('POST', '/api/services', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -133,8 +140,8 @@ register('POST', '/api/services', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  // Example: { serviceTypeID: 'st-daycare', customPrice: 32.00, isActive: true }
   const { serviceTypeID, customPrice, isActive } = body;
+
   if (!serviceTypeID || customPrice == null) {
     return badRequest(send, res, 'serviceTypeID and customPrice are required');
   }
@@ -144,13 +151,12 @@ register('POST', '/api/services', async (req, res, send) => {
     'INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive) VALUES (?, ?, ?, ?, ?)',
     [minderServiceID, sitterID, serviceTypeID, customPrice, !!isActive]
   );
+
   const [[row]] = await db.query('SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?', [minderServiceID]);
   send(res, 201, row);
 });
 
 // PATCH /api/services/:id
-// Minder updates the price or active status of one of their services.
-// 12) PATCH /api/services/:id (Minder) - Update a service
 register('PATCH', '/api/services/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -163,33 +169,37 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
     'SELECT minderServiceID, sitterID FROM MINDER_SERVICE WHERE minderServiceID = ?',
     [minderServiceID]
   );
+
   if (!service) return notFound(send, res, 'Service not found');
   if (service.sitterID !== sitterID) {
     return send(res, 403, { error: 'Forbidden: sitterID does not match this service' });
   }
 
-  
-  // Example: { customPrice: 20.00, isActive: true }
   const body = await req.parseBody();
   const fields = ['customPrice', 'isActive'];
   const sets = [];
   const params = [];
+
   for (const f of fields) {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
       sets.push(`${f} = ?`);
       params.push(f === 'isActive' ? !!body[f] : body[f]);
     }
   }
+
   if (!sets.length) return badRequest(send, res, 'No updatable fields provided');
 
   params.push(minderServiceID, sitterID);
-  await db.query(`UPDATE MINDER_SERVICE SET ${sets.join(', ')} WHERE minderServiceID = ? AND sitterID = ?`, params);
+  await db.query(
+    `UPDATE MINDER_SERVICE SET ${sets.join(', ')} WHERE minderServiceID = ? AND sitterID = ?`,
+    params
+  );
+
   const [[row]] = await db.query('SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?', [minderServiceID]);
   send(res, 200, row);
 });
 
 // DELETE /api/services/:id
-// Minder removes one of their service listings.
 register('DELETE', '/api/services/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -202,30 +212,35 @@ register('DELETE', '/api/services/:id', async (req, res, send) => {
     'SELECT minderServiceID, sitterID FROM MINDER_SERVICE WHERE minderServiceID = ?',
     [minderServiceID]
   );
+
   if (!service) return notFound(send, res, 'Service not found');
   if (service.sitterID !== sitterID) {
     return send(res, 403, { error: 'Forbidden: sitterID does not match this service' });
   }
 
-  const [result] = await db.query('DELETE FROM MINDER_SERVICE WHERE minderServiceID = ? AND sitterID = ?', [
-    minderServiceID,
-    sitterID,
-  ]);
+  const [result] = await db.query(
+    'DELETE FROM MINDER_SERVICE WHERE minderServiceID = ? AND sitterID = ?',
+    [minderServiceID, sitterID]
+  );
+
   if (!result.affectedRows) return notFound(send, res, 'Service not found');
   send(res, 200, { ok: true });
 });
 
 async function ensureCalendarForSitter(sitterID) {
-  // INSERT IGNORE prevents duplicate-key errors when concurrent requests race here.
-  // If the row already exists the insert is silently skipped; we then SELECT to get the real calendarID.
   const calendarID = uuid();
-  await db.query('INSERT IGNORE INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)', [calendarID, sitterID]);
-  const [[row]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  await db.query(
+    'INSERT IGNORE INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)',
+    [calendarID, sitterID]
+  );
+  const [[row]] = await db.query(
+    'SELECT calendarID FROM CALENDAR WHERE sitterID = ?',
+    [sitterID]
+  );
   return row.calendarID;
 }
 
 // GET /api/calendar
-// Returns all of the logged-in minder's calendar slots (booked and unbooked).
 register('GET', '/api/calendar', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -233,85 +248,145 @@ register('GET', '/api/calendar', async (req, res, send) => {
   const sitterID = await getSitterId(db, req.userId);
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
-  const [[calendar]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
-  if (!calendar) return send(res, 200, []);
+  const [[calendar]] = await db.query(
+    'SELECT calendarID FROM CALENDAR WHERE sitterID = ?',
+    [sitterID]
+  );
+
+  if (!calendar) {
+    return send(res, 200, { calendar: null, slots: [] });
+  }
 
   const [slots] = await db.query(
-    'SELECT slotID, startTime, endTime, isBooked FROM SLOT WHERE calendarID = ? ORDER BY startTime',
+    `SELECT slotID, startTime, endTime, isBooked
+     FROM SLOT
+     WHERE calendarID = ?
+     ORDER BY startTime`,
     [calendar.calendarID]
   );
-  send(res, 200, slots);
+
+  send(res, 200, {
+    calendar,
+    slots,
+  });
 });
 
 // PUT /api/calendar
-// Replaces all unbooked slots with a new set.
-// Body: { slots: [{ startTime, endTime }, ...] }
-// Booked slots are never touched. Returns the newly created slots.
+// Replaces all unbooked slots for this minder.
+// Use this when the user keeps the same dates but changes only the time.
 register('PUT', '/api/calendar', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'minder')) return;
+  try {
+    if (!requireUser(req, send, res)) return;
+    if (!requireRole(req, send, res, 'minder')) return;
 
-  const sitterID = await getSitterId(db, req.userId);
-  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+    const sitterID = await getSitterId(db, req.userId);
+    if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
-  const body = await req.parseBody();
-  const { slots } = body;
-  if (!Array.isArray(slots) || slots.length === 0) {
-    return badRequest(send, res, 'slots array is required and must not be empty');
-  }
-  for (const s of slots) {
-    if (!s.startTime || !s.endTime) {
-      return badRequest(send, res, 'Each slot must have startTime and endTime');
+    const body = await req.parseBody();
+    const { slots } = body;
+
+    if (!Array.isArray(slots) || slots.length === 0) {
+      return badRequest(send, res, 'slots array is required and must not be empty');
     }
+
+    const normalizedSlots = [];
+
+    for (const s of slots) {
+      if (!s.startTime || !s.endTime) {
+        return badRequest(send, res, 'Each slot must have startTime and endTime');
+      }
+
+      const start = new Date(s.startTime);
+      const end = new Date(s.endTime);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return badRequest(send, res, 'Each slot must have valid startTime and endTime');
+      }
+
+      if (end <= start) {
+        return badRequest(send, res, 'Each slot must have endTime after startTime');
+      }
+
+      const startTime = toMySqlDateTime(s.startTime);
+      const endTime = toMySqlDateTime(s.endTime);
+
+      if (!startTime || !endTime) {
+        return badRequest(send, res, 'Each slot must have valid startTime and endTime');
+      }
+
+      normalizedSlots.push({ startTime, endTime });
+    }
+
+    const calendarID = await ensureCalendarForSitter(sitterID);
+
+    await db.query(
+      'DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE',
+      [calendarID]
+    );
+
+    const created = [];
+    for (const s of normalizedSlots) {
+      const slotID = uuid();
+      await db.query(
+        'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
+        [slotID, calendarID, s.startTime, s.endTime, false]
+      );
+      created.push({
+        slotID,
+        calendarID,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        isBooked: false,
+      });
+    }
+
+    send(res, 200, {
+      ok: true,
+      slots: created,
+    });
+  } catch (err) {
+    console.error('PUT /api/calendar failed:', err);
+    send(res, 500, { error: 'Internal server error' });
   }
+});
 
-  const calendarID = await ensureCalendarForSitter(sitterID);
+// POST /api/calendar
+register('POST', '/api/calendar', async (req, res, send) => {
+  try {
+    if (!requireUser(req, send, res)) return;
+    if (!requireRole(req, send, res, 'minder')) return;
 
-  // Delete all existing unbooked slots — booked slots remain untouched.
-  await db.query('DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE', [calendarID]);
+    const sitterID = await getSitterId(db, req.userId);
+    if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
-  // Insert all new slots.
-  const created = [];
-  for (const s of slots) {
+    const body = await req.parseBody();
+    const { startTime, endTime } = body;
+
+    if (!startTime || !endTime) {
+      return badRequest(send, res, 'startTime and endTime are required');
+    }
+
+    if (new Date(endTime) <= new Date(startTime)) {
+      return badRequest(send, res, 'endTime must be after startTime');
+    }
+
+    const calendarID = await ensureCalendarForSitter(sitterID);
+
     const slotID = uuid();
     await db.query(
       'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
-      [slotID, calendarID, s.startTime, s.endTime, false]
+      [slotID, calendarID, startTime, endTime, false]
     );
-    created.push({ slotID, calendarID, startTime: s.startTime, endTime: s.endTime, isBooked: false });
+
+    const [[row]] = await db.query('SELECT * FROM SLOT WHERE slotID = ?', [slotID]);
+    send(res, 201, row);
+  } catch (err) {
+    console.error('POST /api/calendar failed:', err);
+    send(res, 500, { error: 'Internal server error' });
   }
-
-  send(res, 200, created);
-});
-
-
-// POST /api/calendar
-// Minder adds a single available slot to their calendar (does not clear existing slots).
-// Auto-creates a CALENDAR row for the minder if one does not exist yet.
-register('POST', '/api/calendar', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'minder')) return;
-
-  const sitterID = await getSitterId(db, req.userId);
-  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
-
-  const body = await req.parseBody();
-  const { startTime, endTime } = body;
-  if (!startTime || !endTime) return badRequest(send, res, 'startTime and endTime are required');
-
-  const calendarID = await ensureCalendarForSitter(sitterID);
-
-  const slotID = uuid();
-  await db.query(
-    'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
-    [slotID, calendarID, startTime, endTime, false]
-  );
-  const [[row]] = await db.query('SELECT * FROM SLOT WHERE slotID = ?', [slotID]);
-  send(res, 201, row);
 });
 
 // DELETE /api/calendar/:id
-// Minder removes an available slot (only if it has not been booked yet).
 register('DELETE', '/api/calendar/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -326,19 +401,22 @@ register('DELETE', '/api/calendar/:id', async (req, res, send) => {
      WHERE S.slotID = ? AND C.sitterID = ? AND S.isBooked = FALSE`,
     [slotID, sitterID]
   );
+
   if (!result.affectedRows) return notFound(send, res, 'Slot not found (or already booked)');
   send(res, 200, { ok: true });
 });
 
 // GET /api/minders/:id/slots
-// Returns all unbooked slots for a specific minder.
-// Lightweight endpoint used by the owner-facing availability calendar.
 register('GET', '/api/minders/:id/slots', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
 
   const sitterID = req.params.id;
-  const [[calendar]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  const [[calendar]] = await db.query(
+    'SELECT calendarID FROM CALENDAR WHERE sitterID = ?',
+    [sitterID]
+  );
+
   if (!calendar) return send(res, 200, []);
 
   const [slots] = await db.query(
@@ -348,15 +426,11 @@ register('GET', '/api/minders/:id/slots', async (req, res, send) => {
      ORDER BY startTime`,
     [calendar.calendarID]
   );
+
   send(res, 200, slots);
 });
 
-// GET /api/minders/:id  (most complex — 4 queries combined)
-// Returns the full public profile of a minder:
-//   - Basic info (bio, experience, ratings)
-//   - Services offered (with service type details)
-//   - Available (unbooked) slots
-//   - Reviews left by owners
+// GET /api/minders/:id
 register('GET', '/api/minders/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
@@ -372,10 +446,13 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
      WHERE M.sitterID = ?`,
     [sitterID]
   );
+
   if (!profile) return notFound(send, res, 'Minder not found');
 
   const [services] = await db.query(
-    `SELECT MS.minderServiceID, MS.serviceTypeID, ST.name, ST.description, ST.basePrice, MS.customPrice, MS.isActive
+    `SELECT
+       MS.minderServiceID, MS.serviceTypeID, ST.name, ST.description,
+       ST.basePrice, MS.customPrice, MS.isActive
      FROM MINDER_SERVICE MS
      JOIN SERVICE_TYPE ST ON ST.serviceTypeID = MS.serviceTypeID
      WHERE MS.sitterID = ?
@@ -383,7 +460,11 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
     [sitterID]
   );
 
-  const [[calendar]] = await db.query('SELECT calendarID, timeZone FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  const [[calendar]] = await db.query(
+    'SELECT calendarID, timeZone FROM CALENDAR WHERE sitterID = ?',
+    [sitterID]
+  );
+
   const [slots] = calendar
     ? await db.query(
         'SELECT slotID, startTime, endTime, isBooked FROM SLOT WHERE calendarID = ? ORDER BY startTime',
@@ -392,7 +473,8 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
     : [[], []];
 
   const [reviews] = await db.query(
-    `SELECT R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
+    `SELECT
+       R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
      FROM REVIEW R
      JOIN BOOKING B ON B.bookingID = R.bookingID
      WHERE B.sitterID = ?
@@ -400,5 +482,11 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
     [sitterID]
   );
 
-  send(res, 200, { ...profile, services, calendar: calendar || null, slots, reviews });
+  send(res, 200, {
+    ...profile,
+    services,
+    calendar: calendar || null,
+    slots,
+    reviews,
+  });
 });
