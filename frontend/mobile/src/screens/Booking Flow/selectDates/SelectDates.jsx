@@ -2,7 +2,26 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SelectDates.css";
 
-const TIME_SLOTS = ["7:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "5:00 PM", "7:00 PM"];
+function buildTimeSlots() {
+  const slots = [];
+  const startMinutes = 6 * 60; // 6:00 AM
+  const endMinutes = 19 * 60 + 30; // 7:30 PM
+
+  for (let mins = startMinutes; mins <= endMinutes; mins += 30) {
+    let hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+    const meridiem = hours >= 12 ? "PM" : "AM";
+
+    if (hours === 0) hours = 12;
+    else if (hours > 12) hours -= 12;
+
+    slots.push(`${hours}:${String(minutes).padStart(2, "0")} ${meridiem}`);
+  }
+
+  return slots;
+}
+
+const TIME_SLOTS = buildTimeSlots();
 
 export default function HappyTailsDateTime() {
   const navigate = useNavigate();
@@ -11,7 +30,7 @@ export default function HappyTailsDateTime() {
   const minder = location.state?.minder || null;
   const selectedService = location.state?.service || null;
 
-  const [timeSlot, setTimeSlot] = useState(null);
+  const [timeSlot, setTimeSlot] = useState("");
   const [pets, setPets] = useState([]);
   const [pet, setPet] = useState("");
   const [petOpen, setPetOpen] = useState(false);
@@ -102,17 +121,20 @@ export default function HappyTailsDateTime() {
             <div className="dt-body">
               <div className="dt-field">
                 <label className="dt-label">Preferred Time</label>
-                <div className="dt-time-grid">
-                  {TIME_SLOTS.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={`dt-time-chip${timeSlot === t ? " dt-time-chip--active" : ""}`}
-                      onClick={() => setTimeSlot(t)}
-                    >
-                      {t}
-                    </button>
-                  ))}
+                <div className="dt-select-wrap">
+                  <select
+                    className="dt-select"
+                    value={timeSlot}
+                    onChange={(e) => setTimeSlot(e.target.value)}
+                  >
+                    <option value="">Choose a time</option>
+                    {TIME_SLOTS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="dt-arrow">▼</span>
                 </div>
               </div>
 
