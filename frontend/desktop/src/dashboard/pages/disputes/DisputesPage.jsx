@@ -75,7 +75,7 @@ export default function DisputesPage() {
   const [selected, setSelected] = useState("#DSP-101");
   const [disputesData, setDisputesData] = useState(disputes);
 
-  const dispute = selected ? disputes.find((d) => d.id === selected) : null;
+  const dispute = selected ? disputesData.find((d) => d.id === selected) : null;
 
   const severityPill = (severity) => {
     const map = {
