@@ -35,6 +35,8 @@ import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
 import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import Notifications from './screens/Notifications & Profile/notifications/Notifications'
 import MindNotifications from './screens/Pet Minder/notifications/MindNotifications'
+import ReportIncident from './screens/Emergency/ReportIncident'
+import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -57,6 +59,8 @@ function App() {
       <Route path="/mindRequests" element={<MindRequests />} />
       <Route path="/acceptReject" element={<AcceptReject />} />
       <Route path="/addService" element={<AddService />} />
+      <Route path="/reportIncident" element={<ReportIncident />} />
+      <Route path="/reportSubmitted" element={<ReportSubmitted />} />
 
       <Route path="/ownerDash" element={<OwnerDash />} />
       <Route path="/ownerPets" element={<OwnerPets />} />
