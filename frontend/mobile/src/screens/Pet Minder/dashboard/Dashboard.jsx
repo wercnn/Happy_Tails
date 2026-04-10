@@ -105,19 +105,13 @@ export default function HappyTailsMinderDashboard() {
   }, []);
 
   const getAvgRating = useCallback(async () => {
-    const sitterID = localStorage.getItem("sitterID");
-    if (!sitterID) {
-      setAvgRating("N/A");
-      return;
-    }
-
     try {
-      const res = await fetch(`${API_BASE}/api/minders/${sitterID}`, {
+      const res = await fetch(`${API_BASE}/api/minders/me`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`Failed to fetch rating (${res.status})`);
       const data = await res.json();
-      setAvgRating(data.ratingAvg != null ? String(data.ratingAvg) : "N/A");
+      setAvgRating(data.ratingAvg != null ? Number(data.ratingAvg).toFixed(1) : "N/A");
     } catch (err) {
       console.error("Error fetching average rating:", err);
       setAvgRating("N/A");

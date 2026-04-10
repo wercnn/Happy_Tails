@@ -66,6 +66,30 @@ register('GET', '/api/minders', async (req, res, send) => {
   send(res, 200, rows);
 });
 
+// GET /api/minders/me
+// Returns the logged-in minder's own sitterID and full profile, resolved from their userID.
+register('GET', '/api/minders/me', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 404, { error: 'Minder profile not found' });
+
+  const [[profile]] = await db.query(
+    `SELECT M.sitterID, M.userID, M.bio, M.experienceYears, M.ratingAvg, M.overallRating,
+            M.medicationQualified, M.serviceAreaPostcode,
+            P.firstName, P.lastName, P.city, P.postcode
+     FROM PET_MINDER M
+     JOIN USER_PROFILE P ON P.userID = M.userID
+     WHERE M.sitterID = ?`,
+    [sitterID]
+  );
+  if (!profile) return send(res, 404, { error: 'Minder profile not found' });
+
+  send(res, 200, profile);
+});
+
+
 // PATCH /api/minders/:id
 // Minder updates their own bio, experience, medication flag, or service area.
 // Only the minder themselves can update their profile.
@@ -192,11 +216,12 @@ register('DELETE', '/api/services/:id', async (req, res, send) => {
 });
 
 async function ensureCalendarForSitter(sitterID) {
-  const [[existing]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
-  if (existing) return existing.calendarID;
+  // INSERT IGNORE prevents duplicate-key errors when concurrent requests race here.
+  // If the row already exists the insert is silently skipped; we then SELECT to get the real calendarID.
   const calendarID = uuid();
-  await db.query('INSERT INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)', [calendarID, sitterID]);
-  return calendarID;
+  await db.query('INSERT IGNORE INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)', [calendarID, sitterID]);
+  const [[row]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  return row.calendarID;
 }
 
 // POST /api/calendar

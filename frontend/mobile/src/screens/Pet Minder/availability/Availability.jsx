@@ -125,29 +125,27 @@ export default function HappyTailsAvailability() {
     const created = [];
     const errors = [];
 
-    await Promise.all(
-      upcomingDates.map(async (date) => {
-        try {
-          const res = await fetch(`${API_BASE}/api/calendar`, {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              startTime: buildDatetime(date, startTime),
-              endTime: buildDatetime(date, endTime),
-            }),
-          });
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            errors.push(body.error || `Failed for ${date.toDateString()}`);
-          } else {
-            const slot = await res.json();
-            created.push(slot);
-          }
-        } catch (err) {
-          errors.push(err.message);
+    for (const date of upcomingDates) {
+      try {
+        const res = await fetch(`${API_BASE}/api/calendar`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            startTime: buildDatetime(date, startTime),
+            endTime: buildDatetime(date, endTime),
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          errors.push(body.error || `Failed for ${date.toDateString()}`);
+        } else {
+          const slot = await res.json();
+          created.push(slot);
         }
-      })
-    );
+      } catch (err) {
+        errors.push(err.message);
+      }
+    }
 
     setSlots((prev) => [...prev, ...created]);
     setSaving(false);
