@@ -24,7 +24,7 @@ register('POST', '/api/pets', async (req, res, send) => {
 
   const body = await req.parseBody();
   // Example: { name: 'Buddy', species: 'Dog', breed: 'Golden Retriever', age: 3, weight: 28.5, neutered: true, routines: 'Morning walk at 8am. Dinner at 6pm.' }
-  const { name, species, breed, age, weight, neutered, routines } = body;
+  const { name, species, breed, age, weight, neutered, routines, photoURL } = body;
   if (!name || !species) return badRequest(send, res, 'name and species are required');
 
   const petID = uuid();
@@ -33,8 +33,16 @@ register('POST', '/api/pets', async (req, res, send) => {
     [petID, ownerID, name, species, breed, age, weight, !!neutered, routines]
   );
 
+  if (photoURL) {
+    await db.query(
+      'INSERT INTO PET_PHOTO (photoID, petID, fileURL) VALUES (?, ?, ?)',
+      [uuid(), petID, photoURL]
+    );
+  }
+
   const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ?', [petID]);
-  send(res, 201, rows[0]);
+  const [photos] = await db.query('SELECT fileURL FROM PET_PHOTO WHERE petID = ? ORDER BY uploadedAt DESC LIMIT 1', [petID]);
+  send(res, 201, { ...rows[0], photo: photos[0]?.fileURL || null });
 });
 
 
@@ -48,7 +56,14 @@ register('GET', '/api/pets', async (req, res, send) => {
   const ownerID = await getOwnerId(db, req.userId);
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
-  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE ownerID = ? ORDER BY name', [ownerID]);
+  const [rows] = await db.query(
+    `SELECT p.*, ph.fileURL AS photo
+     FROM PET_PROFILE p
+     LEFT JOIN PET_PHOTO ph ON ph.petID = p.petID
+     WHERE p.ownerID = ?
+     ORDER BY p.name`,
+    [ownerID]
+  );
   send(res, 200, rows);
 });
 
@@ -64,7 +79,13 @@ register('GET', '/api/pets/:id', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const petID = req.params.id; // ID from URL path
-  const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  const [rows] = await db.query(
+    `SELECT p.*, ph.fileURL AS photo
+     FROM PET_PROFILE p
+     LEFT JOIN PET_PHOTO ph ON ph.petID = p.petID
+     WHERE p.petID = ? AND p.ownerID = ?`,
+    [petID, ownerID]
+  );
   if (!rows.length) return notFound(send, res, 'Pet not found');
   send(res, 200, rows[0]);
 });
@@ -87,6 +108,7 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
 
   // Example: { name: 'Buddy Updated', breed: 'Golden Retriever', age: 4, weight: 29.0, routines: 'Evening walk at 6pm added.' }
   const body = await req.parseBody();
+  const { photoURL } = body;
   const fields = ['name', 'species', 'breed', 'age', 'weight', 'neutered', 'routines'];
   const sets = [];
   const params = [];
@@ -96,14 +118,28 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
       params.push(f === 'neutered' ? !!body[f] : body[f]);
     }
   }
-  if (!sets.length) return badRequest(send, res, 'No updatable fields provided');
+  if (!sets.length && !photoURL) return badRequest(send, res, 'No updatable fields provided');
 
-  params.push(petID, ownerID);
-  await db.query(`UPDATE PET_PROFILE SET ${sets.join(', ')} WHERE petID = ? AND ownerID = ?`, params);
+  if (sets.length) {
+    params.push(petID, ownerID);
+    await db.query(`UPDATE PET_PROFILE SET ${sets.join(', ')} WHERE petID = ? AND ownerID = ?`, params);
+  }
+
+  if (photoURL) {
+    const [existingPhoto] = await db.query('SELECT photoID FROM PET_PHOTO WHERE petID = ?', [petID]);
+    if (existingPhoto.length) {
+      await db.query('UPDATE PET_PHOTO SET fileURL = ?, uploadedAt = CURRENT_TIMESTAMP WHERE petID = ?', [photoURL, petID]);
+    } else {
+      await db.query('INSERT INTO PET_PHOTO (photoID, petID, fileURL) VALUES (?, ?, ?)', [uuid(), petID, photoURL]);
+    }
+  }
 
   const [rows] = await db.query('SELECT * FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
-  send(res, 200, rows[0]);
+  const [photos] = await db.query('SELECT fileURL FROM PET_PHOTO WHERE petID = ? ORDER BY uploadedAt DESC LIMIT 1', [petID]);
+  send(res, 200, { ...rows[0], photo: photos[0]?.fileURL || null });
 });
+
+
 
 
 // ─────────────────────────────────────────────

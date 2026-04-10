@@ -19,7 +19,8 @@ export default function HappyTailsCreatePet() {
   const returnTo = location.state?.returnTo || null;
 
   const [form, setForm] = useState(EMPTY_FORM);
-  const [photo, setPhoto] = useState(null);
+  const [photo, setPhoto] = useState(null);       // preview URL
+  const [photoFile, setPhotoFile] = useState(null); // actual File object
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef(null);
@@ -30,7 +31,7 @@ export default function HappyTailsCreatePet() {
         name: editingPet.name || "",
         species: editingPet.species || "Dog",
         breed: editingPet.breed || "",
-        age: editingPet.age || "",
+        age: editingPet.age != null ? String(editingPet.age) : "",
         notes: editingPet.routines || editingPet.notes || "",
       });
       setPhoto(editingPet.photo || null);
@@ -52,16 +53,18 @@ export default function HappyTailsCreatePet() {
   const handleFile = (file) => {
     if (file && file.type.startsWith("image/")) {
       setPhoto(URL.createObjectURL(file));
+      setPhotoFile(file);
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
+    const normalizedAge = String(form.age ?? "").trim();
 
     if (!form.name.trim()) newErrors.name = "Pet name is required.";
     if (!form.species.trim()) newErrors.species = "Species is required.";
     if (!form.breed.trim()) newErrors.breed = "Breed is required.";
-    if (!form.age.trim()) newErrors.age = "Age is required.";
+    if (!normalizedAge) newErrors.age = "Age is required.";
     if (!form.notes.trim()) newErrors.notes = "Daily routines / notes are required.";
 
     return newErrors;
@@ -75,15 +78,24 @@ export default function HappyTailsCreatePet() {
 
     setIsSubmitting(true);
 
+    let photoURL = null;
+    if (photoFile) {
+      photoURL = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(photoFile);
+      });
+    }
+
     const payload = {
       name: form.name.trim(),
       species: form.species,
       breed: form.breed.trim(),
-      age: form.age.trim(),
+      age: String(form.age ?? "").trim(),
       routines: form.notes.trim(),
-      // optional fields if you want later:
       weight: null,
       neutered: false,
+      ...(photoURL && { photoURL }),
     };
 
     try {
