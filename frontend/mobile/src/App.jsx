@@ -17,6 +17,7 @@ import MindAvailability from './screens/Pet Minder/availability/Availability'
 import MindRequests from './screens/Pet Minder/requests/Requests'
 import AcceptReject from './screens/Pet Minder/accept/Accept'
 import AddService from './screens/Pet Minder/services/addService/AddService'
+import MinderDetails from './screens/Pet Minder/details/Details'
 
 /* Pet Owner screens */
 import OwnerDash from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
@@ -61,6 +62,8 @@ function App() {
       <Route path="/addService" element={<AddService />} />
       <Route path="/reportIncident" element={<ReportIncident />} />
       <Route path="/reportSubmitted" element={<ReportSubmitted />} />
+      <Route path="/minderDetails" element={<MinderDetails />} />
+
 
       <Route path="/ownerDash" element={<OwnerDash />} />
       <Route path="/ownerPets" element={<OwnerPets />} />

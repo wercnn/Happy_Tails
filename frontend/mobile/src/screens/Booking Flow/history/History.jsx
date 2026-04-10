@@ -115,21 +115,26 @@ function toDate(dateStr) {
   return new Date(String(dateStr).replace(" ", "T"));
 }
 
-function formatDateTime(dateStr) {
-  return toDate(dateStr).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function formatDateOnly(dateStr) {
   return toDate(dateStr).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
+  });
+}
+
+function formatDateFull(dateStr) {
+  return toDate(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTimeOnly(dateStr) {
+  return toDate(dateStr).toLocaleTimeString("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -337,12 +342,12 @@ export default function HappyTailsBookingHistory() {
 
                   <span className="bh-card-date">
                     {group.dates.length === 1
-                      ? formatDateTime(group.dates[0])
+                      ? formatDateFull(group.dates[0])
                       : `${group.dates.length} dates: ${group.dates.map(formatDateOnly).join(", ")}`}
                   </span>
 
                   <span className="bh-card-meta">
-                    £{Number(group.totalCost || 0).toFixed(2)}
+                    {formatTimeOnly(group.startTime)} · £{Number(group.totalCost || 0).toFixed(2)}
                   </span>
                 </div>
 
