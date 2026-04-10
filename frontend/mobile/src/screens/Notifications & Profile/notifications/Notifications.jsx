@@ -1,45 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./Notifications.css";
 import { useNavigate } from "react-router-dom";
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 1,
-    emoji: "✅",
-    accentColor: "#22c55e",
-    title: "Booking Accepted",
-    body: "James Walker accepted your booking for 9 Apr.",
-    time: "2 mins ago",
-    read: false,
-  },
-  {
-    id: 2,
-    emoji: "📬",
-    accentColor: "#ee8b28",
-    title: "New Booking Request",
-    body: "Sarah Johnson requested Dog Walking for Buddy.",
-    time: "1 hr ago",
-    read: false,
-  },
-  {
-    id: 3,
-    emoji: "🚨",
-    accentColor: "#ef4444",
-    title: "Incident Alert",
-    body: "Your incident report #INC-20260409-002 is being reviewed.",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: 4,
-    emoji: "❌",
-    accentColor: "#ef4444",
-    title: "Booking Cancelled",
-    body: "Michael Smith canceled your booking for 22 Apr.",
-    time: "2 days ago",
-    read: true,
-  },
-];
+const API_BASE = "http://localhost:3000";
 
 const NAV = [
   { id: "home",     emoji: "🏠", label: "Home" },
@@ -49,43 +12,100 @@ const NAV = [
   { id: "profile",  emoji: "👤", label: "Profile" },
 ];
 
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id":   localStorage.getItem("userID")   || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
+// Derive a display emoji and accent colour from the notification title
+function getNotifStyle(title = "") {
+  const t = title.toLowerCase();
+  if (t.includes("accept") || t.includes("confirm"))
+    return { emoji: "✅", accentColor: "#22c55e" };
+  if (t.includes("cancel"))
+    return { emoji: "❌", accentColor: "#ef4444" };
+  if (t.includes("reject") || t.includes("declined"))
+    return { emoji: "🚫", accentColor: "#ef4444" };
+  if (t.includes("request") || t.includes("new booking"))
+    return { emoji: "📬", accentColor: "#ee8b28" };
+  if (t.includes("incident") || t.includes("alert"))
+    return { emoji: "🚨", accentColor: "#ef4444" };
+  if (t.includes("payment") || t.includes("paid"))
+    return { emoji: "💳", accentColor: "#6366f1" };
+  if (t.includes("message"))
+    return { emoji: "💬", accentColor: "#3b82f6" };
+  return { emoji: "🔔", accentColor: "#ee8b28" };
+}
+
+// Convert a DB datetime string to a human-readable relative time
+function formatTime(sentAt) {
+  const sent = new Date(sentAt.replace(" ", "T"));
+  const now  = new Date();
+  const diffMs = now - sent;
+  const diffMin  = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMs / 3600000);
+  const diffDay  = Math.floor(diffMs / 86400000);
+  if (diffMin < 1)   return "Just now";
+  if (diffMin < 60)  return `${diffMin} min${diffMin !== 1 ? "s" : ""} ago`;
+  if (diffHour < 24) return `${diffHour} hr${diffHour !== 1 ? "s" : ""} ago`;
+  if (diffDay === 1) return "Yesterday";
+  if (diffDay < 7)   return `${diffDay} days ago`;
+  return sent.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
 export default function HappyTailsNotifications() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-  const [activeNav, setActiveNav] = useState("home");
+  const [notifications, setNotifications] = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
+  const [activeNav,     setActiveNav]     = useState("home");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/notifications`, { headers: getAuthHeaders() })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load notifications (${res.status})`);
+        return res.json();
+      })
+      .then((data) => setNotifications(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
-
     switch (id) {
-      case "home":
-        navigate("/ownerDash");
-        break;
-      case "pets":
-        navigate("/ownerPets");
-        break;
-      case "search":
-        navigate("/ownerSearch");
-        break;
-      case "bookings":
-        navigate("/ownerBooking");
-        break;
-      case "profile":
-        navigate("/profile");
-        break;
-      default:
-        alert("Placeholder route");
-        break;
+      case "home":     navigate("/ownerDash");    break;
+      case "pets":     navigate("/ownerPets");    break;
+      case "search":   navigate("/ownerSearch");  break;
+      case "bookings": navigate("/ownerBooking"); break;
+      case "profile":  navigate("/profile");      break;
+      default: break;
     }
   };
 
-  const markAllRead = () =>
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-
-  const markRead = (id) =>
+  const markRead = (notificationID) => {
+    // Optimistically update UI
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => n.notificationID === notificationID ? { ...n, isRead: true } : n)
     );
+    fetch(`${API_BASE}/api/notifications/${notificationID}/read`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+    }).catch(() => {});
+  };
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    fetch(`${API_BASE}/api/notifications/read-all`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+    }).catch(() => {});
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="mobile-stage">
@@ -98,31 +118,45 @@ export default function HappyTailsNotifications() {
               <button className="notif-back" onClick={() => navigate("/ownerDash")}>←</button>
               <h1 className="notif-title">Notifications</h1>
             </div>
-            <button className="notif-mark-all" onClick={markAllRead}>
-              Mark all read
-            </button>
+            {unreadCount > 0 && (
+              <button className="notif-mark-all" onClick={markAllRead}>
+                Mark all read
+              </button>
+            )}
           </header>
 
           {/* Scrollable body */}
           <div className="notif-scroll">
             <div className="notif-body">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  className={`notif-card${n.read ? " notif-card--read" : ""}`}
-                  style={{ "--accent": n.accentColor }}
-                  onClick={() => markRead(n.id)}
-                >
-                  <span className="notif-card-accent" />
-                  <span className="notif-card-emoji">{n.emoji}</span>
-                  <div className="notif-card-content">
-                    <span className="notif-card-title">{n.title}</span>
-                    <span className="notif-card-body">{n.body}</span>
-                    <span className="notif-card-time">{n.time}</span>
-                  </div>
-                  {!n.read && <span className="notif-unread-dot" />}
-                </button>
-              ))}
+              {loading && (
+                <p className="notif-status">Loading notifications…</p>
+              )}
+              {error && (
+                <p className="notif-status notif-status--error">{error}</p>
+              )}
+              {!loading && !error && notifications.length === 0 && (
+                <p className="notif-status">You have no notifications.</p>
+              )}
+              {!loading && !error && notifications.map((n) => {
+                const { emoji, accentColor } = getNotifStyle(n.title);
+                return (
+                  <button
+                    key={n.notificationID}
+                    className={`notif-card${n.isRead ? " notif-card--read" : ""}`}
+                    style={{ "--accent": accentColor }}
+                    onClick={() => !n.isRead && markRead(n.notificationID)}
+                  >
+                    <span className="notif-card-accent" />
+                    <span className="notif-card-emoji">{emoji}</span>
+                    <div className="notif-card-content">
+                      <span className="notif-card-title">{n.title}</span>
+                      <span className="notif-card-body">{n.body}</span>
+                      <span className="notif-card-time">{formatTime(n.sentAt)}</span>
+                    </div>
+                    {!n.isRead && <span className="notif-unread-dot" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

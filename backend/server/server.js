@@ -14,6 +14,7 @@ require('./routes/reviews');
 require('./routes/payments');
 require('./routes/disputes');
 require('./routes/users');
+require('./routes/notifications');
 
 const server = http.createServer((req, res) => {
   // CORS headers — allow the React frontend to call this server from any origin

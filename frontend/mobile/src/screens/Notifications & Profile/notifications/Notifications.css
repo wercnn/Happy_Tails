@@ -217,6 +217,15 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .notif-nav-item--active .notif-nav-label { color: #ee8b28; }
 
+/* ── Status (loading / empty / error) ── */
+.notif-status {
+  text-align: center;
+  font-size: 0.88rem;
+  color: #888;
+  margin: 32px 0;
+}
+.notif-status--error { color: #ef4444; }
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
