@@ -221,6 +221,31 @@ body {
   color: #333;
 }
 
+.rd-report-section {
+  flex-shrink: 0;
+  padding: 10px 16px 4px;
+  background: #fff;
+}
+
+.rd-report-btn {
+  width: 100%;
+  background: #fff;
+  color: #d9534f;
+  border: 1.8px solid #d9534f;
+  border-radius: 12px;
+  padding: 13px 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.rd-report-btn:hover {
+  background: #fdf2f2;
+  transform: translateY(-1px);
+}
+
 .rd-footer {
   flex-shrink: 0;
   background: #fff;

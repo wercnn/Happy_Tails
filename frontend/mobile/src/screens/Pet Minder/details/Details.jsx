@@ -188,7 +188,7 @@ export default function HappyTailsRequestDetails() {
       <div className="mobile-frame">
         <div className="rd-screen">
           <header className="rd-header">
-            <button className="rd-back" onClick={handleBack} type="button">
+            <button className="rd-back" onClick={() => navigate("/mindRequests")} type="button">
               ←
             </button>
             <h1 className="rd-title">Request Details</h1>
@@ -301,6 +301,16 @@ export default function HappyTailsRequestDetails() {
                 </div>
               </section>
             </div>
+          </div>
+
+          <div className="rd-report-section">
+            <button
+              className="rd-report-btn"
+              onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+              type="button"
+            >
+              ⚠ Report an Incident
+            </button>
           </div>
 
           <div className="rd-footer">
