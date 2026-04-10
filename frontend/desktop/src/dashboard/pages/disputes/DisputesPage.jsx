@@ -286,10 +286,57 @@ export default function DisputesPage() {
             </div>
 
             <div className="disputes-page__detail-actions">
-              <Btn variant="primary">Approve Refund</Btn>
-              <Btn variant="outline">Approve Partial Refund</Btn>
-              <Btn variant="danger">Deny Dispute</Btn>
-              <Btn variant="outline">Escalate Case</Btn>
+              <Btn
+                variant="primary"
+                onClick={() => {
+                  setDisputesData((prev) =>
+                    prev.map((d) =>
+                      d.id === dispute.id ? { ...d, status: "resolved" } : d
+                    )
+                  );
+                }}
+              >
+                Approve Refund
+              </Btn>
+              <Btn
+                variant="outline"
+                onClick={() => {
+                  setDisputesData((prev) =>
+                    prev.map((d) =>
+                      d.id === dispute.id ? { ...d, status: "partial refund" } : d
+                    )
+                  );
+                }}
+              >
+                Approve Partial Refund
+              </Btn>
+
+              <Btn
+                variant="danger"
+                onClick={() => {
+                  setDisputesData((prev) =>
+                    prev.map((d) =>
+                      d.id === dispute.id ? { ...d, status: "denied" } : d
+                    )
+                  );
+                }}
+              >
+                Deny Dispute
+              </Btn>
+
+              <Btn
+                variant="outline"
+                onClick={() => {
+                  setDisputesData((prev) =>
+                    prev.map((d) =>
+                      d.id === dispute.id ? { ...d, status: "escalated" } : d
+                    )
+                  );
+                }}
+              >
+                Escalate Case
+              </Btn>
+
               <Btn variant="outline">View Chat History</Btn>
             </div>
           </div>
