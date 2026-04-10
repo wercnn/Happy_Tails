@@ -167,7 +167,7 @@ export default function DisputesPage() {
               </tr>
             </thead>
             <tbody>
-              {disputes.map((d) => (
+              {disputesData.map((d) => (
                 <tr 
                   key={d.id} 
                   className="disputes-page__row"
