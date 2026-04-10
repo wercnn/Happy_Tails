@@ -145,34 +145,34 @@ INSERT INTO DISPUTE (disputeID, bookingID, userID, employeeID, disputeType, reas
   ('disp-003', 'bk-002', 'u-owner-001', NULL,      'PaymentDispute',  'Payment discrepancy for daycare service.',                'Pending',  TRUE,  NULL,                                    'Medium', NULL,  NOW()),
   ('disp-004', 'bk-002', 'u-owner-001', 'emp-001', 'NoShowComplaint', 'Scheduling conflict and cancellation policy dispute.',    'Resolved', FALSE, 'Issue resolved by support after case review.', 'Low', NOW(), NOW());
 
--- ─── Notifications (pet owner u-owner-001 / Sarah Thompson) ──────────────
-INSERT IGNORE INTO NOTIFICATION (notificationID, recipientID, channel, title, body, isRead, sentAt) VALUES
-  ('notif-o-001', 'u-owner-001', 'push',
-   'Booking Confirmed',
-   'Olivia Bennett accepted your Dog Walking booking for 16 May.',
-   FALSE, '2026-04-10 09:15:00'),
+-- -- ─── Notifications (pet owner u-owner-001 / Sarah Thompson) ──────────────
+-- INSERT IGNORE INTO NOTIFICATION (notificationID, recipientID, channel, title, body, isRead, sentAt) VALUES
+--   ('notif-o-001', 'u-owner-001', 'push',
+--    'Booking Confirmed',
+--    'Olivia Bennett accepted your Dog Walking booking for 16 May.',
+--    FALSE, '2026-04-10 09:15:00'),
 
-  ('notif-o-002', 'u-owner-001', 'push',
-   'Message from Olivia',
-   'Olivia sent you a message: "Hi! Just confirming I''ll be there at 10am tomorrow."',
-   FALSE, '2026-04-10 10:30:00'),
+--   ('notif-o-002', 'u-owner-001', 'push',
+--    'Message from Olivia',
+--    'Olivia sent you a message: "Hi! Just confirming I''ll be there at 10am tomorrow."',
+--    FALSE, '2026-04-10 10:30:00'),
 
-  ('notif-o-003', 'u-owner-001', 'push',
-   'Visit Complete',
-   'Olivia has submitted a visit report for your pet. Everything went smoothly!',
-   TRUE,  '2026-04-09 12:00:00'),
+--   ('notif-o-003', 'u-owner-001', 'push',
+--    'Visit Complete',
+--    'Olivia has submitted a visit report for your pet. Everything went smoothly!',
+--    TRUE,  '2026-04-09 12:00:00'),
 
-  ('notif-o-004', 'u-owner-001', 'push',
-   'Leave a Review',
-   'How was your experience with Olivia? Tap to leave a review.',
-   TRUE,  '2026-04-08 17:00:00'),
+--   ('notif-o-004', 'u-owner-001', 'push',
+--    'Leave a Review',
+--    'How was your experience with Olivia? Tap to leave a review.',
+--    TRUE,  '2026-04-08 17:00:00'),
 
-  ('notif-o-005', 'u-owner-001', 'push',
-   'Booking Cancelled',
-   'Your Dog Daycare booking for 18 May has been cancelled.',
-   TRUE,  '2026-04-07 08:45:00');
+--   ('notif-o-005', 'u-owner-001', 'push',
+--    'Booking Cancelled',
+--    'Your Dog Daycare booking for 18 May has been cancelled.',
+--    TRUE,  '2026-04-07 08:45:00');
 
--- -- ─── Notifications (pet minder u-minder-002 / Olivia) ─────────
+-- -- ─── Notifications (pet minder u-minder-002 / Olivia Bennett) ────────────
 -- INSERT IGNORE INTO NOTIFICATION (notificationID, recipientID, channel, title, body, isRead, sentAt) VALUES
 --   ('notif-m-001', 'u-minder-002', 'push',
 --    'New Booking Request',
@@ -196,7 +196,7 @@ INSERT IGNORE INTO NOTIFICATION (notificationID, recipientID, channel, title, bo
 
 --   ('notif-m-005', 'u-minder-002', 'push',
 --    'Reminder: Upcoming Booking',
---    'You have a Dog Walking booking tomorrow at 10:00 AM. Don\'t forget to check in!',
+--    'You have a Dog Walking booking tomorrow at 10:00 AM. Don''t forget to check in!',
 --    TRUE,  '2026-04-04 09:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;

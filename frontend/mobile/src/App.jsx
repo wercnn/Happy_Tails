@@ -34,6 +34,7 @@ import BookingSummary from './screens/Booking Flow/summary/Summary'
 import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
 import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import Notifications from './screens/Notifications & Profile/notifications/Notifications'
+import MindNotifications from './screens/Pet Minder/notifications/MindNotifications'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -72,6 +73,7 @@ function App() {
       <Route path="/bookingSummary" element={<BookingSummary />} />
       <Route path="/requestSent" element={<RequestSent />} />
       <Route path="/notifications" element={<Notifications />} />
+      <Route path="/mindNotifications" element={<MindNotifications />} />
 
       <Route path="/profile" element={<Profile />} />
     </Routes>

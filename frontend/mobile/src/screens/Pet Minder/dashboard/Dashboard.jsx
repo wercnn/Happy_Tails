@@ -54,6 +54,13 @@ function formatDate(dateStr) {
     .toUpperCase();
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning 🌅";
+  if (h < 18) return "Good afternoon ☀️";
+  return "Good evening 🌙";
+}
+
 export default function HappyTailsMinderDashboard() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -176,13 +183,23 @@ export default function HappyTailsMinderDashboard() {
         <div className="md-screen">
           <header className="md-header">
             <div className="md-greeting-block">
-              <h1 className="md-greeting">Welcome back 👋</h1>
-              <p className="md-name">{minderName}</p>
+              <span className="md-greeting-label">{getGreeting()}</span>
+              <h1 className="md-name">{minderName}</h1>
+              <span className="md-role-badge">Pet Minder</span>
             </div>
-            <button className="md-status-btn">
-              <span className="md-status-dot" />
-              <span className="md-status-text">{status}</span>
-            </button>
+            <div className="md-header-right">
+              <button
+                className="md-notif-btn"
+                onClick={() => navigate("/mindNotifications")}
+                aria-label="Notifications"
+              >
+                🔔
+              </button>
+              <div className="md-status-pill">
+                <span className="md-status-dot" />
+                <span className="md-status-text">{status}</span>
+              </div>
+            </div>
           </header>
 
           <div className="md-scroll">
