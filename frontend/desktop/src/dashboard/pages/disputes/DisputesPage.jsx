@@ -236,6 +236,7 @@ export default function DisputesPage() {
                   ["Raised By", dispute.raisedBy],
                   ["Against", dispute.against],
                   ["Assigned To", dispute.assignedTo],
+                  ["Linked Incident", "#INC-042"],
                   ["Refund Requested", dispute.refundRequested],
                 ].map(([k, v]) => (
                   <div key={k} className="disputes-page__detail-row">
