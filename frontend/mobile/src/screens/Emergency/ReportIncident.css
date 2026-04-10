@@ -266,8 +266,18 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
   transition: filter 0.15s, transform 0.12s;
 }
-.ri-submit-btn:hover  { filter: brightness(1.08); transform: translateY(-1px); }
-.ri-submit-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+.ri-submit-btn:hover:not(:disabled)  { filter: brightness(1.08); transform: translateY(-1px); }
+.ri-submit-btn:active:not(:disabled) { transform: translateY(1px); filter: brightness(0.96); }
+.ri-submit-btn--loading { opacity: 0.7; cursor: not-allowed; }
+.ri-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; box-shadow: none; }
+
+.ri-error {
+  text-align: center;
+  font-size: 0.88rem;
+  color: #dc2626;
+  margin: 0;
+  font-weight: 600;
+}
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
