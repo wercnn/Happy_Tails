@@ -311,6 +311,27 @@ register('DELETE', '/api/calendar/:id', async (req, res, send) => {
   send(res, 200, { ok: true });
 });
 
+// GET /api/minders/:id/slots
+// Returns all unbooked slots for a specific minder.
+// Lightweight endpoint used by the owner-facing availability calendar.
+register('GET', '/api/minders/:id/slots', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const sitterID = req.params.id;
+  const [[calendar]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  if (!calendar) return send(res, 200, []);
+
+  const [slots] = await db.query(
+    `SELECT slotID, startTime, endTime
+     FROM SLOT
+     WHERE calendarID = ? AND isBooked = FALSE
+     ORDER BY startTime`,
+    [calendar.calendarID]
+  );
+  send(res, 200, slots);
+});
+
 // GET /api/minders/:id  (most complex — 4 queries combined)
 // Returns the full public profile of a minder:
 //   - Basic info (bio, experience, ratings)
