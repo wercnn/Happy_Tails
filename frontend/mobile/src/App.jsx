@@ -32,6 +32,7 @@ import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
 import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
 import BookingSummary from './screens/Booking Flow/summary/Summary'
 import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
+import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -60,6 +61,7 @@ function App() {
       <Route path="/ownerSearch" element={<OwnerSearch />} />
       <Route path="/ownerBooking" element={<OwnerBooking />} />
       <Route path="/addPet" element={<AddPet />} />
+      <Route path="/addHealth" element={<AddHealth />} />
       <Route path="/petProfile" element={<PetProfile />} />
       <Route path="/searchFilters" element={<SearchFilters />} />
       <Route path="/viewMinders" element={<ViewMinders />} />

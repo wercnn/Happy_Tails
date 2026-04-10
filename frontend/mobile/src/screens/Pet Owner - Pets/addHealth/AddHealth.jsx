@@ -1,88 +1,221 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./AddHealth.css";
 
-const EVENT_TYPES = ["Vaccination", "Vet Visit", "Medication", "Surgery", "Dental", "Other"];
+const EMPTY_FORM = {
+  dietaryNeeds: "",
+  allergies: "",
+  vaccinated: false,
+  vaccinationInfo: "",
+  requiresMedication: false,
+  medications: "",
+  medicalNotes: "",
+};
 
 export default function HappyTailsHealthData() {
-  const [form, setForm] = useState({
-    date: "", eventType: "Vaccination", vet: "", weight: "", notes: "",
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const pet = location.state?.pet || null;
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const petID = pet?.petID || pet?.id;
+
+  // Load existing health data on mount
+  useEffect(() => {
+    if (!petID) return;
+
+    const load = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/api/pets/${petID}/health`, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data) {
+          setForm({
+            dietaryNeeds: data.dietaryNeeds || "",
+            allergies: data.allergies || "",
+            vaccinated: !!data.vaccinated,
+            vaccinationInfo: data.vaccinationInfo || "",
+            requiresMedication: !!data.requiresMedication,
+            medications: data.medications || "",
+            medicalNotes: data.medicalNotes || "",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load health data:", err);
+      }
+    };
+
+    load();
+  }, [petID]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    setError("");
+  };
+
+  const handleSubmit = async () => {
+    if (!petID) {
+      setError("No pet selected. Please go back and try again.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/pets/${petID}/health`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userID") || "",
+          "x-user-role": localStorage.getItem("userRole") || "",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to save health data.");
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        navigate("/petProfile", { state: { pet } });
+      }, 1000);
+    } catch (err) {
+      console.error("Health save failed:", err);
+      setError("Server error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (pet) {
+      navigate("/petProfile", { state: { pet } });
+      return;
+    }
+    navigate("/ownerPets");
+  };
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="hd-screen">
 
-          {/* Header */}
           <header className="hd-header">
-            <button className="hd-back" onClick={() => alert("Go back")}>←</button>
-            <h1 className="hd-title">Add Health Data</h1>
+            <button className="hd-back" onClick={handleBack}>←</button>
+            <h1 className="hd-title">
+              {pet ? `${pet.name}'s Health` : "Health Data"}
+            </h1>
           </header>
 
-          {/* Scrollable body */}
           <div className="hd-scroll">
             <div className="hd-form">
 
-              {/* Date */}
+              {/* Dietary Needs */}
               <div className="hd-field">
-                <label className="hd-label" htmlFor="date">Date</label>
-                <input
-                  id="date" name="date" className="hd-input"
-                  type="text" placeholder="dd/mm/yyyy"
-                  value={form.date} onChange={handleChange}
-                />
-              </div>
-
-              {/* Health Event Type */}
-              <div className="hd-field">
-                <label className="hd-label" htmlFor="eventType">Health Event Type</label>
-                <div className="hd-select-wrap">
-                  <select
-                    id="eventType" name="eventType" className="hd-select"
-                    value={form.eventType} onChange={handleChange}
-                  >
-                    {EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}
-                  </select>
-                  <span className="hd-select-arrow">V</span>
-                </div>
-              </div>
-
-              {/* Vet / Clinic Name */}
-              <div className="hd-field">
-                <label className="hd-label" htmlFor="vet">Vet / Clinic Name</label>
-                <input
-                  id="vet" name="vet" className="hd-input"
-                  type="text" placeholder="e.g. Luton Animal Clinic"
-                  value={form.vet} onChange={handleChange}
-                />
-              </div>
-
-              {/* Weight */}
-              <div className="hd-field">
-                <label className="hd-label" htmlFor="weight">Weight (kg)</label>
-                <input
-                  id="weight" name="weight" className="hd-input"
-                  type="number" placeholder="e.g. 28.5"
-                  value={form.weight} onChange={handleChange}
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="hd-field">
-                <label className="hd-label" htmlFor="notes">Notes</label>
+                <label className="hd-label" htmlFor="dietaryNeeds">Dietary Needs</label>
                 <textarea
-                  id="notes" name="notes" className="hd-textarea"
-                  placeholder="Details about this health entry..."
-                  value={form.notes} onChange={handleChange}
+                  id="dietaryNeeds" name="dietaryNeeds" className="hd-textarea"
+                  placeholder="e.g. grain-free diet, 2 meals a day..."
+                  value={form.dietaryNeeds} onChange={handleChange}
                 />
               </div>
 
-              {/* Save */}
-              <button className="hd-save" onClick={() => alert("Health record saved!")}>
-                Save Health Record
+              {/* Allergies */}
+              <div className="hd-field">
+                <label className="hd-label" htmlFor="allergies">Allergies</label>
+                <textarea
+                  id="allergies" name="allergies" className="hd-textarea"
+                  placeholder="e.g. pollen, certain proteins..."
+                  value={form.allergies} onChange={handleChange}
+                />
+              </div>
+
+              {/* Vaccinated toggle */}
+              <div className="hd-field hd-field--toggle">
+                <span className="hd-label">Vaccinated?</span>
+                <label className="hd-toggle">
+                  <input
+                    type="checkbox" name="vaccinated"
+                    checked={form.vaccinated} onChange={handleChange}
+                  />
+                  <span className="hd-toggle-track">
+                    <span className="hd-toggle-thumb" />
+                  </span>
+                </label>
+              </div>
+
+              {/* Vaccination Info — shown when vaccinated */}
+              {form.vaccinated && (
+                <div className="hd-field">
+                  <label className="hd-label" htmlFor="vaccinationInfo">Vaccination Info</label>
+                  <textarea
+                    id="vaccinationInfo" name="vaccinationInfo" className="hd-textarea"
+                    placeholder="e.g. Rabies — Jan 2024, Kennel Cough — Mar 2024..."
+                    value={form.vaccinationInfo} onChange={handleChange}
+                  />
+                </div>
+              )}
+
+              {/* Requires Medication toggle */}
+              <div className="hd-field hd-field--toggle">
+                <span className="hd-label">Requires Medication?</span>
+                <label className="hd-toggle">
+                  <input
+                    type="checkbox" name="requiresMedication"
+                    checked={form.requiresMedication} onChange={handleChange}
+                  />
+                  <span className="hd-toggle-track">
+                    <span className="hd-toggle-thumb" />
+                  </span>
+                </label>
+              </div>
+
+              {/* Medications — shown when requiresMedication */}
+              {form.requiresMedication && (
+                <div className="hd-field">
+                  <label className="hd-label" htmlFor="medications">Medications</label>
+                  <textarea
+                    id="medications" name="medications" className="hd-textarea"
+                    placeholder="e.g. Apoquel 16mg — once daily with food..."
+                    value={form.medications} onChange={handleChange}
+                  />
+                </div>
+              )}
+
+              {/* Medical Notes */}
+              <div className="hd-field">
+                <label className="hd-label" htmlFor="medicalNotes">Medical Notes</label>
+                <textarea
+                  id="medicalNotes" name="medicalNotes" className="hd-textarea"
+                  placeholder="Any additional health information..."
+                  value={form.medicalNotes} onChange={handleChange}
+                />
+              </div>
+
+              {error && <p className="hd-error">{error}</p>}
+              {success && <p className="hd-success">Health record saved!</p>}
+
+              <button
+                className="hd-save"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Health Record"}
               </button>
 
             </div>

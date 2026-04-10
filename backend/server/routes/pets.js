@@ -143,6 +143,69 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
 
 
 // ─────────────────────────────────────────────
+// GET /api/pets/:id/health → get health data
+// ─────────────────────────────────────────────
+register('GET', '/api/pets/:id/health', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const petID = req.params.id;
+  // Verify pet belongs to this owner
+  const [pet] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!pet.length) return notFound(send, res, 'Pet not found');
+
+  const [rows] = await db.query('SELECT * FROM HEALTH_DATA WHERE petID = ?', [petID]);
+  send(res, 200, rows[0] || null);
+});
+
+
+// ─────────────────────────────────────────────
+// POST /api/pets/:id/health → upsert health data
+// ─────────────────────────────────────────────
+register('POST', '/api/pets/:id/health', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const petID = req.params.id;
+  // Verify pet belongs to this owner
+  const [pet] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!pet.length) return notFound(send, res, 'Pet not found');
+
+  const body = await req.parseBody();
+  const { dietaryNeeds, medications, vaccinationInfo, allergies, requiresMedication, medicalNotes, vaccinated } = body;
+
+  const [existing] = await db.query('SELECT healthID FROM HEALTH_DATA WHERE petID = ?', [petID]);
+
+  if (existing.length) {
+    await db.query(
+      `UPDATE HEALTH_DATA
+       SET dietaryNeeds = ?, medications = ?, vaccinationInfo = ?, allergies = ?,
+           requiresMedication = ?, medicalNotes = ?, vaccinated = ?
+       WHERE petID = ?`,
+      [dietaryNeeds || null, medications || null, vaccinationInfo || null, allergies || null,
+       !!requiresMedication, medicalNotes || null, !!vaccinated, petID]
+    );
+  } else {
+    await db.query(
+      `INSERT INTO HEALTH_DATA (healthID, petID, dietaryNeeds, medications, vaccinationInfo, allergies, requiresMedication, medicalNotes, vaccinated)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uuid(), petID, dietaryNeeds || null, medications || null, vaccinationInfo || null,
+       allergies || null, !!requiresMedication, medicalNotes || null, !!vaccinated]
+    );
+  }
+
+  const [rows] = await db.query('SELECT * FROM HEALTH_DATA WHERE petID = ?', [petID]);
+  send(res, 200, rows[0]);
+});
+
+
+// ─────────────────────────────────────────────
 // DELETE /api/pets/:id → delete pet
 // ─────────────────────────────────────────────
 register('DELETE', '/api/pets/:id', async (req, res, send) => {
