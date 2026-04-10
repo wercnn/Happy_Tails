@@ -122,7 +122,9 @@ export default function DisputesPage() {
           title="Disputes"
           subtitle="Review complaints, refund requests and escalated support cases"
         />
-
+        <p style={{ margin: "0 0 16px", color: C.mid, fontSize: 12 }}>
+          Select a dispute to review the case details, supporting evidence and available support actions.
+        </p>
         <div className="disputes-page__summary-grid">
           {summaryCards.map(([icon, lbl, val, col]) => (
             <Card key={lbl} style={{ padding: "14px 16px" }}>
@@ -164,7 +166,12 @@ export default function DisputesPage() {
             </thead>
             <tbody>
               {disputes.map((d) => (
-                <tr key={d.id} className="disputes-page__row">
+                <tr 
+                  key={d.id} 
+                  className="disputes-page__row"
+                  onMouseEnter={(e) => (e.currentTarget.style.background = C.light)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
                   <Td>
                     <span className="disputes-page__id">{d.id}</span>
                   </Td>
