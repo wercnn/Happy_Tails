@@ -99,6 +99,29 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
 });
 
 
+// save generated case reference back onto the incident report
+register('PATCH', '/api/reports/incident/:incident_id/case-reference', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+
+  const incidentID = req.params.incident_id;
+  const body = await req.parseBody();
+  const { caseReference } = body;
+  if (!caseReference) return badRequest(send, res, 'caseReference is required');
+
+  const [[incident]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
+  if (!incident) return notFound(send, res, 'Incident report not found');
+
+  // Only the reporter or a support employee may update
+  const role = String(req.userRole || '').toLowerCase();
+  if (role !== 'support' && incident.reporterUserID !== req.userId) {
+    return send(res, 403, { error: 'Forbidden' });
+  }
+
+  await db.query('UPDATE INCIDENT_REPORT SET caseReference = ? WHERE incidentID = ?', [caseReference, incidentID]);
+  send(res, 200, { incidentID, caseReference });
+});
+
+
 // get all incident reports for ONLY support staff
 register('GET', '/api/reports/incidents', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;

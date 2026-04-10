@@ -267,7 +267,7 @@ export default function HappyTailsBookingRequests() {
   }, [fetchBookings]);
 
   const handleCardClick = (requestGroup) => {
-    navigate("/minderDetails", { state: { requestGroup } });
+    navigate("/bookingDetails", { state: { requestGroup } });
   };
 
   const handleNavClick = (id) => {

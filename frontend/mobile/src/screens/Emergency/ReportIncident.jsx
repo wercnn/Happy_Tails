@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./ReportIncident.css";
 
 const API_BASE = "http://localhost:3000";
@@ -32,6 +32,17 @@ function formatBookingLabel(b) {
 
 export default function HappyTailsReportIncident() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromBooking = location.state?.booking || null;
+  const fromBookings = location.state?.bookings || null;
+
+  const handleBack = () => {
+    if (fromBooking) {
+      navigate("/bookingDetails", { state: { booking: fromBooking, bookings: fromBookings } });
+    } else {
+      navigate(-1);
+    }
+  };
 
   const [incidentType, setIncidentType] = useState(INCIDENT_TYPES[0]);
   const [severity,     setSeverity]     = useState("Low");
@@ -107,7 +118,7 @@ export default function HappyTailsReportIncident() {
 
           {/* Header */}
           <header className="ri-header">
-            <button className="ri-back" onClick={() => navigate("/mindDash")}>←</button>
+            <button className="ri-back" onClick={handleBack}>←</button>
             <h1 className="ri-title">🚨 Report an Incident</h1>
           </header>
 
