@@ -7,9 +7,6 @@ import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx"
 import "./DisputesPage.css";
 
 export default function DisputesPage() {
-  const [selected, setSelected] = useState("#DSP-101");
-  const [disputesData, setDisputesData] = useState(disputes);
-
   const disputes = [
     {
       id: "#DSP-101",
@@ -27,7 +24,8 @@ export default function DisputesPage() {
       evidence:
         "Chat history available, booking timeline reviewed, no incident report submitted.",
     },
-    {
+    
+   {
       id: "#DSP-100",
       booking: "#HT-8797",
       raisedBy: "Chris L.",
@@ -73,6 +71,9 @@ export default function DisputesPage() {
       evidence: "Escrow release adjusted and both parties notified.",
     },
   ];
+
+  const [selected, setSelected] = useState("#DSP-101");
+  const [disputesData, setDisputesData] = useState(disputes);
 
   const dispute = selected ? disputes.find((d) => d.id === selected) : null;
 
