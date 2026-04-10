@@ -1,42 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./OwnerHome.css";
 
 const API_BASE = "http://localhost:3000";
 
 const SERVICE_NAMES = {
-  "st-walk":    "Dog Walking",
-  "st-board":   "Pet Boarding",
+  "st-walk": "Dog Walking",
+  "st-board": "Pet Boarding",
   "st-daycare": "Dog Daycare",
 };
 
 const SERVICE_EMOJI = {
-  "st-walk":    "🚶",
-  "st-board":   "🏠",
+  "st-walk": "🚶",
+  "st-board": "🏠",
   "st-daycare": "🌞",
 };
-
-function getAuthHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "x-user-id":   localStorage.getItem("userID")   || "",
-    "x-user-role": localStorage.getItem("userRole") || "",
-  };
-}
-
-function formatBookingTime(dateStr) {
-  const date = new Date(dateStr.replace(" ", "T"));
-  const now  = new Date();
-  const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth()    === now.getMonth()    &&
-    date.getDate()     === now.getDate();
-
-  const timeStr = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (isToday) return `Today, ${timeStr}`;
-
-  return date.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + `, ${timeStr}`;
-}
 
 const NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
@@ -45,6 +23,110 @@ const NAV = [
   { id: "bookings", emoji: "📋", label: "Bookings" },
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "x-user-id": localStorage.getItem("userID") || "",
+    "x-user-role": localStorage.getItem("userRole") || "",
+  };
+}
+
+function toDate(dateStr) {
+  return new Date(String(dateStr).replace(" ", "T"));
+}
+
+function formatTimeOnly(dateStr) {
+  return toDate(dateStr).toLocaleTimeString("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatDateOnly(dateStr) {
+  return toDate(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getCreatedMinuteKey(createdAt) {
+  if (!createdAt) return "no-created-at";
+  const d = toDate(createdAt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+    d.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
+function groupBookings(bookings) {
+  const groups = new Map();
+
+  for (const b of bookings) {
+    const key = [
+      b.ownerID,
+      b.sitterID,
+      b.petID,
+      b.serviceTypeID,
+      String(b.status || "").toLowerCase(),
+      b.ownerNotes || "",
+      getCreatedMinuteKey(b.createdAt),
+    ].join("|");
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        groupKey: key,
+        bookingIDs: [],
+        bookings: [],
+        bookingID: b.bookingID,
+        serviceTypeID: b.serviceTypeID,
+        status: String(b.status || "").toLowerCase(),
+        startTime: b.startTime,
+        endTime: b.endTime,
+        createdAt: b.createdAt,
+        totalCost: 0,
+      });
+    }
+
+    const group = groups.get(key);
+    group.bookingIDs.push(b.bookingID);
+    group.bookings.push(b);
+    group.totalCost += Number(b.totalCost || 0);
+
+    const currentStart = toDate(group.startTime);
+    const nextStart = toDate(b.startTime);
+    if (nextStart < currentStart) {
+      group.startTime = b.startTime;
+      group.endTime = b.endTime;
+      group.bookingID = b.bookingID;
+    }
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      dates: group.bookings
+        .map((b) => b.startTime)
+        .sort((a, b) => toDate(a) - toDate(b)),
+    }))
+    .sort((a, b) => toDate(b.createdAt || b.startTime) - toDate(a.createdAt || a.startTime));
+}
+
+function getRecentBookingDateText(group) {
+  if (group.dates.length === 1) {
+    return formatDateOnly(group.dates[0]);
+  }
+
+  return `${group.dates.length} dates: ${group.dates.map(formatDateOnly).join(", ")}`;
+}
+
+function getStatusLabel(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "accepted") return "confirmed";
+  return s;
+}
 
 export default function HappyTailsHome() {
   const navigate = useNavigate();
@@ -58,16 +140,16 @@ export default function HappyTailsHome() {
   useEffect(() => {
     const loadOwnerHomeData = async () => {
       const firstName = localStorage.getItem("firstName") || "";
-      const lastName  = localStorage.getItem("lastName")  || "";
+      const lastName = localStorage.getItem("lastName") || "";
       setOwnerName(`${firstName} ${lastName}`.trim() || "Owner");
 
-      // Fetch pets
       try {
-        const res  = await fetch(`${API_BASE}/api/pets`, {
+        const res = await fetch(`${API_BASE}/api/pets`, {
           method: "GET",
           headers: getAuthHeaders(),
         });
         const data = await res.json();
+
         if (!res.ok) {
           setError(data.error || "Failed to load pets.");
         } else {
@@ -78,20 +160,17 @@ export default function HappyTailsHome() {
         setError("Server error. Please try again.");
       }
 
-      // Fetch bookings — GET /api/bookings (owner role returns own bookings)
       try {
-        const res  = await fetch(`${API_BASE}/api/bookings`, {
+        const res = await fetch(`${API_BASE}/api/bookings`, {
           headers: getAuthHeaders(),
         });
         const data = await res.json();
+
         if (res.ok) {
-          const filtered = data.filter((b) =>
-            ["rejected", "completed", "cancelled"].includes(b.status)
+          const filtered = (Array.isArray(data) ? data : []).filter((b) =>
+            ["pending", "accepted", "rejected"].includes(String(b.status || "").toLowerCase())
           );
-          const sorted = filtered.sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-          );
-          setBookings(sorted.slice(0, 3));
+          setBookings(filtered);
         }
       } catch (err) {
         console.error("Failed to load bookings:", err);
@@ -102,6 +181,10 @@ export default function HappyTailsHome() {
 
     loadOwnerHomeData();
   }, []);
+
+  const groupedRecentBookings = useMemo(() => {
+    return groupBookings(bookings).slice(0, 3);
+  }, [bookings]);
 
   const getPetEmoji = (species) => {
     switch ((species || "").toLowerCase()) {
@@ -238,27 +321,39 @@ export default function HappyTailsHome() {
                 {bookingsLoading && (
                   <p className="home-empty-pets">Loading...</p>
                 )}
-                {!bookingsLoading && bookings.length === 0 && (
+
+                {!bookingsLoading && groupedRecentBookings.length === 0 && (
                   <p className="home-empty-pets">No bookings yet</p>
                 )}
-                {!bookingsLoading && bookings.map((b) => (
-                  <div key={b.bookingID} className="home-booking-card">
-                    <span className="home-booking-avatar">
-                      {SERVICE_EMOJI[b.serviceTypeID] || "🐾"}
-                    </span>
-                    <div className="home-booking-info">
-                      <span className="home-booking-service">
-                        {SERVICE_NAMES[b.serviceTypeID] || b.serviceTypeID}
+
+                {!bookingsLoading &&
+                  groupedRecentBookings.map((group) => (
+                    <div key={group.groupKey} className="home-booking-card">
+                      <span className="home-booking-avatar">
+                        {SERVICE_EMOJI[group.serviceTypeID] || "🐾"}
                       </span>
-                      <span className="home-booking-time">
-                        {formatBookingTime(b.startTime)}
+
+                      <div className="home-booking-info">
+                        <span className="home-booking-service">
+                          {SERVICE_NAMES[group.serviceTypeID] || group.serviceTypeID}
+                        </span>
+
+                        <span className="home-booking-time">
+                          {getRecentBookingDateText(group)}
+                        </span>
+
+                        <span className="home-booking-time">
+                          {formatTimeOnly(group.startTime)}
+                        </span>
+                      </div>
+
+                      <span
+                        className={`home-booking-badge home-booking-badge--${String(group.status).toLowerCase()}`}
+                      >
+                        {getStatusLabel(group.status)}
                       </span>
                     </div>
-                    <span className={`home-booking-badge home-booking-badge--${b.status.toLowerCase()}`}>
-                      {b.status}
-                    </span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </section>
 
