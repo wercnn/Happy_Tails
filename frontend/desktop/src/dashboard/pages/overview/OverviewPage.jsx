@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { C } from "../../constants.js";
 import { Badge, StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
@@ -7,15 +8,67 @@ import { StatCard } from "../../components/statCard/StatCard.jsx";
 import "./OverviewPage.css";
 
 export default function OverviewPage() {
-  const stats = [
-    { icon: "⚖️", label: "Open Disputes", value: "6", delta: "+2", deltaUp: false, color: C.red },
-    { icon: "🚨", label: "Open Incidents", value: "7", delta: "+2", deltaUp: false, color: C.red },
-    { icon: "🕵️", label: "Pending Verifications", value: "23", delta: "-5", deltaUp: true, color: C.navy },
-    { icon: "💳", label: "Refund Requests", value: "9", delta: "+3", deltaUp: false, color: C.orange },
-    { icon: "⭐", label: "Flagged Reviews", value: "7", delta: "+1", deltaUp: false, color: C.yellow },
-    { icon: "📋", label: "Active Bookings", value: "387", delta: "+42", deltaUp: true, color: C.blue },
-  ];
+  const [statsData, setStatsData] = useState(null);
 
+  // 🔌 FETCH DATA FROM BACKEND
+  useEffect(() => {
+    fetch("http://localhost:3000/api/stats", {
+      headers: {
+        "X-User-Id": "u-support-001",
+        "X-User-Role": "support",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Stats:", data);
+        setStatsData(data);
+      })
+      .catch((err) => console.error("Error fetching stats:", err));
+  }, []);
+
+  // 🧠 BUILD STATS FROM API
+  const stats = statsData
+    ? [
+        {
+          icon: "⚖️",
+          label: "Open Disputes",
+          value: statsData.openDisputes,
+          color: C.red,
+        },
+        {
+          icon: "🚨",
+          label: "Open Incidents",
+          value: statsData.openIncidents,
+          color: C.red,
+        },
+        {
+          icon: "🕵️",
+          label: "Pending Verifications",
+          value: statsData.pendingVerifications,
+          color: C.navy,
+        },
+        {
+          icon: "💳",
+          label: "Refund Requests",
+          value: statsData.refundRequests,
+          color: C.orange,
+        },
+        {
+          icon: "⭐",
+          label: "Flagged Reviews",
+          value: statsData.flaggedReviews,
+          color: C.yellow,
+        },
+        {
+          icon: "📋",
+          label: "Active Bookings",
+          value: statsData.activeBookings,
+          color: C.blue,
+        },
+      ]
+    : [];
+
+  // ⛔ keep static for now (you can connect later)
   const recentBookings = [
     { id: "#HT-8801", owner: "Sarah J.", minder: "James W.", service: "Dog Walking", date: "Today 9am", status: "confirmed" },
     { id: "#HT-8802", owner: "Mike T.", minder: "Priya P.", service: "Pet Sitting", date: "Today 2pm", status: "pending" },
@@ -24,18 +77,12 @@ export default function OverviewPage() {
   ];
 
   const alerts = [
-    { icon: "⚖️", text: "Dispute #DSP-101 opened — refund requested for booking #HT-8801", time: "4 min ago" },
-    { icon: "🚨", text: "Incident #INC-042 escalated — Buddy reported injured", time: "5 min ago" },
-    { icon: "🕵️", text: "3 new minder identity verifications awaiting review", time: "1 hr ago" },
-    { icon: "⭐", text: "Review #RV-281 flagged for abusive language", time: "2 hr ago" },
-    { icon: "💳", text: "Refund request #REF-119 submitted by Sarah J.", time: "3 hr ago" },
+    { icon: "⚖️", text: "Dispute opened", time: "4 min ago" },
+    { icon: "🚨", text: "Incident escalated", time: "5 min ago" },
+    { icon: "🕵️", text: "New verifications pending", time: "1 hr ago" },
   ];
 
-  const chartValues = [
-    12, 18, 15, 22, 28, 20, 35, 30, 42, 38,
-    45, 52, 48, 60, 55, 58, 65, 70, 62, 68,
-    72, 80, 75, 82, 88, 79, 90, 95, 88, 92,
-  ];
+  const chartValues = [12, 18, 15, 22, 28, 20, 35, 30, 42, 38];
 
   const pageVars = {
     "--overview-navy": C.navy,
@@ -50,26 +97,25 @@ export default function OverviewPage() {
     <div className="overview-page" style={pageVars}>
       <SectionHeader
         title="Support Overview"
-        subtitle="Track disputes, refunds and verification activity across the platform."
+        subtitle="Live data from database"
       />
 
+      {/* ✅ STATS */}
       <div className="overview-page__stats-grid">
-        {stats.map((s) => (
-          <StatCard key={s.label} {...s} />
-        ))}
+        {statsData ? (
+          stats.map((s) => <StatCard key={s.label} {...s} />)
+        ) : (
+          <p>Loading stats...</p>
+        )}
       </div>
 
       <div className="overview-page__top-grid">
+        {/* CHART */}
         <Card style={{ padding: 20 }}>
           <div className="overview-page__card-header">
-            <div>
-              <h3 className="overview-page__card-title">Support Case Activity</h3>
-              <p className="overview-page__card-subtitle">
-                Daily support workload across bookings and disputes
-              </p>
-            </div>
+            <h3>Support Activity</h3>
             <Badge color={C.green} bg={C.greenLight}>
-              ↑ 18% vs last month
+              Live
             </Badge>
           </div>
 
@@ -79,55 +125,41 @@ export default function OverviewPage() {
                 key={i}
                 className="overview-page__chart-bar"
                 style={{
-                  "--overview-chart-bar-height": `${(v / 95) * 100}%`,
-                  "--overview-chart-bar-bg": i >= 27 ? C.orange : C.orangeMid,
+                  "--overview-chart-bar-height": `${v}%`,
+                  "--overview-chart-bar-bg": C.orange,
                 }}
               />
             ))}
           </div>
-
-          <div className="overview-page__chart-labels">
-            <span>1 Mar</span>
-            <span>15 Mar</span>
-            <span>29 Mar</span>
-          </div>
         </Card>
 
+        {/* ALERTS */}
         <Card style={{ padding: 20 }}>
-          <h3 className="overview-page__alerts-title">🔔 Live Alerts</h3>
-
+          <h3>🔔 Live Alerts</h3>
           {alerts.map((a, i) => (
-            <div
-              key={i}
-              className="overview-page__alert-item"
-              style={{
-                "--overview-alert-border":
-                  i < alerts.length - 1 ? `1px solid ${C.border}` : "none",
-              }}
-            >
-              <span className="overview-page__alert-icon">{a.icon}</span>
-              <div className="overview-page__alert-content">
-                <p className="overview-page__alert-text">{a.text}</p>
-                <p className="overview-page__alert-time">{a.time}</p>
+            <div key={i} className="overview-page__alert-item">
+              <span>{a.icon}</span>
+              <div>
+                <p>{a.text}</p>
+                <p>{a.time}</p>
               </div>
             </div>
           ))}
         </Card>
       </div>
 
+      {/* BOOKINGS TABLE */}
       <Card>
         <div className="overview-page__table-header">
-          <h3 className="overview-page__table-title">Recent Bookings</h3>
-          <Btn variant="ghost" small>
-            View All →
-          </Btn>
+          <h3>Recent Bookings</h3>
+          <Btn variant="ghost" small>View All →</Btn>
         </div>
 
         <table className="overview-page__table">
           <thead>
             <tr>
               <Th>ID</Th>
-              <Th>Pet Owner</Th>
+              <Th>Owner</Th>
               <Th>Minder</Th>
               <Th>Service</Th>
               <Th>Date</Th>
@@ -135,23 +167,18 @@ export default function OverviewPage() {
               <Th>Action</Th>
             </tr>
           </thead>
+
           <tbody>
             {recentBookings.map((b) => (
-              <tr key={b.id} className="overview-page__table-row">
-                <Td>
-                  <span className="overview-page__booking-id">{b.id}</span>
-                </Td>
+              <tr key={b.id}>
+                <Td>{b.id}</Td>
                 <Td>{b.owner}</Td>
                 <Td>{b.minder}</Td>
                 <Td>{b.service}</Td>
                 <Td>{b.date}</Td>
+                <Td><StatusBadge status={b.status} /></Td>
                 <Td>
-                  <StatusBadge status={b.status} />
-                </Td>
-                <Td>
-                  <Btn variant="outline" small>
-                    View
-                  </Btn>
+                  <Btn variant="outline" small>View</Btn>
                 </Td>
               </tr>
             ))}
