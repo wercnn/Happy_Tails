@@ -246,43 +246,51 @@ export default function HappyTailsBookingSummary() {
 
   const handleConfirmBooking = async () => {
     try {
-      setSubmitting(true);
-
-      const serviceTypeID = getServiceTypeId(service);
-
       if (!minder?.sitterID) throw new Error("Missing minder.");
-      if (!serviceTypeID) throw new Error("Missing service.");
+      if (!service?.serviceTypeID) throw new Error("Missing service.");
       if (!petData?.petID) throw new Error("Missing pet.");
       if (!selectedSlots?.length) throw new Error("No dates selected.");
 
-      const locationPayload = getLocationPayload(minder, selectedLocation);
-      const createdBookings = [];
+      const locationPayload = {
+        postcode: minder?.postcode || "Unknown",
+        street: null,
+        city: minder?.city || null,
+        county: null,
+        country: "UK",
+      };
 
-      for (const slot of selectedSlots) {
-        if (!slot?.slotID) {
-          throw new Error("A selected slot is missing its slot ID.");
-        }
+      // keep only one slot per calendar date
+      const uniqueSlots = [
+        ...new Map(
+          selectedSlots
+            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+            .map((slot) => [String(slot.startTime).slice(0, 10), slot])
+        ).values(),
+      ];
 
-        const res = await fetch(`${API_BASE}/api/bookings`, {
+      for (const slot of uniqueSlots) {
+        const res = await fetch("http://localhost:3000/api/bookings", {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-Id": localStorage.getItem("userID") || "",
+            "X-User-Role": localStorage.getItem("userRole") || "",
+          },
           body: JSON.stringify({
             sitterID: minder.sitterID,
             petID: petData.petID,
             slotID: slot.slotID,
-            serviceTypeID,
+            serviceTypeID: service.serviceTypeID,
             location: locationPayload,
             ownerNotes: notes || "",
           }),
         });
 
-        const data = await res.json().catch(() => ({}));
+        const data = await res.json();
 
         if (!res.ok) {
           throw new Error(data.error || "Failed to send booking request.");
         }
-
-        createdBookings.push(data);
       }
 
       navigate("/requestSent", {
@@ -294,13 +302,10 @@ export default function HappyTailsBookingSummary() {
           time: booking.time,
           location: booking.location,
           total: booking.total,
-          bookings: createdBookings,
         },
       });
     } catch (err) {
       alert(err.message || "Could not send booking request.");
-    } finally {
-      setSubmitting(false);
     }
   };
 

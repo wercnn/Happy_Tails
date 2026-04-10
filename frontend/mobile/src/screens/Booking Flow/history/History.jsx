@@ -152,10 +152,9 @@ function isThisMonth(dateStr) {
   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
 }
 
-function getCreatedMinuteKey(createdAt) {
+function getCreatedGroupKey(createdAt) {
   if (!createdAt) return "no-created-at";
-  const d = toDate(createdAt);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return String(createdAt);
 }
 
 function groupBookings(bookings) {
@@ -169,7 +168,7 @@ function groupBookings(bookings) {
       b.serviceTypeID,
       String(b.status || "").toLowerCase(),
       b.ownerNotes || "",
-      getCreatedMinuteKey(b.createdAt),
+      getCreatedGroupKey(b.createdAt),
     ].join("|");
 
     if (!groups.has(key)) {
@@ -182,30 +181,48 @@ function groupBookings(bookings) {
         status: String(b.status || "").toLowerCase(),
         startTime: b.startTime,
         createdAt: b.createdAt,
-        totalCost: 0,
+        subtotal: 0,
       });
     }
 
     const group = groups.get(key);
-    group.bookingIDs.push(b.bookingID);
-    group.bookings.push(b);
-    group.totalCost += Number(b.totalCost || 0);
 
-    const currentStart = toDate(group.startTime);
-    const nextStart = toDate(b.startTime);
-    if (nextStart < currentStart) {
-      group.startTime = b.startTime;
-      group.bookingID = b.bookingID;
+    if (!group.bookingIDs.includes(b.bookingID)) {
+      group.bookingIDs.push(b.bookingID);
+      group.bookings.push(b);
+      group.subtotal += Number(b.totalCost || 0);
+
+      const currentStart = toDate(group.startTime);
+      const nextStart = toDate(b.startTime);
+      if (nextStart < currentStart) {
+        group.startTime = b.startTime;
+        group.bookingID = b.bookingID;
+      }
     }
   }
 
   return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      dates: group.bookings
-        .map((b) => b.startTime)
-        .sort((a, b) => toDate(a) - toDate(b)),
-    }))
+    .map((group) => {
+      const uniqueBookings = group.bookings
+        .filter((b, index, arr) => arr.findIndex((x) => x.bookingID === b.bookingID) === index)
+        .sort((a, b) => toDate(a.startTime) - toDate(b.startTime));
+
+      const subtotal = Number(group.subtotal || 0);
+      const platformFee = Number((subtotal * 0.05).toFixed(2));
+      const total = Number((subtotal + platformFee).toFixed(2));
+
+      return {
+        ...group,
+        subtotal,
+        platformFee,
+        total,
+        dates: [
+          ...new Map(
+            uniqueBookings.map((b) => [String(b.startTime).slice(0, 10), b.startTime])
+          ).values(),
+        ],
+      };
+    })
     .sort((a, b) => toDate(b.startTime) - toDate(a.startTime));
 }
 
@@ -347,7 +364,7 @@ export default function HappyTailsBookingHistory() {
                   </span>
 
                   <span className="bh-card-meta">
-                    {formatTimeOnly(group.startTime)} · £{Number(group.totalCost || 0).toFixed(2)}
+                    {formatTimeOnly(group.startTime)} · £{Number(group.total || 0).toFixed(2)}
                   </span>
                 </div>
 
