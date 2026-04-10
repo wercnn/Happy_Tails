@@ -7,7 +7,8 @@ import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx"
 import "./DisputesPage.css";
 
 export default function DisputesPage() {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState("#DSP-101");
+  const [disputesData, setDisputesData] = useState(disputes);
 
   const disputes = [
     {
