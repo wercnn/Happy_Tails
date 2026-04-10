@@ -4,52 +4,52 @@ import "./History.css";
 
 const API_BASE = "http://localhost:3000";
 
-// Statuses shown on this screen (API value → display label)
-const SHOWN_STATUSES = ["accepted", "completed", "cancelled"];
+const SHOWN_STATUSES = ["pending", "accepted", "completed", "cancelled"];
 
 const SERVICE_NAMES = {
-  "st-walk":    "Dog Walking",
-  "st-board":   "Pet Boarding",
+  "st-walk": "Dog Walking",
+  "st-board": "Pet Boarding",
   "st-daycare": "Dog Daycare",
 };
 
 const SERVICE_EMOJI = {
-  "st-walk":    "🚶",
-  "st-board":   "🏠",
+  "st-walk": "🚶",
+  "st-board": "🏠",
   "st-daycare": "🐾",
 };
 
-// API returns "accepted"; the UI treats it as "confirmed"
 const STATUS_STYLE = {
-  accepted:  { cls: "bh-badge--confirmed", label: "confirmed" },
+  pending: { cls: "bh-badge--pending", label: "pending" },
+  accepted: { cls: "bh-badge--confirmed", label: "confirmed" },
   completed: { cls: "bh-badge--completed", label: "completed" },
   cancelled: { cls: "bh-badge--cancelled", label: "cancelled" },
 };
 
 const NAV = [
-  { id: "home",     emoji: "🏠", label: "Home" },
-  { id: "pets",     emoji: "🐾", label: "My Pets" },
-  { id: "search",   emoji: "🔍", label: "Search" },
+  { id: "home", emoji: "🏠", label: "Home" },
+  { id: "pets", emoji: "🐾", label: "My Pets" },
+  { id: "search", emoji: "🔍", label: "Search" },
   { id: "bookings", emoji: "📋", label: "Bookings" },
-  { id: "profile",  emoji: "👤", label: "Profile" },
+  { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
 const SERVICE_OPTIONS = [
-  { value: "all",       label: "All Services" },
-  { value: "st-walk",   label: "Dog Walking" },
-  { value: "st-board",  label: "Pet Boarding" },
-  { value: "st-daycare",label: "Dog Daycare" },
+  { value: "all", label: "All Services" },
+  { value: "st-walk", label: "Dog Walking" },
+  { value: "st-board", label: "Pet Boarding" },
+  { value: "st-daycare", label: "Dog Daycare" },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "all",      label: "All Statuses" },
+  { value: "all", label: "All Statuses" },
+  { value: "pending", label: "Pending" },
   { value: "accepted", label: "Confirmed" },
-  { value: "completed",label: "Completed" },
-  { value: "cancelled",label: "Cancelled" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const DATE_OPTIONS = [
-  { value: "all",       label: "All Dates" },
+  { value: "all", label: "All Dates" },
   { value: "next7days", label: "Next 7 Days" },
   { value: "thisMonth", label: "This Month" },
 ];
@@ -57,7 +57,7 @@ const DATE_OPTIONS = [
 function getAuthHeaders() {
   return {
     "Content-Type": "application/json",
-    "x-user-id":   localStorage.getItem("userID")   || "",
+    "x-user-id": localStorage.getItem("userID") || "",
     "x-user-role": localStorage.getItem("userRole") || "",
   };
 }
@@ -97,7 +97,10 @@ function CustomFilterDropdown({ label, value, options, onChange }) {
               key={option.value}
               type="button"
               className={`bh-custom-filter-option${value === option.value ? " bh-custom-filter-option--selected" : ""}`}
-              onClick={() => { onChange(option.value); setOpen(false); }}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
             >
               {option.label}
             </button>
@@ -108,23 +111,116 @@ function CustomFilterDropdown({ label, value, options, onChange }) {
   );
 }
 
+function toDate(dateStr) {
+  return new Date(String(dateStr).replace(" ", "T"));
+}
+
+function formatDateTime(dateStr) {
+  return toDate(dateStr).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatDateOnly(dateStr) {
+  return toDate(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function isWithinNext7Days(dateStr) {
+  const now = new Date();
+  const date = toDate(dateStr);
+  const end = new Date();
+  end.setDate(now.getDate() + 7);
+  return date >= now && date <= end;
+}
+
+function isThisMonth(dateStr) {
+  const date = toDate(dateStr);
+  const now = new Date();
+  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+}
+
+function getCreatedMinuteKey(createdAt) {
+  if (!createdAt) return "no-created-at";
+  const d = toDate(createdAt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function groupBookings(bookings) {
+  const groups = new Map();
+
+  for (const b of bookings) {
+    const key = [
+      b.ownerID,
+      b.sitterID,
+      b.petID,
+      b.serviceTypeID,
+      String(b.status || "").toLowerCase(),
+      b.ownerNotes || "",
+      getCreatedMinuteKey(b.createdAt),
+    ].join("|");
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        groupKey: key,
+        bookingIDs: [],
+        bookings: [],
+        bookingID: b.bookingID,
+        serviceTypeID: b.serviceTypeID,
+        status: String(b.status || "").toLowerCase(),
+        startTime: b.startTime,
+        createdAt: b.createdAt,
+        totalCost: 0,
+      });
+    }
+
+    const group = groups.get(key);
+    group.bookingIDs.push(b.bookingID);
+    group.bookings.push(b);
+    group.totalCost += Number(b.totalCost || 0);
+
+    const currentStart = toDate(group.startTime);
+    const nextStart = toDate(b.startTime);
+    if (nextStart < currentStart) {
+      group.startTime = b.startTime;
+      group.bookingID = b.bookingID;
+    }
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      dates: group.bookings
+        .map((b) => b.startTime)
+        .sort((a, b) => toDate(a) - toDate(b)),
+    }))
+    .sort((a, b) => toDate(b.startTime) - toDate(a.startTime));
+}
+
 export default function HappyTailsBookingHistory() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("bookings");
 
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [serviceFilter, setServiceFilter] = useState("all");
-  const [statusFilter, setStatusFilter]   = useState("all");
-  const [dateFilter, setDateFilter]       = useState("all");
-  const [showFilters, setShowFilters]     = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const activeFilterCount = [
     serviceFilter !== "all",
-    statusFilter  !== "all",
-    dateFilter    !== "all",
+    statusFilter !== "all",
+    dateFilter !== "all",
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -136,99 +232,121 @@ export default function HappyTailsBookingHistory() {
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const res = await fetch(`${API_BASE}/api/bookings`, {
         headers: getAuthHeaders(),
       });
+
       if (!res.ok) throw new Error(`Failed to fetch bookings (${res.status})`);
+
       const data = await res.json();
-      // Keep only the three statuses relevant to this screen
-      setBookings(data.filter((b) => SHOWN_STATUSES.includes(b.status)));
+
+      setBookings(
+        Array.isArray(data)
+          ? data.filter((b) => SHOWN_STATUSES.includes(String(b.status).toLowerCase()))
+          : []
+      );
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to fetch bookings.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
+
     switch (id) {
-      case "home":     navigate("/ownerDash");    break;
-      case "pets":     navigate("/ownerPets");    break;
-      case "search":   navigate("/ownerSearch");  break;
-      case "bookings": navigate("/ownerBooking"); break;
-      case "profile":  navigate("/profile");      break;
-      default: break;
+      case "home":
+        navigate("/ownerDash");
+        break;
+      case "pets":
+        navigate("/ownerPets");
+        break;
+      case "search":
+        navigate("/ownerSearch");
+        break;
+      case "bookings":
+        navigate("/ownerBooking");
+        break;
+      case "profile":
+        navigate("/profile");
+        break;
+      default:
+        break;
     }
-  };
-
-  const isWithinNext7Days = (dateStr) => {
-    const now  = new Date();
-    const date = new Date(dateStr.replace(" ", "T"));
-    const end  = new Date();
-    end.setDate(now.getDate() + 7);
-    return date >= now && date <= end;
-  };
-
-  const isThisMonth = (dateStr) => {
-    const date = new Date(dateStr.replace(" ", "T"));
-    const now  = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   };
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
+      const status = String(b.status || "").toLowerCase();
+
       if (serviceFilter !== "all" && b.serviceTypeID !== serviceFilter) return false;
-      if (statusFilter  !== "all" && b.status        !== statusFilter)  return false;
+      if (statusFilter !== "all" && status !== statusFilter) return false;
       if (dateFilter === "next7days" && !isWithinNext7Days(b.startTime)) return false;
-      if (dateFilter === "thisMonth" && !isThisMonth(b.startTime))       return false;
+      if (dateFilter === "thisMonth" && !isThisMonth(b.startTime)) return false;
+
       return true;
     });
   }, [bookings, serviceFilter, statusFilter, dateFilter]);
 
-  const groupedBookings = {
-    accepted:  filteredBookings.filter((b) => b.status === "accepted"),
-    completed: filteredBookings.filter((b) => b.status === "completed"),
-    cancelled: filteredBookings.filter((b) => b.status === "cancelled"),
-  };
+  const groupedCards = useMemo(() => groupBookings(filteredBookings), [filteredBookings]);
 
-  const formatDate = (dateStr) =>
-    new Date(dateStr.replace(" ", "T")).toLocaleString("en-GB", {
-      day: "numeric", month: "short", year: "numeric",
-      hour: "numeric", minute: "2-digit",
-    });
+  const groupedByStatus = useMemo(() => {
+    return {
+      pending: groupedCards.filter((g) => g.status === "pending"),
+      accepted: groupedCards.filter((g) => g.status === "accepted"),
+      completed: groupedCards.filter((g) => g.status === "completed"),
+      cancelled: groupedCards.filter((g) => g.status === "cancelled"),
+    };
+  }, [groupedCards]);
 
   const renderSection = (title, apiStatus, items) => (
     <section className="bh-section" key={apiStatus}>
       <h2 className="bh-section-title">{title}</h2>
+
       {items.length > 0 ? (
         <div className="bh-section-list">
-          {items.map((b) => {
-            const { cls, label } = STATUS_STYLE[b.status] || {};
+          {items.map((group) => {
+            const { cls, label } = STATUS_STYLE[group.status] || {};
+            const serviceLabel =
+              SERVICE_NAMES[group.serviceTypeID] || group.serviceTypeID || "Service";
+
             return (
               <button
-                key={b.bookingID}
+                key={group.groupKey}
                 className="bh-card"
-                onClick={() => navigate("/ownerBooking", { state: { booking: b } })}
+                onClick={() =>
+                  navigate("/ownerBooking", {
+                    state: { booking: group.bookings[0], bookings: group.bookings, grouped: true },
+                  })
+                }
+                type="button"
               >
                 <span className="bh-card-avatar">
-                  {SERVICE_EMOJI[b.serviceTypeID] || "🐾"}
+                  {SERVICE_EMOJI[group.serviceTypeID] || "🐾"}
                 </span>
+
                 <div className="bh-card-info">
-                  <span className="bh-card-service">
-                    {SERVICE_NAMES[b.serviceTypeID] || b.serviceTypeID}
+                  <span className="bh-card-service">{serviceLabel}</span>
+
+                  <span className="bh-card-date">
+                    {group.dates.length === 1
+                      ? formatDateTime(group.dates[0])
+                      : `${group.dates.length} dates: ${group.dates.map(formatDateOnly).join(", ")}`}
                   </span>
-                  <span className="bh-card-date">{formatDate(b.startTime)}</span>
-                  {b.totalCost != null && (
-                    <span className="bh-card-meta">
-                      £{Number(b.totalCost).toFixed(2)}
-                    </span>
-                  )}
+
+                  <span className="bh-card-meta">
+                    £{Number(group.totalCost || 0).toFixed(2)}
+                  </span>
                 </div>
-                <span className={`bh-badge ${cls}`}>{label}</span>
+
+                <span className={`bh-badge ${cls || ""}`}>{label || group.status}</span>
               </button>
             );
           })}
@@ -249,9 +367,8 @@ export default function HappyTailsBookingHistory() {
 
           <div className="bh-scroll">
             <div className="bh-body">
-
               {loading && <p className="bh-empty">Loading...</p>}
-              {error   && <p className="bh-empty">{error}</p>}
+              {error && <p className="bh-empty">{error}</p>}
 
               {!loading && !error && (
                 <>
@@ -280,6 +397,7 @@ export default function HappyTailsBookingHistory() {
                             Clear Filters
                           </button>
                         </div>
+
                         <div className="bh-filters">
                           <CustomFilterDropdown
                             label="Service"
@@ -306,20 +424,20 @@ export default function HappyTailsBookingHistory() {
 
                   {statusFilter === "all" ? (
                     <>
-                      {renderSection("Confirmed", "accepted",  groupedBookings.accepted)}
-                      {renderSection("Completed", "completed", groupedBookings.completed)}
-                      {renderSection("Cancelled", "cancelled", groupedBookings.cancelled)}
+                      {renderSection("Pending", "pending", groupedByStatus.pending)}
+                      {renderSection("Confirmed", "accepted", groupedByStatus.accepted)}
+                      {renderSection("Completed", "completed", groupedByStatus.completed)}
+                      {renderSection("Cancelled", "cancelled", groupedByStatus.cancelled)}
                     </>
                   ) : (
                     renderSection(
                       STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label || statusFilter,
                       statusFilter,
-                      filteredBookings
+                      groupedCards.filter((g) => g.status === statusFilter)
                     )
                   )}
                 </>
               )}
-
             </div>
           </div>
 
@@ -329,6 +447,7 @@ export default function HappyTailsBookingHistory() {
                 key={item.id}
                 className={`bh-nav-item${activeNav === item.id ? " bh-nav-item--active" : ""}`}
                 onClick={() => handleNavClick(item.id)}
+                type="button"
               >
                 <span className="bh-nav-emoji">{item.emoji}</span>
                 <span className="bh-nav-label">{item.label}</span>
