@@ -138,6 +138,15 @@ function formatTimeOnly(dateStr) {
   });
 }
 
+function getOwnerSelectedTimeLabel(booking) {
+  return booking?.selectedTime || null;
+}
+
+function getDisplayedBookingTime(group) {
+  if (group?.selectedTime) return group.selectedTime;
+  return formatTimeOnly(group.startTime);
+}
+
 function isWithinNext7Days(dateStr) {
   const now = new Date();
   const date = toDate(dateStr);
@@ -182,6 +191,7 @@ function groupBookings(bookings) {
         startTime: b.startTime,
         createdAt: b.createdAt,
         subtotal: 0,
+        selectedTime: getOwnerSelectedTimeLabel(b),
       });
     }
 
@@ -191,6 +201,10 @@ function groupBookings(bookings) {
       group.bookingIDs.push(b.bookingID);
       group.bookings.push(b);
       group.subtotal += Number(b.totalCost || 0);
+
+      if (!group.selectedTime && getOwnerSelectedTimeLabel(b)) {
+        group.selectedTime = getOwnerSelectedTimeLabel(b);
+      }
 
       const currentStart = toDate(group.startTime);
       const nextStart = toDate(b.startTime);
@@ -364,7 +378,7 @@ export default function HappyTailsBookingHistory() {
                   </span>
 
                   <span className="bh-card-meta">
-                    {formatTimeOnly(group.startTime)} · £{Number(group.total || 0).toFixed(2)}
+                    {getDisplayedBookingTime(group)} · £{Number(group.total || 0).toFixed(2)}
                   </span>
                 </div>
 

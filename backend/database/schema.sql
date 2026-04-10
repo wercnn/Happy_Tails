@@ -328,9 +328,10 @@ CREATE TABLE BOOKING (
     status              VARCHAR(50)     NOT NULL DEFAULT 'Pending',
     startTime           DATETIME        NOT NULL,
     endTime             DATETIME        NOT NULL,
+    selectedTime        VARCHAR(20),                                -- pet owner's selected time label, e.g. '9:00 AM'
     totalCost           DECIMAL(10,2)   NOT NULL,
-    ownerNotes          TEXT,                                       -- #3: owner instructions at booking time
-    cancellationReason  VARCHAR(255),                               -- #4: reason selected on CancelBookingScreen
+    ownerNotes          TEXT,
+    cancellationReason  VARCHAR(255),
     createdAt           DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_BOOKING PRIMARY KEY (bookingID),
     CONSTRAINT FK_BOOKING_OWNER FOREIGN KEY (ownerID)
