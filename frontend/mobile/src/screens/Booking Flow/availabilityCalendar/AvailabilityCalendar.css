@@ -74,38 +74,39 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   overflow: hidden;
 }
 
-/* ── Month heading + navigation ── */
-.cal-month-nav {
+/* ── Month tab toggle ── */
+.cal-month-tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
-.cal-month-arrow {
-  background: none;
-  border: none;
-  font-size: 1.4rem;
-  color: #f97316;
+.cal-month-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  line-height: 1;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.cal-month-arrow:disabled {
-  color: #d1d5db;
-  cursor: not-allowed;
+.cal-month-tab--active {
+  border-color: #f97316;
+  background: #f97316;
+  color: #fff;
 }
 
+/* ── Month heading ── */
 .cal-month {
-  margin: 0;
+  margin: 0 0 6px;
   font-size: 1.1rem;
   font-weight: 800;
   color: #1a1a1a;
   text-align: center;
-  flex: 1;
 }
 
 /* ── Loading / error status ── */

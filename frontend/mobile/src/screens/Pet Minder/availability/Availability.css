@@ -66,6 +66,31 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   gap: 20px;
 }
 
+/* ── Month tab toggle ── */
+.av-month-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.av-month-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.av-month-tab--active {
+  border-color: #f97316;
+  background: #f97316;
+  color: #fff;
+}
+
 /* ── Sections ── */
 .av-section { display: flex; flex-direction: column; gap: 14px; }
 
