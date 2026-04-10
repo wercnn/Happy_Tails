@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./Notifications.css";
+import { useNavigate } from "react-router-dom";
 
 const INITIAL_NOTIFICATIONS = [
   {
@@ -49,8 +50,34 @@ const NAV = [
 ];
 
 export default function HappyTailsNotifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [activeNav, setActiveNav] = useState("home");
+
+  const handleNavClick = (id) => {
+    setActiveNav(id);
+
+    switch (id) {
+      case "home":
+        navigate("/ownerDash");
+        break;
+      case "pets":
+        navigate("/ownerPets");
+        break;
+      case "search":
+        navigate("/ownerSearch");
+        break;
+      case "bookings":
+        navigate("/ownerBooking");
+        break;
+      case "profile":
+        navigate("/profile");
+        break;
+      default:
+        alert("Placeholder route");
+        break;
+    }
+  };
 
   const markAllRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -68,7 +95,7 @@ export default function HappyTailsNotifications() {
           {/* Header */}
           <header className="notif-header">
             <div className="notif-header-left">
-              <button className="notif-back" onClick={() => alert("Go back")}>←</button>
+              <button className="notif-back" onClick={() => navigate("/ownerDash")}>←</button>
               <h1 className="notif-title">Notifications</h1>
             </div>
             <button className="notif-mark-all" onClick={markAllRead}>
@@ -105,7 +132,7 @@ export default function HappyTailsNotifications() {
               <button
                 key={item.id}
                 className={`notif-nav-item${activeNav === item.id ? " notif-nav-item--active" : ""}`}
-                onClick={() => setActiveNav(item.id)}
+                onClick={() => handleNavClick(item.id)}
               >
                 <span className="notif-nav-emoji">{item.emoji}</span>
                 <span className="notif-nav-label">{item.label}</span>

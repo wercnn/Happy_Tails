@@ -157,7 +157,7 @@ export default function HappyTailsHome() {
               <h1 className="home-greeting">Good morning 👋</h1>
               <p className="home-name">{ownerName}</p>
             </div>
-            <button className="home-bell-btn" onClick={() => alert("Notifications")}>
+            <button className="home-bell-btn" onClick={() => navigate("/notifications")}>
               🔔
             </button>
           </header>
