@@ -31,7 +31,15 @@ register('POST', '/api/bookings', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  const { sitterID, petID, slotID, serviceTypeID, location, ownerNotes } = body;
+  const {
+    sitterID,
+    petID,
+    slotID,
+    serviceTypeID,
+    location,
+    ownerNotes,
+    selectedTime,
+  } = body;
 
   if (!sitterID || !petID || !slotID || !serviceTypeID || !location?.postcode || !location?.country) {
     return badRequest(
@@ -93,8 +101,8 @@ register('POST', '/api/bookings', async (req, res, send) => {
 
   await db.query(
     `INSERT INTO BOOKING
-      (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, status, startTime, endTime, totalCost, ownerNotes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, status, startTime, endTime, selectedTime, totalCost, ownerNotes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       bookingID,
       ownerID,
@@ -106,8 +114,9 @@ register('POST', '/api/bookings', async (req, res, send) => {
       'pending',
       startTime,
       endTime,
+      selectedTime || null,
       totalCost,
-      ownerNotes,
+      ownerNotes || null,
     ]
   );
 

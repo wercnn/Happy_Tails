@@ -35,6 +35,8 @@ function getServiceTypeId(service) {
   return (
     service?.serviceTypeID ||
     service?.serviceTypeId ||
+    service?.raw?.serviceTypeID ||
+    service?.raw?.serviceTypeId ||
     service?.id ||
     null
   );
@@ -45,6 +47,7 @@ function getServiceName(service) {
     service?.name ||
     service?.description ||
     service?.title ||
+    service?.raw?.name ||
     "Service not selected"
   );
 }
@@ -56,6 +59,9 @@ function getServicePrice(service) {
     service.customPrice ??
     service.price ??
     service.basePrice ??
+    service?.raw?.customPrice ??
+    service?.raw?.price ??
+    service?.raw?.basePrice ??
     0;
 
   if (typeof raw === "number") return raw;
@@ -246,20 +252,18 @@ export default function HappyTailsBookingSummary() {
 
   const handleConfirmBooking = async () => {
     try {
+      setSubmitting(true);
+
+      const serviceTypeID = getServiceTypeId(service);
+
       if (!minder?.sitterID) throw new Error("Missing minder.");
-      if (!service?.serviceTypeID) throw new Error("Missing service.");
+      if (!serviceTypeID) throw new Error("Missing service.");
       if (!petData?.petID) throw new Error("Missing pet.");
       if (!selectedSlots?.length) throw new Error("No dates selected.");
+      if (!selectedTime) throw new Error("Missing selected time.");
 
-      const locationPayload = {
-        postcode: minder?.postcode || "Unknown",
-        street: null,
-        city: minder?.city || null,
-        county: null,
-        country: "UK",
-      };
+      const locationPayload = getLocationPayload(minder, selectedLocation);
 
-      // keep only one slot per calendar date
       const uniqueSlots = [
         ...new Map(
           selectedSlots
@@ -269,20 +273,17 @@ export default function HappyTailsBookingSummary() {
       ];
 
       for (const slot of uniqueSlots) {
-        const res = await fetch("http://localhost:3000/api/bookings", {
+        const res = await fetch(`${API_BASE}/api/bookings`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-User-Id": localStorage.getItem("userID") || "",
-            "X-User-Role": localStorage.getItem("userRole") || "",
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             sitterID: minder.sitterID,
             petID: petData.petID,
             slotID: slot.slotID,
-            serviceTypeID: service.serviceTypeID,
+            serviceTypeID,
             location: locationPayload,
             ownerNotes: notes || "",
+            selectedTime: selectedTime || "",
           }),
         });
 
@@ -306,6 +307,8 @@ export default function HappyTailsBookingSummary() {
       });
     } catch (err) {
       alert(err.message || "Could not send booking request.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
