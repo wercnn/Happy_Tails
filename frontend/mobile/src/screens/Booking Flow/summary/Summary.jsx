@@ -1,6 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Summary.css";
+
+const API_BASE = "http://localhost:3000";
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
 
 function formatDateLabel(dateKey) {
   if (!dateKey) return "Not selected";
@@ -19,6 +29,24 @@ function formatDateLabel(dateKey) {
 function formatPrice(value) {
   const num = Number(value || 0);
   return `£${num.toFixed(2)}`;
+}
+
+function getServiceTypeId(service) {
+  return (
+    service?.serviceTypeID ||
+    service?.serviceTypeId ||
+    service?.id ||
+    null
+  );
+}
+
+function getServiceName(service) {
+  return (
+    service?.name ||
+    service?.description ||
+    service?.title ||
+    "Service not selected"
+  );
 }
 
 function getServicePrice(service) {
@@ -52,14 +80,43 @@ function getPetName(petData, pet) {
 }
 
 function getLocationLabel(minder, locationState) {
-  if (locationState) return locationState;
+  if (typeof locationState === "string" && locationState.trim()) {
+    return locationState;
+  }
 
-  const parts = [
-    minder?.city,
-    minder?.postcode,
-  ].filter(Boolean);
+  if (locationState && typeof locationState === "object") {
+    const parts = [
+      locationState.street,
+      locationState.city,
+      locationState.postcode,
+      locationState.country,
+    ].filter(Boolean);
 
+    if (parts.length) return parts.join(", ");
+  }
+
+  const parts = [minder?.city, minder?.postcode].filter(Boolean);
   return parts.length ? parts.join(", ") : "Not provided";
+}
+
+function getLocationPayload(minder, locationState) {
+  if (locationState && typeof locationState === "object") {
+    return {
+      postcode: locationState.postcode || minder?.postcode || "Unknown",
+      street: locationState.street || null,
+      city: locationState.city || minder?.city || null,
+      county: locationState.county || null,
+      country: locationState.country || "UK",
+    };
+  }
+
+  return {
+    postcode: minder?.postcode || "Unknown",
+    street: null,
+    city: minder?.city || null,
+    county: null,
+    country: "UK",
+  };
 }
 
 function BookingSummaryCard({ booking }) {
@@ -152,13 +209,15 @@ export default function HappyTailsBookingSummary() {
   const selectedSlots = location.state?.selectedSlots || [];
   const selectedLocation = location.state?.location || null;
 
+  const [submitting, setSubmitting] = useState(false);
+
   const booking = useMemo(() => {
     const serviceCost = getServicePrice(service);
     const platformFee = Number((serviceCost * 0.05).toFixed(2));
     const total = Number((serviceCost + platformFee).toFixed(2));
 
     return {
-      service: service?.name || service?.description || "Service not selected",
+      service: getServiceName(service),
       minder: getMinderName(minder),
       pet: getPetName(petData, pet),
       dates: selectedDateKeys.map(formatDateLabel),
@@ -168,9 +227,8 @@ export default function HappyTailsBookingSummary() {
       serviceCost,
       platformFee,
       total,
-      selectedSlots,
     };
-  }, [service, minder, pet, petData, selectedDateKeys, selectedTime, selectedLocation, notes, selectedSlots]);
+  }, [service, minder, petData, pet, selectedDateKeys, selectedTime, selectedLocation, notes]);
 
   const handleBack = () => {
     navigate("/availabilityCalendar", {
@@ -181,31 +239,88 @@ export default function HappyTailsBookingSummary() {
         petData,
         notes,
         timeSlot: selectedTime,
+        location: selectedLocation,
       },
     });
   };
 
-  const handleConfirmBooking = () => {
-    navigate("/requestSent", {
-      state: {
-        minderName: booking.minder,
-        serviceName: booking.service,
-        petName: booking.pet,
-        dates: booking.dates,
-        time: booking.time,
-        location: booking.location,
-        total: booking.total,
-        selectedSlots,
-      },
-    });
+  const handleConfirmBooking = async () => {
+    try {
+      setSubmitting(true);
+
+      const serviceTypeID = getServiceTypeId(service);
+
+      if (!minder?.sitterID) throw new Error("Missing minder.");
+      if (!serviceTypeID) throw new Error("Missing service.");
+      if (!petData?.petID) throw new Error("Missing pet.");
+      if (!selectedSlots?.length) throw new Error("No dates selected.");
+
+      const locationPayload = getLocationPayload(minder, selectedLocation);
+      const createdBookings = [];
+
+      for (const slot of selectedSlots) {
+        if (!slot?.slotID) {
+          throw new Error("A selected slot is missing its slot ID.");
+        }
+
+        const res = await fetch(`${API_BASE}/api/bookings`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            sitterID: minder.sitterID,
+            petID: petData.petID,
+            slotID: slot.slotID,
+            serviceTypeID,
+            location: locationPayload,
+            ownerNotes: notes || "",
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to send booking request.");
+        }
+
+        createdBookings.push(data);
+      }
+
+      navigate("/requestSent", {
+        state: {
+          minderName: booking.minder,
+          serviceName: booking.service,
+          petName: booking.pet,
+          dates: booking.dates,
+          time: booking.time,
+          location: booking.location,
+          total: booking.total,
+          bookings: createdBookings,
+        },
+      });
+    } catch (err) {
+      alert(err.message || "Could not send booking request.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const confirmDisabled =
+    submitting ||
+    !minder?.sitterID ||
+    !getServiceTypeId(service) ||
+    !petData?.petID ||
+    selectedDateKeys.length === 0 ||
+    !selectedTime ||
+    selectedSlots.length === 0;
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="bs-screen">
           <header className="bs-header">
-            <button className="bs-back" onClick={handleBack} type="button">←</button>
+            <button className="bs-back" onClick={handleBack} type="button">
+              ←
+            </button>
             <h1 className="bs-title">Booking Summary</h1>
           </header>
 
@@ -220,9 +335,9 @@ export default function HappyTailsBookingSummary() {
               className="bs-confirm-btn"
               onClick={handleConfirmBooking}
               type="button"
-              disabled={!service || !minder || selectedDateKeys.length === 0 || !selectedTime}
+              disabled={confirmDisabled}
             >
-              CONFIRM BOOKING →
+              {submitting ? "SENDING..." : "CONFIRM BOOKING →"}
             </button>
           </div>
         </div>

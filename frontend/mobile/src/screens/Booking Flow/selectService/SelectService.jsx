@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SelectService.css";
 
+const API_BASE = "http://localhost:3000";
+
 const getServiceEmoji = (serviceName) => {
   const lower = (serviceName || "").toLowerCase();
 
@@ -32,7 +34,7 @@ export default function HappyTailsSelectService() {
 
     const loadMinderServices = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/minders/${sitterID}`, {
+        const res = await fetch(`${API_BASE}/api/minders/${sitterID}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -54,14 +56,19 @@ export default function HappyTailsSelectService() {
           .filter((service) => service.isActive !== false)
           .map((service) => ({
             id: service.minderServiceID || service.serviceTypeID,
+            minderServiceID: service.minderServiceID || null,
+            serviceTypeID: service.serviceTypeID || null,
             emoji: getServiceEmoji(service.name),
             name: service.name,
+            description: service.description || "",
+            customPrice: service.customPrice ?? null,
+            basePrice: service.basePrice ?? null,
             price:
               service.customPrice != null
                 ? `£${service.customPrice}`
                 : service.basePrice != null
-                ? `£${service.basePrice}`
-                : "Price unavailable",
+                  ? `£${service.basePrice}`
+                  : "Price unavailable",
             unit: "/hr",
             raw: service,
           }));
@@ -91,6 +98,7 @@ export default function HappyTailsSelectService() {
     if (!selected) return;
 
     const selectedService = services.find((svc) => svc.id === selected);
+    if (!selectedService) return;
 
     navigate("/selectDates", {
       state: {
