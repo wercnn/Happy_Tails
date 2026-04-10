@@ -18,7 +18,7 @@ require('./routes/users');
 const server = http.createServer((req, res) => {
   // CORS headers — allow the React frontend to call this server from any origin
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Id, X-User-Role');
   res.setHeader('Content-Type', 'application/json');
 

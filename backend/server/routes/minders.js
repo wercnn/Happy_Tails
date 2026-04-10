@@ -224,8 +224,50 @@ async function ensureCalendarForSitter(sitterID) {
   return row.calendarID;
 }
 
+// PUT /api/calendar
+// Replaces all unbooked slots with a new set.
+// Body: { slots: [{ startTime, endTime }, ...] }
+// Booked slots are never touched. Returns the newly created slots.
+register('PUT', '/api/calendar', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const body = await req.parseBody();
+  const { slots } = body;
+  if (!Array.isArray(slots) || slots.length === 0) {
+    return badRequest(send, res, 'slots array is required and must not be empty');
+  }
+  for (const s of slots) {
+    if (!s.startTime || !s.endTime) {
+      return badRequest(send, res, 'Each slot must have startTime and endTime');
+    }
+  }
+
+  const calendarID = await ensureCalendarForSitter(sitterID);
+
+  // Delete all existing unbooked slots — booked slots remain untouched.
+  await db.query('DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE', [calendarID]);
+
+  // Insert all new slots.
+  const created = [];
+  for (const s of slots) {
+    const slotID = uuid();
+    await db.query(
+      'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
+      [slotID, calendarID, s.startTime, s.endTime, false]
+    );
+    created.push({ slotID, calendarID, startTime: s.startTime, endTime: s.endTime, isBooked: false });
+  }
+
+  send(res, 200, created);
+});
+
+
 // POST /api/calendar
-// Minder adds an available slot to their calendar.
+// Minder adds a single available slot to their calendar (does not clear existing slots).
 // Auto-creates a CALENDAR row for the minder if one does not exist yet.
 register('POST', '/api/calendar', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -235,33 +277,16 @@ register('POST', '/api/calendar', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  // Example: { startTime: '2026-06-01 09:00:00', endTime: '2026-06-01 10:00:00' }
   const { startTime, endTime } = body;
   if (!startTime || !endTime) return badRequest(send, res, 'startTime and endTime are required');
 
   const calendarID = await ensureCalendarForSitter(sitterID);
-  
-   // Keep booked slots untouched for safety/history.
-  await db.query('DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE', [calendarID]);
-
-  // Remove older unbooked slots on the same date when their time window differs.
-  await db.query(
-    `DELETE FROM SLOT
-     WHERE calendarID = ?
-       AND isBooked = FALSE
-       AND DATE(startTime) = DATE(?)
-       AND (startTime <> ? OR endTime <> ?)`,
-    [calendarID, startTime, startTime, endTime]
-  );
 
   const slotID = uuid();
-  await db.query('INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)', [
-    slotID,
-    calendarID,
-    startTime,
-    endTime,
-    false,
-  ]);
+  await db.query(
+    'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
+    [slotID, calendarID, startTime, endTime, false]
+  );
   const [[row]] = await db.query('SELECT * FROM SLOT WHERE slotID = ?', [slotID]);
   send(res, 201, row);
 });

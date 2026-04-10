@@ -2,16 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Availability.css";
 
-// NOTE: There is currently no GET endpoint accessible to the minder role that
-// returns their own calendar slots. GET /api/minders/:id requires owner role.
-// Slots created in this session are shown below; pre-existing slots are not loaded.
-
 const API_BASE = "http://localhost:3000";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-// Maps day label → JS getDay() value (0 = Sunday)
-const DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 const TIMES = [
   "6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM",
@@ -68,26 +61,30 @@ function formatSlotDisplay(isoStr) {
   });
 }
 
-// Returns the next 7 dates (from tomorrow) whose day-of-week is in selectedDayIndices.
-function getUpcomingDates(selectedDayIndices) {
-  const dates = [];
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    if (selectedDayIndices.includes(d.getDay())) {
-      dates.push(d);
-    }
-  }
-  return dates;
+// Returns blank padding cells + day numbers for the given month
+function buildCalendarCells(year, month) {
+  const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 = Sun
+  const offset = (firstDayOfWeek + 6) % 7; // convert to Mo-first (0 = Mon)
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  return cells;
 }
 
 export default function HappyTailsAvailability() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("availability");
 
-  const [activeDays, setActiveDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const todayDay = today.getDate();
+
+  const monthName = today.toLocaleDateString([], { month: "long", year: "numeric" });
+  const cells = buildCalendarCells(year, month);
+
+  const [selectedDays, setSelectedDays] = useState(new Set());
   const [startTime, setStartTime] = useState("7:00 AM");
   const [endTime, setEndTime] = useState("5:00 PM");
 
@@ -96,16 +93,21 @@ export default function HappyTailsAvailability() {
   const [saveError, setSaveError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
 
-  const toggleDay = (day) =>
-    setActiveDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
+  const toggleDay = (day) => {
+    setSelectedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+    setSaveError("");
+  };
 
   const handleSaveAvailability = async () => {
     setSaveError("");
 
-    if (activeDays.length === 0) {
-      setSaveError("Please select at least one available day.");
+    if (selectedDays.size === 0) {
+      setSaveError("Please select at least one day.");
       return;
     }
     if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
@@ -113,45 +115,33 @@ export default function HappyTailsAvailability() {
       return;
     }
 
-    const selectedIndices = activeDays.map((d) => DAY_INDEX[d]);
-    const upcomingDates = getUpcomingDates(selectedIndices);
-
-    if (upcomingDates.length === 0) {
-      setSaveError("No upcoming dates found for the selected days.");
-      return;
-    }
-
     setSaving(true);
-    const created = [];
-    const errors = [];
 
-    for (const date of upcomingDates) {
-      try {
-        const res = await fetch(`${API_BASE}/api/calendar`, {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            startTime: buildDatetime(date, startTime),
-            endTime: buildDatetime(date, endTime),
-          }),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          errors.push(body.error || `Failed for ${date.toDateString()}`);
-        } else {
-          const slot = await res.json();
-          created.push(slot);
-        }
-      } catch (err) {
-        errors.push(err.message);
+    const sortedDays = [...selectedDays].sort((a, b) => a - b);
+    const slotPayload = sortedDays.map((day) => {
+      const date = new Date(year, month, day);
+      return {
+        startTime: buildDatetime(date, startTime),
+        endTime: buildDatetime(date, endTime),
+      };
+    });
+
+    try {
+      const res = await fetch(`${API_BASE}/api/calendar`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ slots: slotPayload }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error || "Failed to save availability.");
+      } else {
+        setSlots(data);
       }
-    }
-
-    setSlots((prev) => [...prev, ...created]);
-    setSaving(false);
-
-    if (errors.length > 0) {
-      setSaveError(`Some slots could not be saved: ${errors.join(", ")}`);
+    } catch (err) {
+      setSaveError("Server error. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -197,21 +187,55 @@ export default function HappyTailsAvailability() {
           <div className="av-scroll">
             <div className="av-body">
 
+              {/* Calendar */}
               <section className="av-section">
-                <h2 className="av-section-title">Available Days</h2>
-                <div className="av-days-grid">
-                  {DAYS.map((day) => (
-                    <button
-                      key={day}
-                      className={`av-day-btn${activeDays.includes(day) ? " av-day-btn--active" : ""}`}
-                      onClick={() => toggleDay(day)}
-                    >
-                      {day}
-                    </button>
+                <h2 className="av-section-title">{monthName}</h2>
+
+                <div className="av-cal-grid">
+                  {WEEK_DAYS.map((d) => (
+                    <div key={d} className="av-cal-weekday">{d}</div>
                   ))}
+
+                  {cells.map((day, idx) => {
+                    if (!day) {
+                      return <div key={`b${idx}`} className="av-cal-cell av-cal-cell--blank" />;
+                    }
+                    if (day < todayDay) {
+                      return (
+                        <div key={day} className="av-cal-cell av-cal-cell--past">
+                          {day}
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        key={day}
+                        className={`av-cal-cell av-cal-cell--available${selectedDays.has(day) ? " av-cal-cell--selected" : ""}`}
+                        onClick={() => toggleDay(day)}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="av-cal-legend">
+                  <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--available" />
+                    Available
+                  </span>
+                  <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--past" />
+                    Past
+                  </span>
+                  <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--selected" />
+                    Selected
+                  </span>
                 </div>
               </section>
 
+              {/* Working Hours */}
               <section className="av-section">
                 <h2 className="av-section-title">Working Hours</h2>
                 <div className="av-hours-row">
@@ -221,10 +245,7 @@ export default function HappyTailsAvailability() {
                       <select
                         className="av-select"
                         value={startTime}
-                        onChange={(e) => {
-                          setStartTime(e.target.value);
-                          setSaveError("");
-                        }}
+                        onChange={(e) => { setStartTime(e.target.value); setSaveError(""); }}
                       >
                         {TIMES.map((t) => <option key={t}>{t}</option>)}
                       </select>
@@ -237,10 +258,7 @@ export default function HappyTailsAvailability() {
                       <select
                         className="av-select"
                         value={endTime}
-                        onChange={(e) => {
-                          setEndTime(e.target.value);
-                          setSaveError("");
-                        }}
+                        onChange={(e) => { setEndTime(e.target.value); setSaveError(""); }}
                       >
                         {TIMES.map((t) => <option key={t}>{t}</option>)}
                       </select>
@@ -250,6 +268,7 @@ export default function HappyTailsAvailability() {
                 </div>
               </section>
 
+              {/* Created Slots */}
               {slots.length > 0 && (
                 <section className="av-section">
                   <h2 className="av-section-title">Created Slots</h2>
