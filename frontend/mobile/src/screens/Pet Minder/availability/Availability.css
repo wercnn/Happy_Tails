@@ -275,6 +275,15 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .av-cal-dot--available { background: #fff8f0; border: 1.5px solid #fde8cc; }
 .av-cal-dot--past      { background: #f0f0f0; border: 1.5px solid #e0e0e0; }
 .av-cal-dot--selected  { background: #f28c28; }
+.av-cal-dot--existing  { background: #2876F2; }
+
+.av-cal-cell--existing {
+  background: #2876F2;
+  color: #fff;
+  border: 1.5px solid #2876F2;
+  cursor: default;
+  opacity: 0.85;
+}
 
 /* ── Error ── */
 .av-error {

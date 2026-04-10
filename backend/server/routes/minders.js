@@ -224,6 +224,25 @@ async function ensureCalendarForSitter(sitterID) {
   return row.calendarID;
 }
 
+// GET /api/calendar
+// Returns all of the logged-in minder's calendar slots (booked and unbooked).
+register('GET', '/api/calendar', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const [[calendar]] = await db.query('SELECT calendarID FROM CALENDAR WHERE sitterID = ?', [sitterID]);
+  if (!calendar) return send(res, 200, []);
+
+  const [slots] = await db.query(
+    'SELECT slotID, startTime, endTime, isBooked FROM SLOT WHERE calendarID = ? ORDER BY startTime',
+    [calendar.calendarID]
+  );
+  send(res, 200, slots);
+});
+
 // PUT /api/calendar
 // Replaces all unbooked slots with a new set.
 // Body: { slots: [{ startTime, endTime }, ...] }

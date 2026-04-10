@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Availability.css";
 
@@ -29,8 +29,8 @@ const MONTHS = [0, 1, 2].map((offset) => {
   return {
     year:      d.getFullYear(),
     month:     d.getMonth(),
-    shortLabel: d.toLocaleDateString([], { month: "short" }),           // "Apr"
-    fullLabel:  d.toLocaleDateString([], { month: "long", year: "numeric" }), // "April 2026"
+    shortLabel: d.toLocaleDateString([], { month: "short" }),
+    fullLabel:  d.toLocaleDateString([], { month: "long", year: "numeric" }),
   };
 });
 
@@ -94,59 +94,135 @@ export default function HappyTailsAvailability() {
     if (idx === monthTabIdx) return;
     setMonthTabIdx(idx);
     setSelectedDays(new Set());
+    setDeselectedExistingDays(new Set());
     setSaveError("");
   };
 
   // ── Calendar state ──────────────────────────────────────────────────────
-  const cells    = buildCalendarCells(year, month);
+  const cells         = buildCalendarCells(year, month);
   const isCurrentMonth = monthTabIdx === 0;
 
-  // A day is in the past only when we're viewing the current calendar month
   const isPastDay = (day) =>
     isCurrentMonth && new Date(year, month, day) < today;
 
-  const [selectedDays, setSelectedDays] = useState(new Set());
+  const [selectedDays,          setSelectedDays]          = useState(new Set());
+  // Days that were already saved (blue) but the user clicked to deselect
+  const [deselectedExistingDays, setDeselectedExistingDays] = useState(new Set());
   const [startTime, setStartTime] = useState("7:00 AM");
   const [endTime,   setEndTime]   = useState("5:00 PM");
 
-  const [slots,      setSlots]      = useState([]);
-  const [saving,     setSaving]     = useState(false);
-  const [saveError,  setSaveError]  = useState("");
-  const [deletingId, setDeletingId] = useState(null);
+  const [existingSlots, setExistingSlots] = useState([]);
+  const [saving,        setSaving]        = useState(false);
+  const [saveError,     setSaveError]     = useState("");
+  const [deletingId,    setDeletingId]    = useState(null);
 
+  useEffect(() => {
+    // Step 1: get this minder's sitterID
+    fetch(`${API_BASE}/api/minders/me`, { headers: getAuthHeaders() })
+      .then((res) => res.ok ? res.json() : null)
+      .then((profile) => {
+        if (!profile?.sitterID) return;
+        // Step 2: fetch their full profile which includes the slots array
+        return fetch(`${API_BASE}/api/minders/${profile.sitterID}`, { headers: getAuthHeaders() });
+      })
+      .then((res) => res && res.ok ? res.json() : null)
+      .then((data) => { if (data?.slots) setExistingSlots(data.slots); })
+      .catch(() => {});
+  }, []);
+
+  // Day numbers in the viewed month that already have saved slots (and not deselected by the user)
+  const existingDaysInMonth = useMemo(() => {
+    const set = new Set();
+    existingSlots.forEach((s) => {
+      const d = new Date(s.startTime.replace(" ", "T"));
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        set.add(d.getDate());
+      }
+    });
+    return set;
+  }, [existingSlots, year, month]);
+
+  // Three-state toggle:
+  //   blue (existing, not deselected) → click → available  (add to deselectedExistingDays)
+  //   available → click → selected   (add to selectedDays)
+  //   selected → click → available   (remove from selectedDays)
   const toggleDay = (day) => {
+    setSaveError("");
+    if (existingDaysInMonth.has(day) && !deselectedExistingDays.has(day)) {
+      // Deselect an already-saved day
+      setDeselectedExistingDays((prev) => { const n = new Set(prev); n.add(day); return n; });
+      return;
+    }
+    // Toggle in selectedDays (covers both plain-available and formerly-existing-now-deselected days)
     setSelectedDays((prev) => {
       const next = new Set(prev);
       if (next.has(day)) next.delete(day); else next.add(day);
       return next;
     });
-    setSaveError("");
   };
 
   const handleSaveAvailability = async () => {
     setSaveError("");
-    if (selectedDays.size === 0) { setSaveError("Please select at least one day."); return; }
-    if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
-      setSaveError("End time must be after start time."); return;
+    const hasNew        = selectedDays.size > 0;
+    const hasDeselected = deselectedExistingDays.size > 0;
+
+    if (!hasNew && !hasDeselected) {
+      setSaveError("Please select at least one day or deselect a saved day to remove it.");
+      return;
+    }
+    if (hasNew && timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      setSaveError("End time must be after start time.");
+      return;
     }
 
     setSaving(true);
-    const slotPayload = [...selectedDays].sort((a, b) => a - b).map((day) => ({
-      startTime: buildDatetime(new Date(year, month, day), startTime),
-      endTime:   buildDatetime(new Date(year, month, day), endTime),
-    }));
-
     try {
-      const res  = await fetch(`${API_BASE}/api/calendar`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ slots: slotPayload }),
-      });
-      const data = await res.json();
-      if (!res.ok) setSaveError(data.error || "Failed to save availability.");
-      else         setSlots(data);
-    } catch {
-      setSaveError("Server error. Please try again.");
+      // ── 1. Delete deselected existing slots ──
+      if (hasDeselected) {
+        const toDelete = existingSlots.filter((s) => {
+          const d = new Date(s.startTime.replace(" ", "T"));
+          return d.getFullYear() === year && d.getMonth() === month
+            && deselectedExistingDays.has(d.getDate());
+        });
+        for (const s of toDelete) {
+          const res = await fetch(`${API_BASE}/api/calendar/${s.slotID}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `Failed to delete slot (${res.status})`);
+          }
+        }
+        setExistingSlots((prev) => prev.filter((s) => {
+          const d = new Date(s.startTime.replace(" ", "T"));
+          return !(d.getFullYear() === year && d.getMonth() === month
+            && deselectedExistingDays.has(d.getDate()));
+        }));
+        setDeselectedExistingDays(new Set());
+      }
+
+      // ── 2. POST new slots one by one (preserves other months' slots) ──
+      if (hasNew) {
+        const created = [];
+        for (const day of [...selectedDays].sort((a, b) => a - b)) {
+          const res = await fetch(`${API_BASE}/api/calendar`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              startTime: buildDatetime(new Date(year, month, day), startTime),
+              endTime:   buildDatetime(new Date(year, month, day), endTime),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to save availability.");
+          created.push(data);
+        }
+        setExistingSlots((prev) => [...prev, ...created]);
+        setSelectedDays(new Set());
+      }
+    } catch (err) {
+      setSaveError(err.message || "Server error. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -163,13 +239,19 @@ export default function HappyTailsAvailability() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Request failed (${res.status})`);
       }
-      setSlots((prev) => prev.filter((s) => s.slotID !== slotID));
+      setExistingSlots((prev) => prev.filter((s) => s.slotID !== slotID));
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
       setDeletingId(null);
     }
   };
+
+  // Slots saved in the currently viewed month (for the "Saved Slots" list)
+  const slotsInViewedMonth = existingSlots.filter((s) => {
+    const d = new Date(s.startTime.replace(" ", "T"));
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -221,10 +303,21 @@ export default function HappyTailsAvailability() {
                     if (isPastDay(day)) return (
                       <div key={day} className="av-cal-cell av-cal-cell--past">{day}</div>
                     );
+
+                    const isExisting   = existingDaysInMonth.has(day) && !deselectedExistingDays.has(day);
+                    const isSelected   = selectedDays.has(day);
+                    const isDeselected = deselectedExistingDays.has(day);
+
+                    let cls = "av-cal-cell";
+                    if (isExisting)        cls += " av-cal-cell--existing";
+                    else if (isSelected)   cls += " av-cal-cell--available av-cal-cell--selected";
+                    else if (isDeselected) cls += " av-cal-cell--available";
+                    else                   cls += " av-cal-cell--available";
+
                     return (
                       <button
                         key={day}
-                        className={`av-cal-cell av-cal-cell--available${selectedDays.has(day) ? " av-cal-cell--selected" : ""}`}
+                        className={cls}
                         onClick={() => toggleDay(day)}
                       >
                         {day}
@@ -242,6 +335,9 @@ export default function HappyTailsAvailability() {
                   </span>
                   <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--selected" />Selected
+                  </span>
+                  <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--existing" />Already Set
                   </span>
                 </div>
               </section>
@@ -273,12 +369,12 @@ export default function HappyTailsAvailability() {
                 </div>
               </section>
 
-              {/* Created Slots */}
-              {slots.length > 0 && (
+              {/* Saved Slots for this month */}
+              {slotsInViewedMonth.length > 0 && (
                 <section className="av-section">
-                  <h2 className="av-section-title">Created Slots</h2>
+                  <h2 className="av-section-title">Saved Slots</h2>
                   <div className="av-blocked-list">
-                    {slots.map((s) => (
+                    {slotsInViewedMonth.map((s) => (
                       <div key={s.slotID} className="av-blocked-chip">
                         <span>{formatSlotDisplay(s.startTime)}</span>
                         <button
