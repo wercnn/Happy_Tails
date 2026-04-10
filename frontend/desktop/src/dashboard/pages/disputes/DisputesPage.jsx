@@ -252,7 +252,14 @@ export default function DisputesPage() {
                 <div className="disputes-page__evidence-box">
                   <p className="disputes-page__evidence-text">{dispute.evidence}</p>
                 </div>
-
+                <h4 className="disputes-page__overlay-section-title" style={{ marginTop: 20 }}>
+                  Resolution Notes
+                </h4>
+                <div className="disputes-page__evidence-box">
+                  <p className="disputes-page__evidence-text">
+                    Awaiting support decision. Final outcome will depend on booking logs, chat history and incident review.
+                  </p>
+                </div>
                 <div className="disputes-page__overlay-meta">
                   <div className="disputes-page__overlay-meta-card">
                     <span className="disputes-page__overlay-meta-label">Severity</span>
@@ -271,6 +278,7 @@ export default function DisputesPage() {
 
             <div className="disputes-page__detail-actions">
               <Btn variant="primary">Approve Refund</Btn>
+              <Btn variant="outline">Approve Partial Refund</Btn>
               <Btn variant="danger">Deny Dispute</Btn>
               <Btn variant="outline">Escalate Case</Btn>
               <Btn variant="outline">View Chat History</Btn>
