@@ -63,7 +63,7 @@ export default function IncidentsPage({ user }) {
 
   async function handleEscalate(incidentID) {
     try {
-      const res = await fetch(`${API}/reports/incidents/${incidentID}/escalate`, {
+      const res = await fetch(`${API}/reports/incident/${incidentID}/escalate`, {
         method: "PATCH",
         headers: authHeaders(user),
       });
@@ -80,7 +80,7 @@ export default function IncidentsPage({ user }) {
 
   async function handleResolve(incidentID) {
     try {
-      const res = await fetch(`${API}/reports/incidents/${incidentID}/resolve`, {
+      const res = await fetch(`${API}/reports/incident/${incidentID}/resolve`, {
         method: "PATCH",
         headers: authHeaders(user),
       });
