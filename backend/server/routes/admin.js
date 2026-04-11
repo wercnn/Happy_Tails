@@ -310,6 +310,129 @@ register('GET', '/api/admin/bookings', async (req, res, send) => {
   send(res, 200, rows);
 });
 
+// GET /api/admin/bookings/stats (Support) — aggregate booking counts by status
+register('GET', '/api/admin/bookings/stats', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [[stats]] = await db.query(`
+    SELECT
+      COUNT(*)                                                        AS total,
+      SUM(CASE WHEN LOWER(status) = 'confirmed'  THEN 1 ELSE 0 END) AS confirmed,
+      SUM(CASE WHEN LOWER(status) = 'pending'    THEN 1 ELSE 0 END) AS pending,
+      SUM(CASE WHEN LOWER(status) = 'cancelled'  THEN 1 ELSE 0 END) AS cancelled,
+      SUM(CASE WHEN LOWER(status) = 'completed'  THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN LOWER(status) = 'active'     THEN 1 ELSE 0 END) AS active
+    FROM BOOKING
+  `);
+
+  send(res, 200, stats);
+});
+
+// GET /api/admin/bookings/all (Support) — full booking list with owner/minder/pet/service/payment details
+// Supports optional ?status= query param to filter by booking status
+register('GET', '/api/admin/bookings/all', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const statusFilter = req.query?.status;
+  const whereClause = (statusFilter && statusFilter !== 'all')
+    ? 'WHERE LOWER(B.status) = ?'
+    : '';
+  const params = (statusFilter && statusFilter !== 'all') ? [statusFilter.toLowerCase()] : [];
+
+  const [rows] = await db.query(`
+    SELECT
+      B.bookingID, B.status, B.startTime, B.endTime, B.totalCost,
+      B.ownerNotes, B.cancellationReason, B.createdAt,
+      CONCAT(PO.firstName, ' ', PO.lastName) AS ownerName,
+      CONCAT(PM.firstName, ' ', PM.lastName) AS minderName,
+      PP.name AS petName, PP.species AS petSpecies,
+      ST.name AS serviceName, ST.duration AS serviceDuration,
+      L.city AS locationCity, L.postcode AS locationPostcode,
+      PAY.escrowStatus AS paymentEscrow, PAY.amount AS paymentAmount
+    FROM BOOKING B
+    JOIN PET_OWNER O   ON O.ownerID         = B.ownerID
+    JOIN USER_PROFILE PO ON PO.userID       = O.userID
+    JOIN PET_MINDER M  ON M.sitterID        = B.sitterID
+    JOIN USER_PROFILE PM ON PM.userID       = M.userID
+    JOIN PET_PROFILE PP ON PP.petID         = B.petID
+    JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+    LEFT JOIN LOCATION L  ON L.locationID   = B.locationID
+    LEFT JOIN PAYMENT PAY ON PAY.bookingID  = B.bookingID
+    ${whereClause}
+    ORDER BY B.createdAt DESC
+  `, params);
+
+  send(res, 200, rows);
+});
+
+// PATCH /api/admin/bookings/:id/cancel (Support) — cancel any booking regardless of owner
+register('PATCH', '/api/admin/bookings/:id/cancel', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+
+  const status = String(booking.status).toLowerCase();
+  if (['completed', 'cancelled'].includes(status)) {
+    return send(res, 409, { error: 'Booking cannot be cancelled' });
+  }
+
+  const body = await req.parseBody();
+  const reason = body?.cancellationReason || 'Cancelled by support';
+
+  await db.query(
+    'UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?',
+    ['cancelled', reason, bookingID]
+  );
+  await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
+});
+
+// PATCH /api/admin/bookings/:id/intervene (Support) — log a support intervention as an incident report
+register('PATCH', '/api/admin/bookings/:id/intervene', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+
+  const body = await req.parseBody();
+  const description = body?.reason || 'Support intervention initiated for this booking.';
+
+  const incidentID = uuid();
+  await db.query(
+    `INSERT INTO INCIDENT_REPORT
+       (incidentID, bookingID, employeeID, incidentType, severityLevel, description, status)
+     VALUES (?, ?, ?, 'Other', 'Medium', ?, 'Open')`,
+    [incidentID, bookingID, employeeID, description]
+  );
+
+  const [[incident]] = await db.query(
+    'SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?',
+    [incidentID]
+  );
+  send(res, 201, incident);
+});
+
 // GET /api/admin/activity (Support) — daily dispute + incident counts for the last 10 days (chart data)
 register('GET', '/api/admin/activity', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
