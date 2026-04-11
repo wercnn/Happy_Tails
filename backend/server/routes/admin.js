@@ -252,6 +252,105 @@ register('PATCH', '/api/reports/incident/:id/resolve', async (req, res, send) =>
 
 // ─── Review Moderation ────────────────────────────────────────────────────────
 
+// ─── Overview Live Data ───────────────────────────────────────────────────────
+
+// GET /api/admin/alerts (Support) — recent alerts from disputes, incidents, and pending verifications
+register('GET', '/api/admin/alerts', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [rows] = await db.query(`
+    (SELECT 'dispute' AS type, disputeID AS id,
+      CASE status WHEN 'Escalated' THEN 'Dispute escalated' ELSE 'Dispute opened' END AS text,
+      createdAt AS time
+     FROM DISPUTE ORDER BY createdAt DESC LIMIT 5)
+    UNION ALL
+    (SELECT 'incident', incidentID,
+      CASE status WHEN 'Escalated' THEN 'Incident escalated' ELSE 'Incident reported' END,
+      reportedAt
+     FROM INCIDENT_REPORT ORDER BY reportedAt DESC LIMIT 5)
+    UNION ALL
+    (SELECT 'verification', verificationID, 'New verification pending', submittedAt
+     FROM IDENTITY_VERIFICATION WHERE status IN ('Pending', 'UnderReview')
+     ORDER BY submittedAt DESC LIMIT 5)
+    ORDER BY time DESC
+    LIMIT 10
+  `);
+
+  send(res, 200, rows);
+});
+
+// GET /api/admin/bookings (Support) — recent bookings with owner/minder names and service type
+register('GET', '/api/admin/bookings', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [rows] = await db.query(`
+    SELECT
+      B.bookingID, B.status, B.startTime, B.createdAt,
+      CONCAT(PO.firstName, ' ', PO.lastName) AS ownerName,
+      CONCAT(PM.firstName, ' ', PM.lastName) AS minderName,
+      ST.name AS serviceName
+    FROM BOOKING B
+    JOIN PET_OWNER O ON O.ownerID = B.ownerID
+    JOIN USER_PROFILE PO ON PO.userID = O.userID
+    JOIN PET_MINDER M ON M.sitterID = B.sitterID
+    JOIN USER_PROFILE PM ON PM.userID = M.userID
+    JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+    ORDER BY B.createdAt DESC
+    LIMIT 5
+  `);
+
+  send(res, 200, rows);
+});
+
+// GET /api/admin/activity (Support) — daily dispute + incident counts for the last 10 days (chart data)
+register('GET', '/api/admin/activity', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [disputeRows] = await db.query(`
+    SELECT DATE_FORMAT(createdAt, '%Y-%m-%d') AS day, COUNT(*) AS cnt
+    FROM DISPUTE
+    WHERE createdAt >= DATE_SUB(CURDATE(), INTERVAL 9 DAY)
+    GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d')
+  `);
+
+  const [incidentRows] = await db.query(`
+    SELECT DATE_FORMAT(reportedAt, '%Y-%m-%d') AS day, COUNT(*) AS cnt
+    FROM INCIDENT_REPORT
+    WHERE reportedAt >= DATE_SUB(CURDATE(), INTERVAL 9 DAY)
+    GROUP BY DATE_FORMAT(reportedAt, '%Y-%m-%d')
+  `);
+
+  // Merge counts by day and fill zeros for missing days
+  const dayMap = {};
+  for (const r of [...disputeRows, ...incidentRows]) {
+    dayMap[r.day] = (dayMap[r.day] || 0) + Number(r.cnt);
+  }
+
+  const result = [];
+  for (let i = 9; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    result.push({ day: key, count: dayMap[key] || 0 });
+  }
+
+  send(res, 200, result);
+});
+
+// ─── Review Moderation ────────────────────────────────────────────────────────
+
 // PATCH /api/reviews/:id/approve (Support) — approve a flagged review (dismiss the flag)
 register('PATCH', '/api/reviews/:id/approve', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
