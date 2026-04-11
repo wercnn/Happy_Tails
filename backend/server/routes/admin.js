@@ -502,3 +502,82 @@ register('PATCH', '/api/reviews/:id/approve', async (req, res, send) => {
   const [[updated]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
   send(res, 200, updated);
 });
+
+// PATCH /api/admin/reviews/:id/remove (Support) — mark a review as Removed and resolve open flags
+register('PATCH', '/api/admin/reviews/:id/remove', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const reviewID = req.params.id;
+  const [[review]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
+  if (!review) return notFound(send, res, 'Review not found');
+  if (review.status === 'Removed') return send(res, 409, { error: 'Review is already removed' });
+
+  await db.query(`UPDATE REVIEW SET status = 'Removed' WHERE reviewID = ?`, [reviewID]);
+  await db.query(
+    `UPDATE REVIEW_FLAG SET status = 'Resolved' WHERE reviewID = ? AND status = 'Open'`,
+    [reviewID]
+  );
+
+  const [[updated]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
+  send(res, 200, updated);
+});
+
+// GET /api/admin/reviews/stats (Support) — aggregate review counts and avg rating
+register('GET', '/api/admin/reviews/stats', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [[stats]] = await db.query(`
+    SELECT
+      COUNT(*)                                                         AS total,
+      ROUND(AVG(rating), 1)                                           AS avgRating,
+      SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END)           AS approved,
+      SUM(CASE WHEN status = 'Flagged'  THEN 1 ELSE 0 END)           AS flagged,
+      SUM(CASE WHEN status = 'Pending'  THEN 1 ELSE 0 END)           AS pending
+    FROM REVIEW
+  `);
+
+  send(res, 200, stats);
+});
+
+// GET /api/admin/reviews (Support) — all reviews with owner/minder names and open flag info
+// Supports optional ?status= query param (Pending | Approved | Flagged | Removed)
+register('GET', '/api/admin/reviews', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const statusFilter = req.query?.status;
+  const whereClause = (statusFilter && statusFilter !== 'all')
+    ? 'WHERE R.status = ?'
+    : '';
+  const params = (statusFilter && statusFilter !== 'all') ? [statusFilter] : [];
+
+  const [rows] = await db.query(`
+    SELECT
+      R.reviewID, R.rating, R.comment, R.status, R.createdAt, R.bookingID,
+      CONCAT(PO.firstName, ' ', PO.lastName) AS ownerName,
+      CONCAT(PM.firstName, ' ', PM.lastName) AS minderName,
+      F.reason AS flagReason, F.createdAt AS flaggedAt
+    FROM REVIEW R
+    JOIN BOOKING B        ON B.bookingID    = R.bookingID
+    JOIN PET_OWNER O      ON O.ownerID      = B.ownerID
+    JOIN USER_PROFILE PO  ON PO.userID      = O.userID
+    JOIN PET_MINDER M     ON M.sitterID     = B.sitterID
+    JOIN USER_PROFILE PM  ON PM.userID      = M.userID
+    LEFT JOIN REVIEW_FLAG F ON F.reviewID   = R.reviewID AND F.status = 'Open'
+    ${whereClause}
+    ORDER BY R.createdAt DESC
+  `, params);
+
+  send(res, 200, rows);
+});

@@ -54,6 +54,26 @@ register('POST', '/api/reviews', async (req, res, send) => {
 });
 
 
+// get flagged reviews for support staff — MUST be registered before GET /api/reviews/:minder_id
+register('GET', '/api/reviews/flagged', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [rows] = await db.query(
+    `SELECT
+        F.flagID, F.reviewID, F.flaggerUserID, F.reason, F.status, F.createdAt,
+        R.bookingID, R.rating, R.comment, R.createdAt AS reviewCreatedAt
+     FROM REVIEW_FLAG F
+     JOIN REVIEW R ON R.reviewID = F.reviewID
+     WHERE F.status = 'Open'
+     ORDER BY F.createdAt DESC`
+  );
+  send(res, 200, rows);
+});
+
 // get reviews for a minder... any bookings in the query
 register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
   const sitterID = req.params.minder_id;
@@ -110,26 +130,6 @@ register('PATCH', '/api/reviews/:id/flag', async (req, res, send) => {
   send(res, 200, row);
 });
 
-
-// get flagged reviews for support staff
-register('GET', '/api/reviews/flagged', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'support')) return;
-
-  const employeeID = await getEmployeeId(db, req.userId);
-  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
-
-  const [rows] = await db.query(
-    `SELECT
-        F.flagID, F.reviewID, F.flaggerUserID, F.reason, F.status, F.createdAt,
-        R.bookingID, R.rating, R.comment, R.createdAt AS reviewCreatedAt
-     FROM REVIEW_FLAG F
-     JOIN REVIEW R ON R.reviewID = F.reviewID
-     WHERE F.status = 'Open'
-     ORDER BY F.createdAt DESC`
-  );
-  send(res, 200, rows);
-});
 
 // delete a review (support staff only)
 register('DELETE', '/api/reviews/:id', async (req, res, send) => {
