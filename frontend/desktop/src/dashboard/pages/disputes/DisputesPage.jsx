@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { C } from "../../constants.js";
 import { StatusBadge } from "../../components/badge/Badge.jsx";
 import { Btn } from "../../components/btn/Btn.jsx";
 import { Card, Th, Td } from "../../components/card/Card.jsx";
 import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
-import { useAuth } from "../../../auth/AuthContext.jsx";
 import "./DisputesPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-export default function DisputesPage() {
-  const { currentUser } = useAuth();
+const authHeaders = {
+  "Content-Type": "application/json",
+  "X-User-Id": "u-support-001",
+  "X-User-Role": "support",
+};
 
+export default function DisputesPage() {
   const [disputes, setDisputes] = useState([]);
   const [selected, setSelected] = useState(null);
   const [selectedDispute, setSelectedDispute] = useState(null);
@@ -19,16 +22,6 @@ export default function DisputesPage() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const authHeaders = useMemo(() => {
-    if (!currentUser) return {};
-
-    return {
-      "Content-Type": "application/json",
-      "X-User-Id": currentUser.id,
-      "X-User-Role": currentUser.role,
-    };
-  }, [currentUser]);
 
   const normaliseDispute = (d) => ({
     id: d.id,
@@ -157,10 +150,8 @@ export default function DisputesPage() {
   };
 
   useEffect(() => {
-    if (currentUser) {
-      fetchDisputes();
-    }
-  }, [currentUser]);
+    fetchDisputes();
+  }, []);
 
   const severityPill = (severity) => {
     const map = {
