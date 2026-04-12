@@ -163,3 +163,12 @@ INSERT INTO DISPUTE (disputeID, bookingID, userID, employeeID, disputeType, reas
   ('disp-004', 'bk-002', 'u-owner-001', 'emp-001', 'NoShowComplaint', 'Scheduling conflict and cancellation policy dispute.',    'Resolved', FALSE, 'Issue resolved by support after case review.', 'Low', NOW(), NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================
+-- SCHEMA MIGRATION — run once against an existing database
+-- =============================================================
+
+-- Add persistent email template storage to PLATFORM_SETTINGS
+ALTER TABLE PLATFORM_SETTINGS
+  ADD COLUMN emailTemplatesJson TEXT NULL
+  COMMENT 'JSON object keyed by template name storing subject and body for each automated email';

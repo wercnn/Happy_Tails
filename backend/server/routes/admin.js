@@ -582,6 +582,149 @@ register('GET', '/api/admin/reviews', async (req, res, send) => {
   send(res, 200, rows);
 });
 
+// ─── Platform Settings ───────────────────────────────────────────────────────
+
+const SETTINGS_ID = 'settings-main';
+
+// GET /api/admin/settings (Support) — fetch platform settings row (creates default if missing)
+register('GET', '/api/admin/settings', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  let [[row]] = await db.query('SELECT * FROM PLATFORM_SETTINGS WHERE settingID = ?', [SETTINGS_ID]);
+
+  if (!row) {
+    await db.query('INSERT INTO PLATFORM_SETTINGS (settingID) VALUES (?)', [SETTINGS_ID]);
+    [[row]] = await db.query('SELECT * FROM PLATFORM_SETTINGS WHERE settingID = ?', [SETTINGS_ID]);
+  }
+
+  send(res, 200, row);
+});
+
+// PATCH /api/admin/settings (Support) — update one or more platform setting fields
+register('PATCH', '/api/admin/settings', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const body = await req.parseBody();
+
+  const allowed = [
+    'emailNotifications', 'smsNotifications', 'bookingReminders', 'incidentAlerts',
+    'platformFeePercent', 'escrowReleaseDays', 'refundWindowDays', 'stripeMode',
+    'sessionTimeoutMins', 'twoFAEnabled', 'auditLogRetentionDays', 'gdprMode',
+  ];
+
+  const updates = {};
+  for (const key of allowed) {
+    if (body[key] !== undefined) updates[key] = body[key];
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return badRequest(send, res, 'No valid fields to update');
+  }
+
+  // Ensure the single settings row exists
+  await db.query('INSERT IGNORE INTO PLATFORM_SETTINGS (settingID) VALUES (?)', [SETTINGS_ID]);
+
+  const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  await db.query(
+    `UPDATE PLATFORM_SETTINGS SET ${setClauses} WHERE settingID = ?`,
+    [...Object.values(updates), SETTINGS_ID]
+  );
+
+  const [[updated]] = await db.query('SELECT * FROM PLATFORM_SETTINGS WHERE settingID = ?', [SETTINGS_ID]);
+  send(res, 200, updated);
+});
+
+// ─── Email Templates (DB-backed via PLATFORM_SETTINGS.emailTemplatesJson) ────
+
+const DEFAULT_EMAIL_TEMPLATES = {
+  bookingConfirmed: {
+    key: 'bookingConfirmed',
+    name: 'Booking Confirmed',
+    subject: 'Your booking with {{minderName}} is confirmed!',
+    body: 'Hi {{ownerName}},\n\nYour booking with {{minderName}} has been confirmed for {{date}} at {{time}}.\n\nService: {{service}}\nLocation: {{location}}\n\nNeed help? Contact support@happytails.com\n\nThanks,\nThe Happy Tails Team',
+  },
+  minderVerified: {
+    key: 'minderVerified',
+    name: 'Minder Verified',
+    subject: 'Congratulations! Your profile is now verified',
+    body: 'Hi {{minderName}},\n\nGreat news! Your identity has been verified and your profile is now live on Happy Tails.\n\nYou can now start accepting booking requests from pet owners.\n\nThanks,\nThe Happy Tails Team',
+  },
+  incidentAlert: {
+    key: 'incidentAlert',
+    name: 'Incident Alert',
+    subject: 'Important: An incident has been reported for your booking',
+    body: 'Hi {{ownerName}},\n\nAn incident has been reported in connection with your booking on {{date}}.\n\nOur support team is reviewing the case and will contact you within 24 hours.\n\nReference: {{incidentID}}\n\nThanks,\nThe Happy Tails Support Team',
+  },
+  reviewRequest: {
+    key: 'reviewRequest',
+    name: 'Review Request',
+    subject: 'How was your experience with {{minderName}}?',
+    body: 'Hi {{ownerName}},\n\nWe hope {{petName}} had a wonderful time! We\'d love to hear about your experience with {{minderName}}.\n\nLeave a review: {{reviewLink}}\n\nYour feedback helps other pet owners make great choices.\n\nThanks,\nThe Happy Tails Team',
+  },
+};
+
+// Read emailTemplatesJson from the DB, falling back to defaults if null/unparseable
+async function loadTemplatesFromDb() {
+  await db.query('INSERT IGNORE INTO PLATFORM_SETTINGS (settingID) VALUES (?)', [SETTINGS_ID]);
+  const [[row]] = await db.query(
+    'SELECT emailTemplatesJson FROM PLATFORM_SETTINGS WHERE settingID = ?',
+    [SETTINGS_ID]
+  );
+  if (!row || !row.emailTemplatesJson) return { ...DEFAULT_EMAIL_TEMPLATES };
+  try {
+    return JSON.parse(row.emailTemplatesJson);
+  } catch {
+    return { ...DEFAULT_EMAIL_TEMPLATES };
+  }
+}
+
+// GET /api/admin/email-templates (Support) — read templates from DB
+register('GET', '/api/admin/email-templates', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const templates = await loadTemplatesFromDb();
+  send(res, 200, templates);
+});
+
+// PATCH /api/admin/email-templates/:key (Support) — update one template and persist to DB
+register('PATCH', '/api/admin/email-templates/:key', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const key = req.params.key;
+  if (!DEFAULT_EMAIL_TEMPLATES[key]) return notFound(send, res, 'Email template not found');
+
+  const body = await req.parseBody();
+  const { subject, body: templateBody } = body;
+
+  // Load current state, apply the update, write back
+  const templates = await loadTemplatesFromDb();
+  if (subject !== undefined)      templates[key].subject = subject;
+  if (templateBody !== undefined) templates[key].body    = templateBody;
+
+  await db.query(
+    'UPDATE PLATFORM_SETTINGS SET emailTemplatesJson = ? WHERE settingID = ?',
+    [JSON.stringify(templates), SETTINGS_ID]
+  );
+
+  send(res, 200, templates[key]);
+});
+
 // ─── Platform Analytics ───────────────────────────────────────────────────────
 
 // Builds a full list of YYYY-MM month keys between two date strings (inclusive)
