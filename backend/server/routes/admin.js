@@ -581,3 +581,124 @@ register('GET', '/api/admin/reviews', async (req, res, send) => {
 
   send(res, 200, rows);
 });
+
+// ─── Platform Analytics ───────────────────────────────────────────────────────
+
+// Builds a full list of YYYY-MM month keys between two date strings (inclusive)
+function generateMonthRange(from, to) {
+  const months = [];
+  const start = new Date(from);
+  start.setDate(1);
+  const end = new Date(to);
+  end.setDate(1);
+  while (start <= end) {
+    const key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+    const label = start.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+    months.push({ key, label });
+    start.setMonth(start.getMonth() + 1);
+  }
+  return months;
+}
+
+// GET /api/admin/reports (Support) — full platform analytics report
+// Optional query params: ?from=YYYY-MM-DD&to=YYYY-MM-DD (defaults to last 6 months)
+register('GET', '/api/admin/reports', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const to = req.query?.to || new Date().toISOString().slice(0, 10);
+  const fromDefault = new Date(to);
+  fromDefault.setMonth(fromDefault.getMonth() - 6);
+  const from = req.query?.from || fromDefault.toISOString().slice(0, 10);
+
+  // Monthly booking counts
+  const [bookingRows] = await db.query(`
+    SELECT
+      DATE_FORMAT(createdAt, '%Y-%m')  AS monthKey,
+      DATE_FORMAT(createdAt, '%b %Y')  AS month,
+      COUNT(*)                         AS count
+    FROM BOOKING
+    WHERE DATE(createdAt) BETWEEN ? AND ?
+    GROUP BY DATE_FORMAT(createdAt, '%Y-%m'), DATE_FORMAT(createdAt, '%b %Y')
+    ORDER BY monthKey ASC
+  `, [from, to]);
+
+  // Monthly revenue (using BOOKING.totalCost)
+  const [revenueRows] = await db.query(`
+    SELECT
+      DATE_FORMAT(createdAt, '%Y-%m')  AS monthKey,
+      DATE_FORMAT(createdAt, '%b %Y')  AS month,
+      COALESCE(SUM(totalCost), 0)      AS revenue
+    FROM BOOKING
+    WHERE DATE(createdAt) BETWEEN ? AND ?
+    GROUP BY DATE_FORMAT(createdAt, '%Y-%m'), DATE_FORMAT(createdAt, '%b %Y')
+    ORDER BY monthKey ASC
+  `, [from, to]);
+
+  // Fill zeros for months with no data
+  const monthRange = generateMonthRange(from, to);
+  const bookingMap  = Object.fromEntries(bookingRows.map(r  => [r.monthKey, Number(r.count)]));
+  const revenueMap  = Object.fromEntries(revenueRows.map(r  => [r.monthKey, Number(r.revenue)]));
+
+  const monthlyBookings = monthRange.map(m => ({ month: m.label, monthKey: m.key, count:   bookingMap[m.key]  || 0 }));
+  const monthlyRevenue  = monthRange.map(m => ({ month: m.label, monthKey: m.key, revenue: revenueMap[m.key]  || 0 }));
+
+  // Bookings by service type
+  const [serviceRows] = await db.query(`
+    SELECT
+      ST.name                           AS service,
+      COUNT(B.bookingID)                AS bookings,
+      COALESCE(SUM(B.totalCost), 0)     AS revenue
+    FROM BOOKING B
+    JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+    WHERE DATE(B.createdAt) BETWEEN ? AND ?
+    GROUP BY B.serviceTypeID, ST.name
+    ORDER BY bookings DESC
+  `, [from, to]);
+
+  const totalServiceBookings = serviceRows.reduce((s, r) => s + Number(r.bookings), 0);
+  const serviceBreakdown = serviceRows.map(r => ({
+    service:  r.service,
+    bookings: Number(r.bookings),
+    revenue:  Number(r.revenue),
+    share:    totalServiceBookings > 0
+                ? Math.round((Number(r.bookings) / totalServiceBookings) * 100)
+                : 0,
+  }));
+
+  // Top performing minders
+  const [minderRows] = await db.query(`
+    SELECT
+      CONCAT(UP.firstName, ' ', UP.lastName)  AS name,
+      UP.city                                  AS city,
+      COALESCE(PM.ratingAvg, 0)               AS rating,
+      COUNT(B.bookingID)                       AS bookings,
+      COALESCE(SUM(B.totalCost), 0)           AS revenue
+    FROM BOOKING B
+    JOIN PET_MINDER   PM ON PM.sitterID  = B.sitterID
+    JOIN USER_PROFILE UP ON UP.userID    = PM.userID
+    WHERE DATE(B.createdAt) BETWEEN ? AND ?
+    GROUP BY B.sitterID, UP.firstName, UP.lastName, UP.city, PM.ratingAvg
+    ORDER BY bookings DESC
+    LIMIT 10
+  `, [from, to]);
+
+  const topMinders = minderRows.map(r => ({
+    name:     r.name,
+    city:     r.city || 'N/A',
+    rating:   Number(r.rating),
+    bookings: Number(r.bookings),
+    revenue:  Number(r.revenue),
+  }));
+
+  send(res, 200, {
+    dateRange: { from, to },
+    monthlyBookings,
+    monthlyRevenue,
+    serviceBreakdown,
+    topMinders,
+  });
+});
