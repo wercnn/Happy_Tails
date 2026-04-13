@@ -23,9 +23,10 @@ export default function LoginPage({ onLogin }) {
       const res = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier: email, password }),
       });
       const data = await res.json();
+      console.log("Login response:", { email, password });
       if (!res.ok) {
         setError(data.error || "Incorrect email or password. Please try again.");
         setLoading(false);

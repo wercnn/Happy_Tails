@@ -24,20 +24,29 @@ export default function DisputesPage() {
   const [error, setError] = useState("");
 
   const normaliseDispute = (d) => ({
-    id: d.id,
-    booking: d.bookingId || d.booking || "N/A",
-    raisedBy: d.raisedByName || d.raisedBy || "Unknown",
-    against: d.againstName || d.against || "Unknown",
-    type: d.type || "Dispute",
-    severity: (d.severity || "medium").toLowerCase(),
-    refundRequested: d.refundRequested || d.refund || "N/A",
+    id: d.disputeID || d.id,
+    booking: d.bookingID || d.bookingId || d.booking || "N/A",
+    raisedBy:
+      d.raisedByFirstName
+        ? `${d.raisedByFirstName} ${d.raisedByLastName || ""}`.trim()
+        : d.raisedByName || d.raisedBy || "Unknown",
+    against:
+      d.minderFirstName
+        ? `${d.minderFirstName} ${d.minderLastName || ""}`.trim()
+        : d.againstName || d.against || "Unknown",
+    type: d.disputeType || d.type || "Dispute",
+    severity: (d.severityLevel || d.severity || "medium").toLowerCase(),
+    refundRequested:
+      d.isRefundRequested != null
+        ? d.isRefundRequested ? "Yes" : "No"
+        : d.refundRequested || d.refund || "N/A",
     status: (d.status || "open").toLowerCase(),
     submitted: d.createdAt
       ? new Date(d.createdAt).toLocaleString()
       : d.submitted || "N/A",
     assignedTo: d.assignedToName || d.assignedTo || "Unassigned",
-    summary: d.summary || d.description || "No summary provided.",
-    evidence: d.evidence || d.notes || "No evidence provided.",
+    summary: d.reason || d.summary || d.description || "No summary provided.",
+    evidence: d.resolutionNotes || d.evidence || d.notes || "No evidence provided.",
   });
 
   const fetchDisputes = async () => {
