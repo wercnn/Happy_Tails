@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./conversation.css";
+
+const API_BASE = "http://localhost:3000";
 
 const NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
@@ -10,44 +12,13 @@ const NAV = [
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
-const MOCK_CONVERSATIONS = [
-  {
-    conversationID: "conv-001",
-    userID: "user-101",
-    name: "James Walker",
-    avatar: "",
-    lastMessage: "Hi, I’m available for Buddy on Tuesday at 09:00.",
-    timestamp: "09:42",
-    unreadCount: 2,
-  },
-  {
-    conversationID: "conv-002",
-    userID: "user-102",
-    name: "Sophie Bennett",
-    avatar: "",
-    lastMessage: "Thanks, I’ve accepted the booking request.",
-    timestamp: "Yesterday",
-    unreadCount: 0,
-  },
-  {
-    conversationID: "conv-003",
-    userID: "user-103",
-    name: "Oliver Harris",
-    avatar: "",
-    lastMessage: "Could you let me know if Bella needs medication during the visit?",
-    timestamp: "Mon",
-    unreadCount: 0,
-  },
-  {
-    conversationID: "conv-004",
-    userID: "user-104",
-    name: "Emily Carter",
-    avatar: "",
-    lastMessage: "Perfect — see you at 13:00.",
-    timestamp: "Sun",
-    unreadCount: 1,
-  },
-];
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "x-user-id": localStorage.getItem("userID") || "",
+    "x-user-role": localStorage.getItem("userRole") || "",
+  };
+}
 
 function getInitials(name) {
   return String(name || "")
@@ -58,26 +29,183 @@ function getInitials(name) {
     .join("") || "U";
 }
 
+function toDate(dateStr) {
+  return new Date(String(dateStr).replace(" ", "T"));
+}
+
+function formatConversationTime(dateStr) {
+  if (!dateStr) return "";
+
+  const date = toDate(dateStr);
+  const now = new Date();
+
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (isToday) {
+    return date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+
+  if (isYesterday) return "Yesterday";
+
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function getOtherPersonName(booking, role) {
+  if (role === "owner") {
+    const full = [booking.minderFirstName, booking.minderLastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    return full || "Pet Minder";
+  }
+
+  const full = [booking.ownerFirstName, booking.ownerLastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return full || "Pet Owner";
+}
+
 export default function HappyTailsConversations() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
   const [search, setSearch] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const conversations = useMemo(() => {
+  const userRole = String(localStorage.getItem("userRole") || "").toLowerCase();
+
+  useEffect(() => {
+    const loadConversations = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const bookingsRes = await fetch(`${API_BASE}/api/bookings`, {
+          headers: getAuthHeaders(),
+        });
+
+        const bookingsData = await bookingsRes.json();
+
+        if (!bookingsRes.ok) {
+          throw new Error(bookingsData.error || "Failed to load bookings.");
+        }
+
+        const bookings = Array.isArray(bookingsData) ? bookingsData : [];
+
+        const conversationResults = await Promise.all(
+          bookings.map(async (booking) => {
+            try {
+              const messagesRes = await fetch(
+                `${API_BASE}/api/messages/${booking.bookingID}`,
+                {
+                  headers: getAuthHeaders(),
+                }
+              );
+
+              const messagesData = await messagesRes.json();
+
+              if (!messagesRes.ok) {
+                return null;
+              }
+
+              const messages = Array.isArray(messagesData) ? messagesData : [];
+              const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+              return {
+                conversationID: booking.bookingID,
+                bookingID: booking.bookingID,
+                otherUserName: getOtherPersonName(booking, userRole),
+                petName: booking.petName || "Pet",
+                serviceName: booking.serviceName || "Service",
+                avatar: "",
+                lastMessage: lastMessage?.content || "No messages yet",
+                timestamp: lastMessage?.timestamp || booking.createdAt || booking.startTime,
+                rawTimestamp: lastMessage?.timestamp || booking.createdAt || booking.startTime,
+                unreadCount: 0,
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const cleaned = conversationResults
+          .filter(Boolean)
+          .filter((item) => item.lastMessage && item.bookingID)
+          .sort((a, b) => toDate(b.rawTimestamp) - toDate(a.rawTimestamp));
+
+        setConversations(cleaned);
+      } catch (err) {
+        console.error("Failed to load conversations:", err);
+        setError(err.message || "Failed to load conversations.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadConversations();
+  }, [userRole]);
+
+  const filteredConversations = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    if (!q) return MOCK_CONVERSATIONS;
+    if (!q) return conversations;
 
-    return MOCK_CONVERSATIONS.filter((item) => {
+    return conversations.filter((item) => {
       return (
-        item.name.toLowerCase().includes(q) ||
-        item.lastMessage.toLowerCase().includes(q)
+        item.otherUserName.toLowerCase().includes(q) ||
+        item.lastMessage.toLowerCase().includes(q) ||
+        item.petName.toLowerCase().includes(q) ||
+        item.serviceName.toLowerCase().includes(q)
       );
     });
-  }, [search]);
+  }, [search, conversations]);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
+
+    if (userRole === "minder") {
+      switch (id) {
+        case "home":
+          navigate("/mindDash");
+          break;
+        case "pets":
+          navigate("/mindRequests");
+          break;
+        case "search":
+          navigate("/mindAvailability");
+          break;
+        case "bookings":
+          navigate("/mindRequests");
+          break;
+        case "profile":
+          navigate("/profile");
+          break;
+        default:
+          break;
+      }
+      return;
+    }
 
     switch (id) {
       case "home":
@@ -103,11 +231,21 @@ export default function HappyTailsConversations() {
   const handleOpenConversation = (conversation) => {
     navigate("/chat", {
       state: {
+        bookingID: conversation.bookingID,
         conversationID: conversation.conversationID,
-        otherUserID: conversation.userID,
-        otherUserName: conversation.name,
+        otherUserName: conversation.otherUserName,
+        petName: conversation.petName,
+        serviceName: conversation.serviceName,
       },
     });
+  };
+
+  const handleBack = () => {
+    if (userRole === "minder") {
+      navigate("/mindDash");
+    } else {
+      navigate("/ownerDash");
+    }
   };
 
   return (
@@ -118,7 +256,7 @@ export default function HappyTailsConversations() {
             <button
               className="conv-back-btn"
               type="button"
-              onClick={() => navigate("/ownerDash")}
+              onClick={handleBack}
             >
               ←
             </button>
@@ -140,10 +278,16 @@ export default function HappyTailsConversations() {
 
           <div className="conv-scroll">
             <div className="conv-list">
-              {conversations.length === 0 ? (
+              {loading && <p className="conv-empty">Loading conversations...</p>}
+              {!loading && error && <p className="conv-empty">{error}</p>}
+
+              {!loading && !error && filteredConversations.length === 0 && (
                 <p className="conv-empty">No conversations found</p>
-              ) : (
-                conversations.map((conversation) => (
+              )}
+
+              {!loading &&
+                !error &&
+                filteredConversations.map((conversation) => (
                   <button
                     key={conversation.conversationID}
                     type="button"
@@ -154,20 +298,22 @@ export default function HappyTailsConversations() {
                       {conversation.avatar ? (
                         <img
                           src={conversation.avatar}
-                          alt={conversation.name}
+                          alt={conversation.otherUserName}
                           className="conv-avatar-img"
                         />
                       ) : (
                         <span className="conv-avatar-text">
-                          {getInitials(conversation.name)}
+                          {getInitials(conversation.otherUserName)}
                         </span>
                       )}
                     </div>
 
                     <div className="conv-main">
                       <div className="conv-top-row">
-                        <span className="conv-name">{conversation.name}</span>
-                        <span className="conv-time">{conversation.timestamp}</span>
+                        <span className="conv-name">{conversation.otherUserName}</span>
+                        <span className="conv-time">
+                          {formatConversationTime(conversation.timestamp)}
+                        </span>
                       </div>
 
                       <div className="conv-bottom-row">
@@ -183,8 +329,7 @@ export default function HappyTailsConversations() {
                       </div>
                     </div>
                   </button>
-                ))
-              )}
+                ))}
             </div>
           </div>
 
