@@ -4,11 +4,19 @@ import "./conversation.css";
 
 const API_BASE = "http://localhost:3000";
 
-const NAV = [
+const OWNER_NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
   { id: "pets", emoji: "🐾", label: "My Pets" },
   { id: "search", emoji: "🔍", label: "Search" },
   { id: "bookings", emoji: "📋", label: "Bookings" },
+  { id: "profile", emoji: "👤", label: "Profile" },
+];
+
+const MINDER_NAV = [
+  { id: "dashboard", emoji: "🏠", label: "Dashboard" },
+  { id: "services", emoji: "⚙️", label: "Services" },
+  { id: "availability", emoji: "📅", label: "Availability" },
+  { id: "requests", emoji: "📬", label: "Requests" },
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
@@ -70,13 +78,16 @@ function formatConversationTime(dateStr) {
 
 export default function HappyTailsConversations() {
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("home");
+  const userRole = String(localStorage.getItem("userRole") || "").toLowerCase();
+
+  const isMinder = userRole === "minder";
+  const navItems = isMinder ? MINDER_NAV : OWNER_NAV;
+
+  const [activeNav, setActiveNav] = useState(isMinder ? "dashboard" : "home");
   const [search, setSearch] = useState("");
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const userRole = String(localStorage.getItem("userRole") || "").toLowerCase();
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -122,18 +133,18 @@ export default function HappyTailsConversations() {
   const handleNavClick = (id) => {
     setActiveNav(id);
 
-    if (userRole === "minder") {
+    if (isMinder) {
       switch (id) {
-        case "home":
+        case "dashboard":
           navigate("/mindDash");
           break;
-        case "pets":
-          navigate("/mindRequests");
+        case "services":
+          navigate("/mindService");
           break;
-        case "search":
+        case "availability":
           navigate("/mindAvailability");
           break;
-        case "bookings":
+        case "requests":
           navigate("/mindRequests");
           break;
         case "profile":
@@ -177,7 +188,7 @@ export default function HappyTailsConversations() {
   };
 
   const handleBack = () => {
-    if (userRole === "minder") {
+    if (isMinder) {
       navigate("/mindDash");
     } else {
       navigate("/ownerDash");
@@ -282,7 +293,7 @@ export default function HappyTailsConversations() {
           </div>
 
           <nav className="conv-nav">
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <button
                 key={item.id}
                 className={`conv-nav-item${activeNav === item.id ? " conv-nav-item--active" : ""}`}
