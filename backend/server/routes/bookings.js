@@ -148,7 +148,7 @@ async function createGroupedBookingConfirmedMessage(bookings, acceptedByUserID) 
   const timeText = timeLabels.length === 1 ? timeLabels[0] : timeLabels.join(', ');
 
   const content =
-    `[[SYSTEM_BOOKING_CONFIRMED]] Booking confirmed for ${serviceLabel} with ${petLabel}` +
+    `[[SYSTEM_BOOKING_CONFIRMED]] Booking confirmed with ${ownerName} and ${petName} for ${serviceLabel}` +
     `${dateText ? ` on ${dateText}` : ''}` +
     `${timeText ? ` at ${timeText}` : ''}.`;
 
