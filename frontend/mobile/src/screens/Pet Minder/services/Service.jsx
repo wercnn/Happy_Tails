@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Service.css";
 
-const INITIAL_SERVICES = [
-  { id: 1, name: "Dog Walking (30 min)", price: "£15", unit: "", enabled: true },
-  { id: 2, name: "Dog Walking (60 min)", price: "£22", unit: "", enabled: true },
-  { id: 3, name: "Overnight Boarding", price: "£35", unit: "/night", enabled: false },
-];
+const API_BASE = "http://localhost:3000";
 
 const NAV = [
   { id: "dashboard", emoji: "🏠", label: "Dashboard" },
@@ -16,52 +12,90 @@ const NAV = [
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
 export default function HappyTailsMyServices() {
   const navigate = useNavigate();
-  const [services, setServices] = useState(INITIAL_SERVICES);
+  const [services, setServices] = useState([]);
   const [activeNav, setActiveNav] = useState("services");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const savedServices = JSON.parse(localStorage.getItem("minderServices") || "[]");
-
-    const formattedSavedServices = savedServices.map((svc) => ({
-      id: svc.id,
-      name: svc.duration ? `${svc.serviceType} (${svc.duration})` : svc.serviceType,
-      price: svc.price.startsWith("£") ? svc.price : `£${svc.price}`,
-      unit: "",
-      enabled: true,
-    }));
-
-    setServices([...INITIAL_SERVICES, ...formattedSavedServices]);
+  const fetchServices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userID = localStorage.getItem("userID");
+      const res = await fetch(`${API_BASE}/api/users/${userID}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error(`Failed to fetch services (${res.status})`);
+      const data = await res.json();
+      setServices(data.services || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const toggleService = (id) =>
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  const toggleService = async (svc) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/services/${svc.minderServiceID}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ isActive: !svc.isActive }),
+      });
+      if (!res.ok) throw new Error(`Failed to update service (${res.status})`);
+      await fetchServices();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const editService = async (svc) => {
+    const newPriceStr = prompt(
+      `New price for "${svc.name}" (current: £${svc.customPrice}):`,
+      svc.customPrice
     );
+    if (newPriceStr === null) return;
+    const newPrice = parseFloat(newPriceStr);
+    if (isNaN(newPrice) || newPrice < 0) {
+      alert("Please enter a valid price.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/services/${svc.minderServiceID}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ customPrice: newPrice }),
+      });
+      if (!res.ok) throw new Error(`Failed to update price (${res.status})`);
+      await fetchServices();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
 
   const handleNavClick = (id) => {
     setActiveNav(id);
-
     switch (id) {
-      case "dashboard":
-        navigate("/mindDash");
-        break;
-      case "services":
-        navigate("/mindService");
-        break;
-      case "availability":
-        navigate("/mindAvailability");
-        break;
-      case "requests":
-        navigate("/mindRequests");
-        break;
-      case "profile":
-        navigate("/profile");
-        break;
-      default:
-        alert("Placeholder route");
-        break;
+      case "dashboard": navigate("/mindDash"); break;
+      case "services": navigate("/mindService"); break;
+      case "availability": navigate("/mindAvailability"); break;
+      case "requests": navigate("/mindRequests"); break;
+      case "profile": navigate("/profile"); break;
+      default: break;
     }
   };
 
@@ -82,33 +116,39 @@ export default function HappyTailsMyServices() {
                 + Add New Service
               </button>
 
-              <div className="ms-list">
-                {services.map((svc) => (
-                  <div key={svc.id} className="ms-card">
-                    <div className="ms-card-info">
-                      <span className="ms-card-name">{svc.name}</span>
-                      <span className="ms-card-price">
-                        {svc.price}{svc.unit}
-                      </span>
+              {loading && <p className="ms-empty">Loading...</p>}
+              {error && <p className="ms-empty">{error}</p>}
+
+              {!loading && !error && (
+                <div className="ms-list">
+                  {services.length === 0 && (
+                    <p className="ms-empty">No services added yet.</p>
+                  )}
+                  {services.map((svc) => (
+                    <div key={svc.minderServiceID} className="ms-card">
+                      <div className="ms-card-info">
+                        <span className="ms-card-name">{svc.name}</span>
+                        <span className="ms-card-price">£{svc.customPrice}</span>
+                      </div>
+                      <div className="ms-card-controls">
+                        <button
+                          className={`ms-toggle${svc.isActive ? " ms-toggle--on" : ""}`}
+                          onClick={() => toggleService(svc)}
+                          aria-label={svc.isActive ? "Disable" : "Enable"}
+                        >
+                          <span className="ms-toggle-thumb" />
+                        </button>
+                        <button
+                          className="ms-edit-btn"
+                          onClick={() => editService(svc)}
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
-                    <div className="ms-card-controls">
-                      <button
-                        className={`ms-toggle${svc.enabled ? " ms-toggle--on" : ""}`}
-                        onClick={() => toggleService(svc.id)}
-                        aria-label={svc.enabled ? "Disable" : "Enable"}
-                      >
-                        <span className="ms-toggle-thumb" />
-                      </button>
-                      <button
-                        className="ms-edit-btn"
-                        onClick={() => alert(`Edit: ${svc.name}`)}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

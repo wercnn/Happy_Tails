@@ -1,27 +1,78 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./AvailabilityCalendar.css";
 
-const MONTH_NAME = "April 2026";
-const DAYS_IN_MONTH = 30;
-const FIRST_DAY_OF_WEEK = 2; // April 1 2026 = Wednesday (Mo=0)
-
-const UNAVAILABLE = new Set([5, 11, 12, 18, 19, 25, 26, 28]);
-
-function isUnavailable(day) {
-  return UNAVAILABLE.has(day);
-}
-
-function rangeIsValid(a, b) {
-  const lo = Math.min(a, b);
-  const hi = Math.max(a, b);
-  for (let d = lo; d <= hi; d++) {
-    if (UNAVAILABLE.has(d)) return false;
-  }
-  return true;
-}
+const API_BASE = "http://localhost:3000";
 
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+// Build the 3 selectable months: current + next 2
+const _base = new Date();
+const MONTHS = [0, 1, 2].map((offset) => {
+  const d = new Date(_base.getFullYear(), _base.getMonth() + offset, 1);
+  return {
+    year: d.getFullYear(),
+    month: d.getMonth(),
+    shortLabel: d.toLocaleDateString([], { month: "short" }),
+    fullLabel: d.toLocaleDateString([], { month: "long", year: "numeric" }),
+  };
+});
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
+function parseSlotDate(dateStr) {
+  return new Date(dateStr.replace(" ", "T"));
+}
+
+function toDateKey(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function buildCells(year, month) {
+  const firstDow = new Date(year, month, 1).getDay();
+  const offset = (firstDow + 6) % 7;
+  const total = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= total; d++) cells.push(d);
+  return cells;
+}
+
+function timeLabelToMinutes(label) {
+  if (!label) return null;
+
+  const [timePart, meridiem] = label.split(" ");
+  let [hours, minutes] = timePart.split(":").map(Number);
+
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+
+  return hours * 60 + minutes;
+}
+
+function dateToMinutes(date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function formatSelectedDates(dateKeys) {
+  return [...dateKeys]
+    .sort()
+    .map((key) => {
+      const [year, month, day] = key.split("-").map(Number);
+      const d = new Date(year, month - 1, day);
+      return d.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      });
+    })
+    .join(", ");
+}
 
 export default function HappyTailsCalendar() {
   const navigate = useNavigate();
@@ -29,81 +80,168 @@ export default function HappyTailsCalendar() {
 
   const minder = location.state?.minder || null;
   const service = location.state?.service || null;
+  const timeSlot = location.state?.timeSlot || null;
+  const pet = location.state?.pet || "";
+  const petData = location.state?.petData || null;
+  const notes = location.state?.notes || "";
 
-  const [start, setStart] = useState(null);
-  const [end, setEnd] = useState(null);
-  const [hovered, setHovered] = useState(null);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const lo = start && end ? Math.min(start, end) : start;
-  const hi = start && end ? Math.max(start, end) : start;
+  const [monthTabIdx, setMonthTabIdx] = useState(0);
+  const { year: viewYear, month: viewMonth, fullLabel } = MONTHS[monthTabIdx];
 
-  const prevLo = start && !end && hovered ? Math.min(start, hovered) : null;
-  const prevHi = start && !end && hovered ? Math.max(start, hovered) : null;
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [selectedDateKeys, setSelectedDateKeys] = useState(new Set());
+
+  const selectedTimeMinutes = useMemo(() => timeLabelToMinutes(timeSlot), [timeSlot]);
+
+  useEffect(() => {
+    if (!minder?.sitterID) {
+      setError("No minder selected.");
+      setLoading(false);
+      return;
+    }
+
+    if (!timeSlot) {
+      setError("No preferred time selected.");
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_BASE}/api/minders/${minder.sitterID}/slots`, {
+      headers: getAuthHeaders(),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load slots (${res.status})`);
+        return res.json();
+      })
+      .then((data) => setSlots(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [minder?.sitterID, timeSlot]);
+
+  // Dates are available only if the chosen owner time falls inside at least one minder slot
+  const availableDateKeys = useMemo(() => {
+    const set = new Set();
+
+    slots.forEach((s) => {
+      const start = parseSlotDate(s.startTime);
+      const end = parseSlotDate(s.endTime);
+
+      const startMinutes = dateToMinutes(start);
+      const endMinutes = dateToMinutes(end);
+
+      if (
+        selectedTimeMinutes != null &&
+        selectedTimeMinutes >= startMinutes &&
+        selectedTimeMinutes <= endMinutes
+      ) {
+        set.add(toDateKey(start.getFullYear(), start.getMonth(), start.getDate()));
+      }
+    });
+
+    return set;
+  }, [slots, selectedTimeMinutes]);
+
+  const isUnavailable = (day) => {
+    const cellDate = new Date(viewYear, viewMonth, day);
+    if (cellDate < today) return true;
+    return !availableDateKeys.has(toDateKey(viewYear, viewMonth, day));
+  };
+
+  const getSlotsForSelectedDates = () => {
+    return slots.filter((s) => {
+      const slotStart = parseSlotDate(s.startTime);
+      const slotEnd = parseSlotDate(s.endTime);
+
+      const slotKey = toDateKey(
+        slotStart.getFullYear(),
+        slotStart.getMonth(),
+        slotStart.getDate()
+      );
+
+      const slotStartMinutes = dateToMinutes(slotStart);
+      const slotEndMinutes = dateToMinutes(slotEnd);
+
+      const timeMatches =
+        selectedTimeMinutes != null &&
+        selectedTimeMinutes >= slotStartMinutes &&
+        selectedTimeMinutes <= slotEndMinutes;
+
+      return selectedDateKeys.has(slotKey) && timeMatches;
+    });
+  };
+
+  const switchTab = (idx) => {
+    if (idx === monthTabIdx) return;
+    setMonthTabIdx(idx);
+  };
 
   const handleDay = (day) => {
     if (isUnavailable(day)) return;
 
-    if (!start || (start && end)) {
-      setStart(day);
-      setEnd(null);
-    } else {
-      if (day === start) {
-        setStart(null);
-      } else if (rangeIsValid(start, day)) {
-        setEnd(day);
-      } else {
-        setStart(day);
-        setEnd(null);
-      }
-    }
+    const key = toDateKey(viewYear, viewMonth, day);
 
-    setHovered(null);
+    setSelectedDateKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const getCellClass = (day) => {
     if (isUnavailable(day)) return "cal-cell cal-cell--unavailable";
 
-    const isEndpoint = day === lo || (day === hi && end !== null);
-    const inRange = lo && hi && end !== null && day > lo && day < hi;
-    const inPreview = prevLo && prevHi && day >= prevLo && day <= prevHi;
+    const key = toDateKey(viewYear, viewMonth, day);
+    const isSelected = selectedDateKeys.has(key);
 
-    if (isEndpoint) return "cal-cell cal-cell--available cal-cell--endpoint";
-    if (inRange) return "cal-cell cal-cell--available cal-cell--in-range";
-    if (inPreview) return "cal-cell cal-cell--available cal-cell--preview";
-
+    if (isSelected) return "cal-cell cal-cell--available cal-cell--endpoint";
     return "cal-cell cal-cell--available";
   };
 
-  const nightCount = start && end ? Math.abs(end - start) : 0;
+  const cells = buildCells(viewYear, viewMonth);
+  const selectedCount = selectedDateKeys.size;
 
-  const selectionLabel = !start
-    ? ""
-    : !end
-      ? `${start} Apr — tap end date`
-      : `${Math.min(start, end)}–${Math.max(start, end)} Apr · ${nightCount} night${nightCount !== 1 ? "s" : ""}`;
+  const selectionLabel =
+    selectedCount === 0
+      ? ""
+      : `${selectedCount} date${selectedCount !== 1 ? "s" : ""} selected: ${formatSelectedDates(selectedDateKeys)}`;
 
-  const cells = [];
-  for (let i = 0; i < FIRST_DAY_OF_WEEK; i++) cells.push(null);
-  for (let d = 1; d <= DAYS_IN_MONTH; d++) cells.push(d);
-
-  const handleBack = () => {
+  const handleBack = () =>
     navigate("/selectDates", {
       state: {
         minder,
         service,
+        timeSlot,
+        pet,
+        petData,
+        notes,
       },
     });
-  };
 
   const handleConfirmDates = () => {
-    if (!end) return;
+    if (selectedDateKeys.size === 0) return;
+
+    const selectedSlots = getSlotsForSelectedDates();
+    const sortedKeys = [...selectedDateKeys].sort();
 
     navigate("/bookingSummary", {
-    state: {
-      minder,
-      service,
-    },
-    })
+      state: {
+        minder,
+        service,
+        selectedSlots,
+        selectedTime: timeSlot,
+        selectedDateKeys: sortedKeys,
+        pet,
+        petData,
+        notes,
+      },
+    });
   };
 
   return (
@@ -111,75 +249,97 @@ export default function HappyTailsCalendar() {
       <div className="mobile-frame">
         <div className="cal-screen">
           <header className="cal-header">
-            <button className="cal-back" onClick={handleBack}>←</button>
+            <button className="cal-back" onClick={handleBack} type="button">←</button>
             <h1 className="cal-title">Availability Calendar</h1>
           </header>
 
           <div className="cal-body">
-            <h2 className="cal-month">{MONTH_NAME}</h2>
-
-            <p className="cal-instruction">
-              {!start
-                ? "Tap a start date"
-                : !end
-                  ? "Now tap an end date"
-                  : selectionLabel}
-            </p>
-
-            <div className="cal-grid">
-              {WEEK_DAYS.map((d) => (
-                <div key={d} className="cal-weekday">{d}</div>
-              ))}
-
-              {cells.map((day, idx) =>
-                !day ? (
-                  <div key={`b${idx}`} className="cal-cell cal-cell--blank" />
-                ) : (
-                  <button
-                    key={day}
-                    className={getCellClass(day)}
-                    onClick={() => handleDay(day)}
-                    onMouseEnter={() => start && !end && setHovered(day)}
-                    onMouseLeave={() => setHovered(null)}
-                    disabled={isUnavailable(day)}
-                  >
-                    {day}
-                  </button>
-                )
-              )}
-            </div>
-
-            <div className="cal-legend">
-              {[
-                { key: "available", label: "Available" },
-                { key: "unavailable", label: "Unavailable" },
-                { key: "selected", label: "Selected" },
-              ].map(({ key, label }) => (
-                <span key={key} className="cal-legend-item">
-                  <span className={`cal-legend-dot cal-legend-dot--${key}`} />
-                  {label}
-                </span>
+            <div className="cal-month-tabs">
+              {MONTHS.map((m, idx) => (
+                <button
+                  key={m.fullLabel}
+                  className={`cal-month-tab${monthTabIdx === idx ? " cal-month-tab--active" : ""}`}
+                  onClick={() => switchTab(idx)}
+                  type="button"
+                >
+                  {m.shortLabel}
+                </button>
               ))}
             </div>
+
+            <h2 className="cal-month">{fullLabel}</h2>
+
+            {!loading && !error && timeSlot && (
+              <p className="cal-selected-time">
+                Preferred time: <strong>{timeSlot}</strong>
+              </p>
+            )}
+
+            {loading && <p className="cal-status">Loading availability…</p>}
+            {error && <p className="cal-status cal-status--error">{error}</p>}
+
+            {!loading && !error && (
+              <>
+                <p className="cal-instruction">
+                  {selectedDateKeys.size === 0
+                    ? "Tap any available dates to select them"
+                    : selectionLabel}
+                </p>
+
+                <div className="cal-grid">
+                  {WEEK_DAYS.map((d) => (
+                    <div key={d} className="cal-weekday">{d}</div>
+                  ))}
+
+                  {cells.map((day, idx) =>
+                    !day ? (
+                      <div key={`b${idx}`} className="cal-cell cal-cell--blank" />
+                    ) : (
+                      <button
+                        key={day}
+                        className={getCellClass(day)}
+                        onClick={() => handleDay(day)}
+                        disabled={isUnavailable(day)}
+                        type="button"
+                      >
+                        {day}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <div className="cal-legend">
+                  {[
+                    { key: "available", label: "Matches selected time" },
+                    { key: "unavailable", label: "Unavailable" },
+                    { key: "selected", label: "Selected" },
+                  ].map(({ key, label }) => (
+                    <span key={key} className="cal-legend-item">
+                      <span className={`cal-legend-dot cal-legend-dot--${key}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="cal-footer">
-            {start && (
+            {selectedDateKeys.size > 0 && (
               <button
                 className="cal-clear-btn"
-                onClick={() => {
-                  setStart(null);
-                  setEnd(null);
-                }}
+                onClick={() => setSelectedDateKeys(new Set())}
+                type="button"
               >
                 Clear
               </button>
             )}
 
             <button
-              className={`cal-confirm-btn${!end ? " cal-confirm-btn--disabled" : ""}`}
-              disabled={!end}
+              className={`cal-confirm-btn${selectedDateKeys.size === 0 ? " cal-confirm-btn--disabled" : ""}`}
+              disabled={selectedDateKeys.size === 0}
               onClick={handleConfirmDates}
+              type="button"
             >
               CONFIRM DATES →
             </button>

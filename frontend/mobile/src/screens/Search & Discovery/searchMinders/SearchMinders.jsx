@@ -2,54 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SearchMinders.css";
 
-const MINDERS = [
-  {
-    id: 1,
-    emoji: "🐕",
-    name: "James Walker",
-    services: "Dog Walking · Boarding",
-    serviceList: ["Dog Walking", "Boarding"],
-    petTypes: ["Dogs"],
-    availability: ["Today", "This Week"],
-    price: 15,
-    rate: "£15/hr",
-    distance: "0.8 mi",
-    rating: 4.9,
-    ratingText: "4.9",
-    reviews: 24,
-  },
-  {
-    id: 2,
-    emoji: "🐶",
-    name: "Priya Patel",
-    services: "Pet Sitting · Day Care",
-    serviceList: ["Pet Sitting", "Day Care"],
-    petTypes: ["Dogs", "Cats"],
-    availability: ["This Week", "Weekends Only"],
-    price: 12,
-    rate: "£12/hr",
-    distance: "1.2 mi",
-    rating: 4.7,
-    ratingText: "4.7",
-    reviews: 18,
-  },
-  {
-    id: 3,
-    emoji: "🐕",
-    name: "Tom Hughes",
-    services: "Dog Walking",
-    serviceList: ["Dog Walking"],
-    petTypes: ["Dogs", "Rabbits"],
-    availability: ["Today", "Weekends Only"],
-    price: 14,
-    rate: "£14/hr",
-    distance: "1.5 mi",
-    rating: 4.8,
-    ratingText: "4.8",
-    reviews: 31,
-  },
-];
-
 const NAV = [
   { id: "home", emoji: "🏠", label: "Home" },
   { id: "pets", emoji: "🐾", label: "My Pets" },
@@ -73,12 +25,130 @@ export default function HappyTailsFindMinder() {
   const [query, setQuery] = useState("");
   const [activeNav, setActiveNav] = useState("search");
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
+  const [minders, setMinders] = useState([]);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (location.state?.filters) {
       setAppliedFilters(location.state.filters);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const loadMinders = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const headers = {
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userID") || "",
+          "x-user-role": localStorage.getItem("userRole") || "",
+        };
+
+        const res = await fetch("http://localhost:3000/api/minders", {
+          method: "GET",
+          headers,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load minders.");
+          setIsLoading(false);
+          return;
+        }
+
+        const detailedMinders = await Promise.all(
+          data.map(async (minder) => {
+            try {
+              const detailRes = await fetch(
+                `http://localhost:3000/api/minders/${minder.sitterID}`,
+                {
+                  method: "GET",
+                  headers,
+                }
+              );
+
+              const detailData = await detailRes.json();
+
+              if (!detailRes.ok) {
+                return {
+                  ...minder,
+                  id: minder.sitterID,
+                  name: `${minder.firstName} ${minder.lastName}`,
+                  services: "Services not available",
+                  serviceList: [],
+                  petTypes: [],
+                  availability: [],
+                  price: 0,
+                  rate: "Price unavailable",
+                  distance: `${minder.city || minder.postcode || "Local"}`,
+                  rating: Number(minder.ratingAvg || 0),
+                  ratingText: String(minder.ratingAvg || "0.0"),
+                  reviews: 0,
+                };
+              }
+
+              const activeServices = (detailData.services || []).filter(
+                (service) => service.isActive
+              );
+
+              const servicePrices = activeServices
+                .map((service) => Number(service.customPrice ?? service.basePrice ?? 0))
+                .filter((price) => Number.isFinite(price) && price > 0);
+              const startingPrice = servicePrices.length > 0 ? Math.min(...servicePrices) : 0;
+
+              return {
+                ...detailData,
+                id: detailData.sitterID,
+                name: `${detailData.firstName} ${detailData.lastName}`,
+                services:
+                  activeServices.length > 0
+                    ? activeServices.map((s) => s.name).join(" · ")
+                    : "No services listed",
+                serviceList: activeServices.map((s) => s.name),
+                petTypes: detailData.petTypes || [],
+                availability: (detailData.slots || []).length > 0 ? ["Available"] : [],
+                price: startingPrice,
+                rate: startingPrice > 0 ? `From £${startingPrice}/hr` : "Price unavailable",
+                distance: `${detailData.city || detailData.postcode || "Local"}`,
+                rating: Number(detailData.ratingAvg || 0).toFixed(1),
+                ratingText: String(Number(detailData.ratingAvg || 0).toFixed(1)|| "0.0"),
+                reviews: (detailData.reviews || []).length,
+              };
+            } catch {
+              return {
+                ...minder,
+                id: minder.sitterID,
+                name: `${minder.firstName} ${minder.lastName}`,
+                services: "Services not available",
+                serviceList: [],
+                petTypes: [],
+                availability: [],
+                price: 0,
+                rate: "Price unavailable",
+                distance: `${minder.city || minder.postcode || "Local"}`,
+                rating: Number(minder.ratingAvg || 0).toFixed(1),
+                ratingText: String(Number(minder.ratingAvg || 0).toFixed(1)|| "0.0"),
+                reviews: 0,
+              };
+            }
+          })
+        );
+
+        setMinders(detailedMinders);
+      } catch (err) {
+        console.error("Failed to load minders:", err);
+        setError("Server error. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMinders();
+  }, []);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -106,29 +176,34 @@ export default function HappyTailsFindMinder() {
   };
 
   const filtered = useMemo(() => {
-    let result = MINDERS.filter((m) => {
+    let result = minders.filter((m) => {
       const matchesQuery =
         query.trim() === "" ||
-        m.name.toLowerCase().includes(query.toLowerCase()) ||
-        m.services.toLowerCase().includes(query.toLowerCase());
+        (m.name || "").toLowerCase().includes(query.toLowerCase()) ||
+        (m.services || "").toLowerCase().includes(query.toLowerCase()) ||
+        (m.city || "").toLowerCase().includes(query.toLowerCase()) ||
+        (m.postcode || "").toLowerCase().includes(query.toLowerCase());
 
       const matchesServiceFilters =
         appliedFilters.services.includes("All") ||
         appliedFilters.services.some((service) =>
-          m.serviceList.includes(service)
+          (m.serviceList || []).includes(service)
         );
 
       const matchesPetFilters =
         appliedFilters.pets.includes("All") ||
-        appliedFilters.pets.some((pet) => m.petTypes.includes(pet));
+        (m.petTypes || []).length === 0 ||
+        appliedFilters.pets.some((pet) => (m.petTypes || []).includes(pet));
 
       const matchesAvailability =
         appliedFilters.availability.includes("Any") ||
+        (m.availability || []).length === 0 ||
         appliedFilters.availability.some((slot) =>
-          m.availability.includes(slot)
+          (m.availability || []).includes(slot)
         );
 
-      const matchesPrice = m.price <= appliedFilters.maxPrice;
+      const matchesPrice =
+        m.price === 0 || m.price <= appliedFilters.maxPrice;
 
       return (
         matchesQuery &&
@@ -155,7 +230,7 @@ export default function HappyTailsFindMinder() {
     }
 
     return result;
-  }, [query, appliedFilters]);
+  }, [query, appliedFilters, minders]);
 
   return (
     <div className="mobile-stage">
@@ -191,30 +266,40 @@ export default function HappyTailsFindMinder() {
               </div>
 
               <div className="fm-minder-list">
-                {filtered.map((m) => (
-                  <button
-                    key={m.id}
-                    className="fm-minder-card"
-                    onClick={() => navigate("/viewMinders", { state: { minder: m } })}
-                  >
-                    <span className="fm-minder-avatar">{m.emoji}</span>
-                    <div className="fm-minder-info">
-                      <div className="fm-minder-name-row">
-                        <span className="fm-minder-name">{m.name}</span>
-                      </div>
-                      <span className="fm-minder-services">{m.services}</span>
-                      <div className="fm-minder-meta">
-                        <span className="fm-rate">{m.rate}</span>
-                        <span className="fm-dot-sep">📍</span>
-                        <span className="fm-distance">{m.distance}</span>
-                        <span className="fm-star">⭐</span>
-                        <span className="fm-rating">{m.ratingText}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                {isLoading && (
+                  <p className="fm-empty">Loading minders...</p>
+                )}
 
-                {filtered.length === 0 && (
+                {!isLoading && error && (
+                  <p className="fm-empty">{error}</p>
+                )}
+
+                {!isLoading &&
+                  !error &&
+                  filtered.map((m) => (
+                    <button
+                      key={m.id}
+                      className="fm-minder-card"
+                      onClick={() => navigate("/viewMinders", { state: { minder: m } })}
+                    >
+                      <span className="fm-minder-avatar">🐾</span>
+                      <div className="fm-minder-info">
+                        <div className="fm-minder-name-row">
+                          <span className="fm-minder-name">{m.name}</span>
+                        </div>
+                        <span className="fm-minder-services">{m.services}</span>
+                        <div className="fm-minder-meta">
+                          <span className="fm-rate">{m.rate}</span>
+                          <span className="fm-dot-sep">📍</span>
+                          <span className="fm-distance">{m.distance}</span>
+                          <span className="fm-star">⭐</span>
+                          <span className="fm-rating">{m.ratingText}</span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+
+                {!isLoading && !error && filtered.length === 0 && (
                   <p className="fm-empty">No minders found. Try adjusting your search.</p>
                 )}
               </div>

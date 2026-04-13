@@ -34,7 +34,7 @@ CREATE TABLE USER_PROFILE (
 CREATE TABLE PROFILE_PHOTO (
     photoID         VARCHAR(36)     NOT NULL,
     profileID       VARCHAR(36)     NOT NULL UNIQUE,
-    fileURL         VARCHAR(500)    NOT NULL,
+    fileURL         LONGTEXT        NOT NULL,
     uploadedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_PROFILE_PHOTO PRIMARY KEY (photoID),
     CONSTRAINT FK_PROFILE_PHOTO_PROFILE FOREIGN KEY (profileID)
@@ -214,7 +214,7 @@ CREATE TABLE MEDICAL_DOCUMENT (
 CREATE TABLE PET_PHOTO (
     photoID     VARCHAR(36)     NOT NULL,
     petID       VARCHAR(36)     NOT NULL,
-    fileURL     VARCHAR(500)    NOT NULL,
+    fileURL     LONGTEXT        NOT NULL,
     uploadedAt  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_PET_PHOTO PRIMARY KEY (photoID),
     CONSTRAINT FK_PET_PHOTO_PET FOREIGN KEY (petID)
@@ -328,9 +328,10 @@ CREATE TABLE BOOKING (
     status              VARCHAR(50)     NOT NULL DEFAULT 'Pending',
     startTime           DATETIME        NOT NULL,
     endTime             DATETIME        NOT NULL,
+    selectedTime        VARCHAR(20),                                -- pet owner's selected time label, e.g. '9:00 AM'
     totalCost           DECIMAL(10,2)   NOT NULL,
-    ownerNotes          TEXT,                                       -- #3: owner instructions at booking time
-    cancellationReason  VARCHAR(255),                               -- #4: reason selected on CancelBookingScreen
+    ownerNotes          TEXT,
+    cancellationReason  VARCHAR(255),
     createdAt           DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_BOOKING PRIMARY KEY (bookingID),
     CONSTRAINT FK_BOOKING_OWNER FOREIGN KEY (ownerID)
@@ -446,6 +447,7 @@ CREATE TABLE INCIDENT_REPORT (
     reportedAt      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status          ENUM('Open', 'Escalated', 'Resolved') NOT NULL DEFAULT 'Open',
     reporterUserID  VARCHAR(36)     NULL,                        -- #7: userID of the minder who filed the report (nullable for employee-filed reports)
+    caseReference   VARCHAR(20)     NULL,                        -- short reference shown on confirmation screen e.g. #INC-XXXXXXXX
     CONSTRAINT PK_INCIDENT_REPORT PRIMARY KEY (incidentID),
     CONSTRAINT FK_INCIDENT_BOOKING FOREIGN KEY (bookingID)
         REFERENCES BOOKING (bookingID),
@@ -454,6 +456,11 @@ CREATE TABLE INCIDENT_REPORT (
     CONSTRAINT FK_INCIDENT_REPORTER FOREIGN KEY (reporterUserID)
         REFERENCES USER (userID) ON DELETE SET NULL
 );
+
+-- ALTER TABLE INCIDENT_REPORT
+--   ADD COLUMN caseReference VARCHAR(20) NULL
+--     COMMENT 'Short case reference shown on confirmation screen e.g. #INC-XXXXXXXX';
+
 
 -- #7: MEDIA linked to VISIT_REPORT, MESSAGE, and INCIDENT_REPORT
 CREATE TABLE MEDIA (

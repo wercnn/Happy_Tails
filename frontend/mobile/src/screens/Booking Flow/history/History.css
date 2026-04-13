@@ -309,95 +309,103 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Booking Cards ── */
 .bh-card {
   width: 100%;
-  background: #fff;
-  border: none;
-  border-radius: 16px;
-  padding: 18px 16px;
+  background: linear-gradient(180deg, #fffdfb 0%, #ffffff 100%);
+  border: 1px solid #f3e6d8;
+  border-radius: 18px;
+  padding: 16px;
   display: flex;
   align-items: center;
   gap: 14px;
   cursor: pointer;
   text-align: left;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
   transition: transform 0.12s, box-shadow 0.12s;
 }
 
 .bh-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.10);
 }
 
 .bh-card-avatar {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #f0f0f0;
+  background: linear-gradient(180deg, #fff3e3 0%, #fde3c0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(242, 140, 40, 0.12);
 }
 
 .bh-card-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  align-items: center;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .bh-card-service {
   font-size: 0.97rem;
   font-weight: 800;
   color: #1a1a1a;
-  text-align: center;
+  line-height: 1.25;
 }
 
 .bh-card-meta {
   font-size: 0.82rem;
-  color: #888;
-  text-align: center;
+  color: #777;
+  line-height: 1.35;
 }
 
 .bh-card-date {
   font-size: 0.8rem;
-  color: #aaa;
-  text-align: center;
+  color: #9a9a9a;
+  line-height: 1.35;
 }
 
 /* ── Status Badges ── */
 .bh-badge {
   flex-shrink: 0;
   border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
   white-space: nowrap;
+  border: 1px solid transparent;
+  text-transform: capitalize;
 }
 
+/* Accepted / Confirmed */
 .bh-badge--confirmed {
-  background: #dcfce7;
-  color: #16a34a;
-  border: 1.5px solid #bbf7d0;
+  background: #e8f8ef;
+  color: #177245;
+  border-color: #cbeed8;
 }
 
+/* Completed */
 .bh-badge--completed {
-  background: #dbeafe;
-  color: #2563eb;
-  border: 1.5px solid #bfdbfe;
+  background: #edf4ff;
+  color: #2a5db0;
+  border-color: #d6e4fb;
 }
 
+/* Cancelled / Rejected-style */
 .bh-badge--cancelled {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1.5px solid #fecaca;
+  background: #ffe9e9;
+  color: #b23a3a;
+  border-color: #f6caca;
 }
 
+/* Pending */
 .bh-badge--pending {
-  background: #fde8cc;
-  color: #e07b10;
-  border: 1.5px solid #fbd4a0;
+  background: #fff4d6;
+  color: #a86a11;
+  border-color: #f4ddb1;
 }
 
 .bh-empty {
@@ -465,5 +473,15 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
   .bh-clear-filters-btn {
     width: 100%;
+  }
+
+  .bh-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .bh-badge {
+    font-size: 0.72rem;
+    padding: 5px 10px;
   }
 }

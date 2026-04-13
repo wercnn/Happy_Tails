@@ -17,6 +17,7 @@ import MindAvailability from './screens/Pet Minder/availability/Availability'
 import MindRequests from './screens/Pet Minder/requests/Requests'
 import AcceptReject from './screens/Pet Minder/accept/Accept'
 import AddService from './screens/Pet Minder/services/addService/AddService'
+import BookingDetails from './screens/Pet Minder/details/Details'
 
 /* Pet Owner screens */
 import OwnerDash from './screens/Pet Owner - Pets/ownerHome/OwnerHome'
@@ -32,6 +33,11 @@ import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
 import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
 import BookingSummary from './screens/Booking Flow/summary/Summary'
 import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
+import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
+import Notifications from './screens/Notifications & Profile/notifications/Notifications'
+import MindNotifications from './screens/Pet Minder/notifications/MindNotifications'
+import ReportIncident from './screens/Emergency/ReportIncident'
+import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -54,12 +60,17 @@ function App() {
       <Route path="/mindRequests" element={<MindRequests />} />
       <Route path="/acceptReject" element={<AcceptReject />} />
       <Route path="/addService" element={<AddService />} />
+      <Route path="/reportIncident" element={<ReportIncident />} />
+      <Route path="/reportSubmitted" element={<ReportSubmitted />} />
+      <Route path="/bookingDetails" element={<BookingDetails />} />
+
 
       <Route path="/ownerDash" element={<OwnerDash />} />
       <Route path="/ownerPets" element={<OwnerPets />} />
       <Route path="/ownerSearch" element={<OwnerSearch />} />
       <Route path="/ownerBooking" element={<OwnerBooking />} />
       <Route path="/addPet" element={<AddPet />} />
+      <Route path="/addHealth" element={<AddHealth />} />
       <Route path="/petProfile" element={<PetProfile />} />
       <Route path="/searchFilters" element={<SearchFilters />} />
       <Route path="/viewMinders" element={<ViewMinders />} />
@@ -68,6 +79,8 @@ function App() {
       <Route path="/availabilityCalendar" element={<AvailabilityCalender />} />
       <Route path="/bookingSummary" element={<BookingSummary />} />
       <Route path="/requestSent" element={<RequestSent />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/mindNotifications" element={<MindNotifications />} />
 
       <Route path="/profile" element={<Profile />} />
     </Routes>

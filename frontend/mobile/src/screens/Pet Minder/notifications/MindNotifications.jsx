@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import "./Notifications.css";
+import "../../Notifications & Profile/notifications/Notifications.css";
 import { useNavigate } from "react-router-dom";
 
 const API_BASE = "http://localhost:3000";
 
 const NAV = [
-  { id: "home",     emoji: "🏠", label: "Home" },
-  { id: "pets",     emoji: "🐾", label: "My Pets" },
-  { id: "search",   emoji: "🔍", label: "Search" },
-  { id: "bookings", emoji: "📋", label: "Bookings" },
-  { id: "profile",  emoji: "👤", label: "Profile" },
+  { id: "dashboard",    emoji: "🏠", label: "Dashboard" },
+  { id: "services",     emoji: "⚙️", label: "Services" },
+  { id: "availability", emoji: "📅", label: "Availability" },
+  { id: "requests",     emoji: "📬", label: "Requests" },
+  { id: "profile",      emoji: "👤", label: "Profile" },
 ];
 
 function getAuthHeaders() {
@@ -20,7 +20,6 @@ function getAuthHeaders() {
   };
 }
 
-// Derive a display emoji and accent colour from the notification title
 function getNotifStyle(title = "") {
   const t = title.toLowerCase();
   if (t.includes("accept") || t.includes("confirm"))
@@ -33,18 +32,21 @@ function getNotifStyle(title = "") {
     return { emoji: "📬", accentColor: "#ee8b28" };
   if (t.includes("incident") || t.includes("alert"))
     return { emoji: "🚨", accentColor: "#ef4444" };
-  if (t.includes("payment") || t.includes("paid"))
+  if (t.includes("payment") || t.includes("paid") || t.includes("released"))
     return { emoji: "💳", accentColor: "#6366f1" };
+  if (t.includes("review"))
+    return { emoji: "⭐", accentColor: "#f59e0b" };
   if (t.includes("message"))
     return { emoji: "💬", accentColor: "#3b82f6" };
+  if (t.includes("reminder") || t.includes("upcoming"))
+    return { emoji: "⏰", accentColor: "#8b5cf6" };
   return { emoji: "🔔", accentColor: "#ee8b28" };
 }
 
-// Convert a DB datetime string to a human-readable relative time
 function formatTime(sentAt) {
   const sent = new Date(sentAt.replace(" ", "T"));
   const now  = new Date();
-  const diffMs = now - sent;
+  const diffMs   = now - sent;
   const diffMin  = Math.floor(diffMs / 60000);
   const diffHour = Math.floor(diffMs / 3600000);
   const diffDay  = Math.floor(diffMs / 86400000);
@@ -56,12 +58,12 @@ function formatTime(sentAt) {
   return sent.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
-export default function HappyTailsNotifications() {
+export default function MindNotifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState(null);
-  const [activeNav,     setActiveNav]     = useState("home");
+  const [activeNav,     setActiveNav]     = useState("dashboard");
 
   useEffect(() => {
     fetch(`${API_BASE}/api/notifications`, { headers: getAuthHeaders() })
@@ -77,17 +79,16 @@ export default function HappyTailsNotifications() {
   const handleNavClick = (id) => {
     setActiveNav(id);
     switch (id) {
-      case "home":     navigate("/ownerDash");    break;
-      case "pets":     navigate("/ownerPets");    break;
-      case "search":   navigate("/ownerSearch");  break;
-      case "bookings": navigate("/ownerBooking"); break;
-      case "profile":  navigate("/profile");      break;
+      case "dashboard":    navigate("/mindDash");         break;
+      case "services":     navigate("/mindService");      break;
+      case "availability": navigate("/mindAvailability"); break;
+      case "requests":     navigate("/mindRequests");     break;
+      case "profile":      navigate("/profile");          break;
       default: break;
     }
   };
 
   const markRead = (notificationID) => {
-    // Optimistically update UI
     setNotifications((prev) =>
       prev.map((n) => n.notificationID === notificationID ? { ...n, isRead: true } : n)
     );
@@ -115,7 +116,7 @@ export default function HappyTailsNotifications() {
           {/* Header */}
           <header className="notif-header">
             <div className="notif-header-left">
-              <button className="notif-back" onClick={() => navigate("/ownerDash")}>←</button>
+              <button className="notif-back" onClick={() => navigate("/mindDash")}>←</button>
               <h1 className="notif-title">Notifications</h1>
             </div>
             {unreadCount > 0 && (

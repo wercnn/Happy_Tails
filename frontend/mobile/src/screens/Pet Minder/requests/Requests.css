@@ -116,6 +116,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: inherit;
 }
 
+.br-section {
+  margin-top: 18px;
+}
+
+.br-section-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #333;
+}
+
 /* ── Filters Panel ── */
 .br-filters-panel {
   margin-top: 10px;
@@ -357,23 +368,23 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 .br-badge--pending {
-  background: #fde8cc;
-  color: #d97706;
+  background: #fff4d6;
+  color: #b7791f;
 }
 
 .br-badge--awaiting {
-  background: #fde8cc;
-  color: #d97706;
+  background: #ffe9e9;
+  color: #b23a3a;
 }
 
 .br-badge--inprogress {
-  background: #fde8cc;
-  color: #f28c28;
+  background: #edf4ff;
+  color: #2a5db0;
 }
 
 .br-badge--confirmed {
-  background: #dcfce7;
-  color: #16a34a;
+  background: #e8f8ef;
+  color: #177245;
 }
 
 /* Detail rows */

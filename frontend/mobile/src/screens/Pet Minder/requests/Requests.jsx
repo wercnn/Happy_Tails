@@ -1,51 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Requests.css";
 
-const INITIAL_REQUESTS = [
-  {
-    id: 1,
-    icon: "🐾",
-    service: "Dog Walking (60 mins)",
-    serviceType: "walking",
-    status: "pending",
-    petType: "dog",
-    petEmoji: "🐶",
-    pet: "Buddy",
-    owner: "Sarah J.",
-    date: "2026-04-09T09:00:00",
-  },
-  {
-    id: 2,
-    icon: "🐾",
-    service: "Dog Walk (1 hour)",
-    serviceType: "walking",
-    status: "awaiting",
-    petType: "dog",
-    petEmoji: "🐕",
-    pet: "Max",
-    owner: "Emily R.",
-    date: "2026-04-12T14:00:00",
-  },
-  {
-    id: 3,
-    icon: "🐈‍⬛",
-    service: "Pet Walk (60 min)",
-    serviceType: "walking",
-    status: "in progress",
-    petType: "cat",
-    petEmoji: "🐈",
-    pet: "Charlie",
-    owner: "Anna K.",
-    date: "2026-04-15T07:30:00",
-  },
-];
+const API_BASE = "http://localhost:3000";
+
+const SERVICE_NAMES = {
+  "st-walk": "Dog Walking",
+  "st-board": "Pet Boarding",
+  "st-daycare": "Dog Daycare",
+};
 
 const STATUS_CLASS = {
   pending: "br-badge--pending",
-  awaiting: "br-badge--awaiting",
-  "in progress": "br-badge--inprogress",
-  confirmed: "br-badge--confirmed",
+  accepted: "br-badge--confirmed",
+  rejected: "br-badge--awaiting",
+  cancelled: "br-badge--awaiting",
+  completed: "br-badge--inprogress",
 };
 
 const NAV = [
@@ -58,17 +28,16 @@ const NAV = [
 
 const SERVICE_OPTIONS = [
   { value: "all", label: "All Services" },
-  { value: "walking", label: "Walking" },
-  { value: "sitting", label: "Pet Sitting" },
-  { value: "feeding", label: "Feeding" },
-  { value: "grooming", label: "Grooming" },
+  { value: "st-walk", label: "Dog Walking" },
+  { value: "st-board", label: "Pet Boarding" },
+  { value: "st-daycare", label: "Dog Daycare" },
 ];
 
-const PET_OPTIONS = [
-  { value: "all", label: "All Pets" },
-  { value: "dog", label: "Dogs" },
-  { value: "cat", label: "Cats" },
-  { value: "other", label: "Other" },
+const STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "rejected", label: "Rejected" },
 ];
 
 const DATE_OPTIONS = [
@@ -76,27 +45,143 @@ const DATE_OPTIONS = [
   { value: "next7days", label: "Next 7 Days" },
 ];
 
-function CustomFilterDropdown({
-  label,
-  value,
-  options,
-  onChange,
-}) {
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
+function toDate(dateStr) {
+  return new Date(String(dateStr).replace(" ", "T"));
+}
+
+function formatDate(dateStr) {
+  return toDate(dateStr).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatShortDate(dateStr) {
+  return toDate(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function formatTime(dateStr) {
+  return toDate(dateStr).toLocaleTimeString("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getCreatedMinuteKey(createdAt) {
+  if (!createdAt) return "no-created-at";
+  const d = toDate(createdAt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+    d.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
+function getServiceLabel(item) {
+  return item.serviceName || SERVICE_NAMES[item.serviceTypeID] || item.serviceTypeID || "Service";
+}
+
+function getOwnerName(item) {
+  const full = [item.ownerFirstName, item.ownerLastName].filter(Boolean).join(" ").trim();
+  return full || item.ownerName || "Pet owner";
+}
+
+function getPetLabel(item) {
+  return item.petName || item.pet || "Pet";
+}
+
+function isWithinNext7Days(dateStr) {
+  const now = new Date();
+  const date = toDate(dateStr);
+  const end = new Date();
+  end.setDate(now.getDate() + 7);
+  return date >= now && date <= end;
+}
+
+function groupBookings(bookings) {
+  const groups = new Map();
+
+  for (const b of bookings) {
+    const key = [
+      b.ownerID,
+      b.sitterID,
+      b.petID,
+      b.serviceTypeID,
+      String(b.status || "").toLowerCase(),
+      b.ownerNotes || "",
+      getCreatedMinuteKey(b.createdAt),
+    ].join("|");
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        groupKey: key,
+        bookingIDs: [],
+        bookings: [],
+        bookingID: b.bookingID,
+        ownerID: b.ownerID,
+        sitterID: b.sitterID,
+        petID: b.petID,
+        serviceTypeID: b.serviceTypeID,
+        serviceName: b.serviceName,
+        petName: b.petName,
+        ownerFirstName: b.ownerFirstName,
+        ownerLastName: b.ownerLastName,
+        ownerNotes: b.ownerNotes || "",
+        status: String(b.status || "").toLowerCase(),
+        createdAt: b.createdAt,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        totalCost: 0,
+      });
+    }
+
+    const group = groups.get(key);
+    group.bookingIDs.push(b.bookingID);
+    group.bookings.push(b);
+    group.totalCost += Number(b.totalCost || 0);
+
+    const currentStart = toDate(group.startTime);
+    const nextStart = toDate(b.startTime);
+    if (nextStart < currentStart) {
+      group.startTime = b.startTime;
+      group.endTime = b.endTime;
+      group.bookingID = b.bookingID;
+    }
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      dates: group.bookings
+        .map((b) => b.startTime)
+        .sort((a, b) => toDate(a) - toDate(b)),
+    }))
+    .sort((a, b) => toDate(b.startTime) - toDate(a.startTime));
+}
+
+function CustomFilterDropdown({ label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
-
-  const selectedOption =
-    options.find((option) => option.value === value) || options[0];
-
+  const selectedOption = options.find((o) => o.value === value) || options[0];
   const isActive = value !== "all";
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!dropdownRef.current?.contains(event.target)) {
-        setOpen(false);
-      }
+    const handleClickOutside = (e) => {
+      if (!dropdownRef.current?.contains(e.target)) setOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -107,7 +192,6 @@ function CustomFilterDropdown({
       className={`br-custom-filter${open ? " br-custom-filter--open" : ""}${isActive ? " br-custom-filter--active" : ""}`}
     >
       <span className="br-custom-filter-label">{label}</span>
-
       <button
         type="button"
         className="br-custom-filter-trigger"
@@ -116,7 +200,6 @@ function CustomFilterDropdown({
         <span className="br-custom-filter-value">{selectedOption.label}</span>
         <span className="br-custom-filter-chevron">{open ? "⌃" : "⌄"}</span>
       </button>
-
       {open && (
         <div className="br-custom-filter-menu">
           {options.map((option) => (
@@ -140,45 +223,55 @@ function CustomFilterDropdown({
 
 export default function HappyTailsBookingRequests() {
   const navigate = useNavigate();
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeNav, setActiveNav] = useState("requests");
 
   const [serviceFilter, setServiceFilter] = useState("all");
-  const [petFilter, setPetFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
   const activeFilterCount = [
     serviceFilter !== "all",
-    petFilter !== "all",
+    statusFilter !== "all",
     dateFilter !== "all",
   ].filter(Boolean).length;
 
-  const hasActiveFilters = activeFilterCount > 0;
-
   const clearFilters = () => {
     setServiceFilter("all");
-    setPetFilter("all");
+    setStatusFilter("all");
     setDateFilter("all");
   };
 
-  const handleAction = (id, action) => {
-    if (action === "accept") {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "confirmed" } : r))
-      );
-    } else {
-      setRequests((prev) => prev.filter((r) => r.id !== id));
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/bookings`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error(`Failed to fetch bookings (${res.status})`);
+      const data = await res.json();
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const handleOwnerClick = (request) => {
-    navigate("/acceptReject", { state: { request } });
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  const handleCardClick = (requestGroup) => {
+    navigate("/bookingDetails", { state: { requestGroup } });
   };
 
   const handleNavClick = (id) => {
     setActiveNav(id);
-
     switch (id) {
       case "dashboard":
         navigate("/mindDash");
@@ -196,44 +289,92 @@ export default function HappyTailsBookingRequests() {
         navigate("/profile");
         break;
       default:
-        alert("Placeholder route");
         break;
     }
   };
 
-  const isWithinNext7Days = (dateString) => {
-    const now = new Date();
-    const requestDate = new Date(dateString);
-    const nextWeek = new Date();
-    nextWeek.setDate(now.getDate() + 7);
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      const status = String(b.status || "").toLowerCase();
 
-    return requestDate >= now && requestDate <= nextWeek;
-  };
+      if (serviceFilter !== "all" && b.serviceTypeID !== serviceFilter) return false;
+      if (statusFilter !== "all" && status !== statusFilter) return false;
+      if (dateFilter === "next7days" && !isWithinNext7Days(b.startTime)) return false;
 
-  const filteredRequests = useMemo(() => {
-    return requests.filter((r) => {
-      const matchesService =
-        serviceFilter === "all" || r.serviceType === serviceFilter;
-
-      const matchesPet =
-        petFilter === "all" || r.petType === petFilter;
-
-      const matchesDate =
-        dateFilter === "all" ||
-        (dateFilter === "next7days" && isWithinNext7Days(r.date));
-
-      return matchesService && matchesPet && matchesDate;
+      return true;
     });
-  }, [requests, serviceFilter, petFilter, dateFilter]);
+  }, [bookings, serviceFilter, statusFilter, dateFilter]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("en-GB", {
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const groupedBookings = useMemo(() => groupBookings(filteredBookings), [filteredBookings]);
+
+  const groupedByStatus = useMemo(() => {
+    return {
+      pending: groupedBookings.filter((g) => g.status === "pending"),
+      accepted: groupedBookings.filter((g) => g.status === "accepted"),
+      rejected: groupedBookings.filter((g) => g.status === "rejected"),
+    };
+  }, [groupedBookings]);
+
+  const renderSection = (title, groups) => (
+    <section className="br-section" key={title}>
+      <h2 className="br-section-title">{title}</h2>
+
+      {groups.length === 0 ? (
+        <p className="br-empty">No {title.toLowerCase()} requests</p>
+      ) : (
+        groups.map((group) => (
+          <div key={group.groupKey} className="br-card">
+            <div className="br-card-top">
+              <button
+                type="button"
+                className="br-card-avatar-btn"
+                onClick={() => handleCardClick(group)}
+              >
+                <span className="br-card-avatar">🐾</span>
+              </button>
+
+              <button
+                type="button"
+                className="br-card-service-btn"
+                onClick={() => handleCardClick(group)}
+              >
+                <span className="br-card-service">{getServiceLabel(group)}</span>
+              </button>
+
+              <span className={`br-badge ${STATUS_CLASS[group.status] || ""}`}>
+                {group.status}
+              </span>
+            </div>
+
+            <div className="br-card-details">
+              <span className="br-detail">👤 {getOwnerName(group)}</span>
+              <span className="br-detail">🐶 {getPetLabel(group)}</span>
+              <span className="br-detail">
+                📅 {group.dates.length === 1
+                  ? formatDate(group.dates[0])
+                  : `${group.dates.length} dates: ${group.dates.map((d) => formatShortDate(d)).join(", ")}`}
+              </span>
+              <span className="br-detail">⏰ {formatTime(group.startTime)}</span>
+              {group.ownerNotes && (
+                <span className="br-detail">📝 {group.ownerNotes}</span>
+              )}
+              <span className="br-detail">💰 £{Number(group.totalCost).toFixed(2)}</span>
+            </div>
+
+            <div className="br-card-actions">
+              <button
+                className="br-accept-btn"
+                onClick={() => handleCardClick(group)}
+                type="button"
+              >
+                Details
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </section>
+  );
 
   return (
     <div className="mobile-stage">
@@ -248,32 +389,28 @@ export default function HappyTailsBookingRequests() {
               <div className="br-filter-dropdown">
                 <button
                   type="button"
-                  className={`br-filter-toggle${showFilters ? " br-filter-toggle--open" : ""}${hasActiveFilters ? " br-filter-toggle--active" : ""}`}
+                  className={`br-filter-toggle${showFilters ? " br-filter-toggle--open" : ""}${activeFilterCount > 0 ? " br-filter-toggle--active" : ""}`}
                   onClick={() => setShowFilters((prev) => !prev)}
                 >
                   <span className="br-filter-toggle-text">
-                    Filters{hasActiveFilters ? ` (${activeFilterCount})` : ""}
+                    Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                   </span>
-                  <span className="br-filter-toggle-arrow">
-                    {showFilters ? "⌃" : "⌄"}
-                  </span>
+                  <span className="br-filter-toggle-arrow">{showFilters ? "⌃" : "⌄"}</span>
                 </button>
 
                 {showFilters && (
                   <div className="br-filters-panel">
                     <div className="br-filters-top">
                       <h2 className="br-filters-title">Filter Requests</h2>
-
                       <button
                         type="button"
-                        className={`br-clear-filters-btn${hasActiveFilters ? " br-clear-filters-btn--active" : ""}`}
+                        className={`br-clear-filters-btn${activeFilterCount > 0 ? " br-clear-filters-btn--active" : ""}`}
                         onClick={clearFilters}
-                        disabled={!hasActiveFilters}
+                        disabled={activeFilterCount === 0}
                       >
                         Clear Filters
                       </button>
                     </div>
-
                     <div className="br-filters">
                       <CustomFilterDropdown
                         label="Service"
@@ -281,14 +418,12 @@ export default function HappyTailsBookingRequests() {
                         options={SERVICE_OPTIONS}
                         onChange={setServiceFilter}
                       />
-
                       <CustomFilterDropdown
-                        label="Pet Type"
-                        value={petFilter}
-                        options={PET_OPTIONS}
-                        onChange={setPetFilter}
+                        label="Status"
+                        value={statusFilter}
+                        options={STATUS_OPTIONS}
+                        onChange={setStatusFilter}
                       />
-
                       <CustomFilterDropdown
                         label="Date"
                         value={dateFilter}
@@ -300,56 +435,24 @@ export default function HappyTailsBookingRequests() {
                 )}
               </div>
 
-              {filteredRequests.map((r) => (
-                <div key={r.id} className="br-card">
-                  <div className="br-card-top">
-                    <button
-                      type="button"
-                      className="br-card-avatar-btn"
-                      onClick={() => handleOwnerClick(r)}
-                    >
-                      <span className="br-card-avatar">{r.icon}</span>
-                    </button>
+              {loading && <p className="br-empty">Loading...</p>}
+              {error && <p className="br-empty">{error}</p>}
 
-                    <button
-                      type="button"
-                      className="br-card-service-btn"
-                      onClick={() => handleOwnerClick(r)}
-                    >
-                      <span className="br-card-service">{r.service}</span>
-                    </button>
-
-                    <span className={`br-badge ${STATUS_CLASS[r.status] || ""}`}>
-                      {r.status}
-                    </span>
-                  </div>
-
-                  <div className="br-card-details">
-                    <span className="br-detail">
-                      {r.petEmoji} {r.pet} · {r.owner}
-                    </span>
-                    <span className="br-detail">📅 {formatDate(r.date)}</span>
-                  </div>
-
-                  <div className="br-card-actions">
-                    <button
-                      className="br-accept-btn"
-                      onClick={() => handleAction(r.id, "accept")}
-                    >
-                      ✓ Accept
-                    </button>
-                    <button
-                      className="br-decline-btn"
-                      onClick={() => handleAction(r.id, "decline")}
-                    >
-                      ✕ Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {filteredRequests.length === 0 && (
-                <p className="br-empty">No booking requests match these filters</p>
+              {!loading && !error && (
+                <>
+                  {statusFilter === "all" ? (
+                    <>
+                      {renderSection("Pending", groupedByStatus.pending)}
+                      {renderSection("Accepted", groupedByStatus.accepted)}
+                      {renderSection("Rejected", groupedByStatus.rejected)}
+                    </>
+                  ) : (
+                    renderSection(
+                      STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label || statusFilter,
+                      groupedBookings.filter((g) => g.status === statusFilter)
+                    )
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -360,6 +463,7 @@ export default function HappyTailsBookingRequests() {
                 key={item.id}
                 className={`br-nav-item${activeNav === item.id ? " br-nav-item--active" : ""}`}
                 onClick={() => handleNavClick(item.id)}
+                type="button"
               >
                 <span className="br-nav-emoji">{item.emoji}</span>
                 <span className="br-nav-label">{item.label}</span>

@@ -144,6 +144,8 @@ export default function HappyTailsRegister() {
       localStorage.setItem("userRole", data.role);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("username", data.username || form.username.trim());
+      localStorage.setItem("firstName", data.firstName || form.firstName.trim());
+      localStorage.setItem("lastName", data.lastName || form.lastName.trim());
 
       navigate("/otp", {
         state: {

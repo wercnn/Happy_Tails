@@ -57,6 +57,8 @@ export default function LoginPage() {
       localStorage.setItem("userRole", data.role);
       localStorage.setItem("userEmail", data.profile?.email || "");
       localStorage.setItem("username", data.username || "");
+      localStorage.setItem("firstName", data.profile?.firstName || "");
+      localStorage.setItem("lastName", data.profile?.lastName || "");
 
       if (data.role === "minder") {
         navigate("/mindDash");

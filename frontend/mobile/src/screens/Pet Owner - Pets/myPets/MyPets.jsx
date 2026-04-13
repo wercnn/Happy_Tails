@@ -20,18 +20,60 @@ export default function HappyTailsMyPets() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [deletePetId, setDeletePetId] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const savedPets = JSON.parse(localStorage.getItem("ownerPets") || "[]");
-    setPets(savedPets);
+    const loadPets = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/pets", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load pets.");
+          return;
+        }
+
+        setPets(data);
+      } catch (err) {
+        console.error("Failed to load pets:", err);
+        setError("Server error. Please try again.");
+      }
+    };
+
+    loadPets();
   }, []);
+
+  const getPetEmoji = (species) => {
+    switch ((species || "").toLowerCase()) {
+      case "dog":
+        return "🐶";
+      case "cat":
+        return "🐱";
+      case "rabbit":
+        return "🐰";
+      case "bird":
+        return "🐦";
+      case "reptile":
+        return "🦎";
+      default:
+        return "🐾";
+    }
+  };
 
   const filteredPets = useMemo(() => {
     return pets.filter((pet) => {
       const matchesSearch =
         searchQuery.trim() === "" ||
-        pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pet.breed.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pet.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pet.breed || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (pet.species || "").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesFilter =
@@ -41,7 +83,8 @@ export default function HappyTailsMyPets() {
     });
   }, [pets, searchQuery, activeFilter]);
 
-  const petToDelete = pets.find((pet) => pet.id === deletePetId) || null;
+  const petToDelete =
+    pets.find((pet) => (pet.petID || pet.id) === deletePetId) || null;
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -76,16 +119,38 @@ export default function HappyTailsMyPets() {
     setDeletePetId(petId);
   };
 
-  const handleDeletePet = () => {
-    const updatedPets = pets.filter((pet) => pet.id !== deletePetId);
-    setPets(updatedPets);
-    localStorage.setItem("ownerPets", JSON.stringify(updatedPets));
+  const handleDeletePet = async () => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/pets/${deletePetId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": localStorage.getItem("userID") || "",
+          "x-user-role": localStorage.getItem("userRole") || "",
+        },
+      });
 
-    if (openPetId === deletePetId) {
-      setOpenPetId(null);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to delete pet.");
+        return;
+      }
+
+      const updatedPets = pets.filter(
+        (pet) => (pet.petID || pet.id) !== deletePetId
+      );
+      setPets(updatedPets);
+
+      if (openPetId === deletePetId) {
+        setOpenPetId(null);
+      }
+
+      setDeletePetId(null);
+    } catch (err) {
+      console.error("Failed to delete pet:", err);
+      setError("Server error. Please try again.");
     }
-
-    setDeletePetId(null);
   };
 
   return (
@@ -130,95 +195,109 @@ export default function HappyTailsMyPets() {
                 ))}
               </div>
 
-              {filteredPets.map((pet) => (
-                <div
-                  key={pet.id}
-                  className="mypets-card"
-                  onClick={() => navigate("/petProfile", { state: { pet } })}
-                >
-                  <div className="mypets-card-actions-top">
-                    <button
-                      className="mypets-edit-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate("/addPet", { state: { pet } });
-                      }}
-                      aria-label={`Edit ${pet.name}`}
-                    >
-                      ✎
-                    </button>
+              {error && <p className="mypets-empty">{error}</p>}
 
-                    <button
-                      className="mypets-delete-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmDeletePet(pet.id);
-                      }}
-                      aria-label={`Delete ${pet.name}`}
-                    >
-                      🗑
-                    </button>
-                  </div>
+              {filteredPets.map((pet) => {
+                const petId = pet.petID || pet.id;
 
-                  <div className="mypets-card-top">
-                    <span className="mypets-avatar">
-                      {pet.photo ? (
-                        <img
-                          src={pet.photo}
-                          alt={pet.name}
-                          className="mypets-avatar-img"
-                        />
-                      ) : (
-                        pet.emoji || "🐾"
-                      )}
-                    </span>
-
-                    <div className="mypets-info">
-                      <span className="mypets-name">{pet.name}</span>
-                      <span className="mypets-meta">{pet.breed} · {pet.age} yrs</span>
-                    </div>
-                  </div>
-
-                  <button
-                    className="mypets-summary-toggle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePetSummary(pet.id);
-                    }}
+                return (
+                  <div
+                    key={petId}
+                    className="mypets-card"
+                    onClick={() => navigate("/petProfile", { state: { pet } })}
                   >
-                    <span>Quick Summary</span>
-                    <span className={`mypets-summary-arrow${openPetId === pet.id ? " mypets-summary-arrow--open" : ""}`}>
-                      ⌄
-                    </span>
-                  </button>
+                    <div className="mypets-card-actions-top">
+                      <button
+                        className="mypets-edit-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/addPet", { state: { pet } });
+                        }}
+                        aria-label={`Edit ${pet.name}`}
+                      >
+                        ✎
+                      </button>
 
-                  {openPetId === pet.id && (
-                    <div
-                      className="mypets-summary"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="mypets-summary-row">
-                        <span className="mypets-summary-label">Species:</span>
-                        <span className="mypets-summary-value">{pet.species || "Not added"}</span>
-                      </div>
-                      <div className="mypets-summary-row">
-                        <span className="mypets-summary-label">Breed:</span>
-                        <span className="mypets-summary-value">{pet.breed}</span>
-                      </div>
-                      <div className="mypets-summary-row">
-                        <span className="mypets-summary-label">Age:</span>
-                        <span className="mypets-summary-value">{pet.age} yrs</span>
-                      </div>
-                      <div className="mypets-summary-row mypets-summary-row--notes">
-                        <span className="mypets-summary-label">Notes:</span>
-                        <span className="mypets-summary-value">{pet.notes || "No notes added"}</span>
+                      <button
+                        className="mypets-delete-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmDeletePet(petId);
+                        }}
+                        aria-label={`Delete ${pet.name}`}
+                      >
+                        🗑
+                      </button>
+                    </div>
+
+                    <div className="mypets-card-top">
+                      <span className="mypets-avatar">
+                        {pet.photo ? (
+                          <img
+                            src={pet.photo}
+                            alt={pet.name}
+                            className="mypets-avatar-img"
+                          />
+                        ) : (
+                          getPetEmoji(pet.species)
+                        )}
+                      </span>
+
+                      <div className="mypets-info">
+                        <span className="mypets-name">{pet.name}</span>
+                        <span className="mypets-meta">
+                          {pet.breed} · {pet.age} yrs
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
 
-              {filteredPets.length === 0 && (
+                    <button
+                      className="mypets-summary-toggle"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePetSummary(petId);
+                      }}
+                    >
+                      <span>Quick Summary</span>
+                      <span
+                        className={`mypets-summary-arrow${openPetId === petId ? " mypets-summary-arrow--open" : ""}`}
+                      >
+                        ⌄
+                      </span>
+                    </button>
+
+                    {openPetId === petId && (
+                      <div
+                        className="mypets-summary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="mypets-summary-row">
+                          <span className="mypets-summary-label">Species:</span>
+                          <span className="mypets-summary-value">
+                            {pet.species || "Not added"}
+                          </span>
+                        </div>
+                        <div className="mypets-summary-row">
+                          <span className="mypets-summary-label">Breed:</span>
+                          <span className="mypets-summary-value">{pet.breed}</span>
+                        </div>
+                        <div className="mypets-summary-row">
+                          <span className="mypets-summary-label">Age:</span>
+                          <span className="mypets-summary-value">{pet.age} yrs</span>
+                        </div>
+                        <div className="mypets-summary-row mypets-summary-row--notes">
+                          <span className="mypets-summary-label">Notes:</span>
+                          <span className="mypets-summary-value">
+                            {pet.routines || pet.notes || "No notes added"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {!error && filteredPets.length === 0 && (
                 <p className="mypets-empty">No pets match your search or filter.</p>
               )}
             </div>

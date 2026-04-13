@@ -71,16 +71,54 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* ── Month tab toggle ── */
+.cal-month-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cal-month-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.cal-month-tab--active {
+  border-color: #f97316;
+  background: #f97316;
+  color: #fff;
 }
 
 /* ── Month heading ── */
 .cal-month {
-  margin: 0;
+  margin: 0 0 6px;
   font-size: 1.1rem;
   font-weight: 800;
   color: #1a1a1a;
   text-align: center;
+}
+
+/* ── Loading / error status ── */
+.cal-status {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 16px 0;
+}
+
+.cal-status--error {
+  color: #ef4444;
 }
 
 /* ── Grid ── */

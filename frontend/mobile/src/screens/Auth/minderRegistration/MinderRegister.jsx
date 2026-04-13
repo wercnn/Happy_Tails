@@ -155,6 +155,9 @@ export default function HappyTailsMinderRegister() {
       localStorage.setItem("userID", data.userID);
       localStorage.setItem("userRole", data.role);
       localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("username", data.username || form.username.trim());
+      localStorage.setItem("firstName", data.firstName || form.firstName.trim());
+      localStorage.setItem("lastName", data.lastName || form.lastName.trim());
 
       navigate("/otp", {
         state: {
@@ -162,6 +165,7 @@ export default function HappyTailsMinderRegister() {
           profileID: data.profileID,
           email: data.email,
           firstName: data.firstName,
+          lastName: data.lastName,
           role: data.role,
         },
       });

@@ -1,22 +1,93 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import "./SelectService.css";
 
-const SERVICES = [
-  { id: 1, emoji: "🚶", name: "Dog Walking (30 min)", price: "£15", unit: "" },
-  { id: 2, emoji: "🚶", name: "Dog Walking (60 min)", price: "£22", unit: "" },
-  { id: 3, emoji: "🏠", name: "Overnight Boarding", price: "£35", unit: "/night" },
-];
+const API_BASE = "http://localhost:3000";
+
+const getServiceEmoji = (serviceName) => {
+  const lower = (serviceName || "").toLowerCase();
+
+  if (lower.includes("walk")) return "🚶";
+  if (lower.includes("board")) return "🏠";
+  if (lower.includes("sit")) return "🐾";
+  if (lower.includes("day")) return "☀️";
+  return "🐾";
+};
 
 export default function HappyTailsSelectService() {
   const navigate = useNavigate();
   const location = useLocation();
   const minder = location.state?.minder || null;
+
   const [selected, setSelected] = useState(null);
+  const [fullMinder, setFullMinder] = useState(minder);
+  const [services, setServices] = useState([]);
+  const [isLoading, setIsLoading] = useState(Boolean(minder));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const sitterID = minder?.sitterID || minder?.id;
+    if (!sitterID) {
+      setIsLoading(false);
+      return;
+    }
+
+    const loadMinderServices = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/minders/${sitterID}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load services.");
+          return;
+        }
+
+        setFullMinder(data);
+
+        const activeServices = (data.services || [])
+          .filter((service) => service.isActive !== false)
+          .map((service) => ({
+            id: service.minderServiceID || service.serviceTypeID,
+            minderServiceID: service.minderServiceID || null,
+            serviceTypeID: service.serviceTypeID || null,
+            emoji: getServiceEmoji(service.name),
+            name: service.name,
+            description: service.description || "",
+            customPrice: service.customPrice ?? null,
+            basePrice: service.basePrice ?? null,
+            price:
+              service.customPrice != null
+                ? `£${service.customPrice}`
+                : service.basePrice != null
+                  ? `£${service.basePrice}`
+                  : "Price unavailable",
+            unit: "/hr",
+            raw: service,
+          }));
+
+        setServices(activeServices);
+      } catch (err) {
+        console.error("Failed to load minder services:", err);
+        setError("Server error. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMinderServices();
+  }, [minder]);
 
   const handleBack = () => {
     if (minder) {
-      navigate("/viewMinders", { state: { minder } });
+      navigate("/viewMinders", { state: { minder: fullMinder || minder } });
       return;
     }
 
@@ -26,22 +97,29 @@ export default function HappyTailsSelectService() {
   const handleContinue = () => {
     if (!selected) return;
 
-    const selectedService = SERVICES.find((svc) => svc.id === selected);
+    const selectedService = services.find((svc) => svc.id === selected);
+    if (!selectedService) return;
 
     navigate("/selectDates", {
       state: {
-        minder,
+        minder: fullMinder || minder,
         service: selectedService,
       },
     });
   };
+
+  const minderName =
+    fullMinder?.name ||
+    `${fullMinder?.firstName || ""} ${fullMinder?.lastName || ""}`.trim() ||
+    minder?.name ||
+    "this minder";
 
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="ss-screen">
           <header className="ss-header">
-            <button className="ss-back" onClick={handleBack}>
+            <button className="ss-back" onClick={handleBack} type="button">
               ←
             </button>
             <h1 className="ss-title">Select Service</h1>
@@ -50,24 +128,36 @@ export default function HappyTailsSelectService() {
           <div className="ss-scroll">
             <div className="ss-body">
               <p className="ss-subtitle">
-                Choose a service from <strong>{minder?.name || "this minder"}</strong>
+                Choose a service from <strong>{minderName}</strong>
               </p>
 
+              {isLoading && <p className="ss-subtitle">Loading services...</p>}
+              {error && <p className="ss-subtitle">{error}</p>}
+
               <div className="ss-list">
-                {SERVICES.map((svc) => (
-                  <button
-                    key={svc.id}
-                    className={`ss-card${selected === svc.id ? " ss-card--selected" : ""}`}
-                    onClick={() => setSelected(svc.id)}
-                  >
-                    <span className="ss-card-emoji">{svc.emoji}</span>
-                    <div className="ss-card-info">
-                      <span className="ss-card-name">{svc.name}</span>
-                      <span className="ss-card-price">{svc.price}{svc.unit}</span>
-                    </div>
-                    <span className={`ss-radio${selected === svc.id ? " ss-radio--active" : ""}`} />
-                  </button>
-                ))}
+                {!isLoading &&
+                  !error &&
+                  services.map((svc) => (
+                    <button
+                      key={svc.id}
+                      className={`ss-card${selected === svc.id ? " ss-card--selected" : ""}`}
+                      onClick={() => setSelected(svc.id)}
+                      type="button"
+                    >
+                      <span className="ss-card-emoji">{svc.emoji}</span>
+                      <div className="ss-card-info">
+                        <span className="ss-card-name">{svc.name}</span>
+                        <span className="ss-card-price">
+                          {svc.price}{svc.unit}
+                        </span>
+                      </div>
+                      <span className={`ss-radio${selected === svc.id ? " ss-radio--active" : ""}`} />
+                    </button>
+                  ))}
+
+                {!isLoading && !error && services.length === 0 && (
+                  <p className="ss-subtitle">This minder has no services listed yet.</p>
+                )}
               </div>
             </div>
           </div>
@@ -77,6 +167,7 @@ export default function HappyTailsSelectService() {
               className={`ss-continue-btn${!selected ? " ss-continue-btn--disabled" : ""}`}
               onClick={handleContinue}
               disabled={!selected}
+              type="button"
             >
               CONTINUE →
             </button>

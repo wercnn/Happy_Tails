@@ -1,11 +1,14 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./MinderProfile.css";
 
 function Stars({ count }) {
+  const rounded = Math.round(Number(count) || 0);
+
   return (
     <span className="mp-stars">
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className={i < count ? "mp-star mp-star--filled" : "mp-star"}>
+        <span key={i} className={i < rounded ? "mp-star mp-star--filled" : "mp-star"}>
           ★
         </span>
       ))}
@@ -16,9 +19,55 @@ function Stars({ count }) {
 export default function HappyTailsMinderProfile() {
   const navigate = useNavigate();
   const location = useLocation();
-  const minder = location.state?.minder;
 
-  if (!minder) {
+  const minderFromState = location.state?.minder || null;
+  const storedSitterID = localStorage.getItem("selectedMinderID") || "";
+  const initialSitterID =
+    minderFromState?.sitterID || minderFromState?.id || storedSitterID;
+
+  const [fullMinder, setFullMinder] = useState(minderFromState);
+  const [isLoading, setIsLoading] = useState(Boolean(initialSitterID));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!initialSitterID) {
+      setIsLoading(false);
+      setError("Please go back and select a minder again.");
+      return;
+    }
+
+    const loadMinder = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/api/minders/${initialSitterID}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to load minder profile.");
+          return;
+        }
+
+        setFullMinder(data);
+        localStorage.setItem("selectedMinderID", data.sitterID || initialSitterID);
+      } catch (err) {
+        console.error("Failed to load minder profile:", err);
+        setError("Server error. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMinder();
+  }, [initialSitterID]);
+
+  if (!initialSitterID && !isLoading) {
     return (
       <div className="mobile-stage">
         <div className="mobile-frame">
@@ -45,34 +94,65 @@ export default function HappyTailsMinderProfile() {
     );
   }
 
+  const displayMinder = fullMinder || minderFromState || {};
+  const name =
+    displayMinder.name ||
+    `${displayMinder.firstName || ""} ${displayMinder.lastName || ""}`.trim() ||
+    "Minder";
+
+  const locationText =
+    displayMinder.distance
+      ? `${displayMinder.distance} away`
+      : displayMinder.city || displayMinder.postcode || "Location unavailable";
+
+  const rating = Number(displayMinder.ratingAvg || 0).toFixed(1);
+  const reviews = displayMinder.reviews || [];
+  const reviewCount = Array.isArray(reviews)
+    ? reviews.length
+    : Number(displayMinder.reviews || 0);
+
+  const services =
+    Array.isArray(displayMinder.services) && displayMinder.services.length > 0
+      ? displayMinder.services
+      : [];
+
+  const tags =
+    Array.isArray(displayMinder.serviceList) && displayMinder.serviceList.length > 0
+      ? displayMinder.serviceList
+      : services.map((s) => s.name);
+
   const profile = {
-    name: minder.name,
-    location: `${minder.distance} away`,
-    services_tags: minder.serviceList || [],
+    name,
+    location: locationText,
+    services_tags: tags,
     stats: [
-      { emoji: "⭐", value: String(minder.ratingText || minder.rating || "N/A"), label: "Rating" },
-      { emoji: "📋", value: String(minder.reviews || 0), label: "Reviews" },
-      { emoji: "🏅", value: "3 yrs", label: "Experience" },
+      { emoji: "⭐", value: rating ? rating : "N/A", label: "Rating" },
+      { emoji: "📋", value: String(reviewCount), label: "Reviews" },
+      {
+        emoji: "🏅",
+        value: `${displayMinder.experienceYears || 0} yrs`,
+        label: "Experience",
+      },
     ],
-    services: (minder.serviceList || []).map((service) => ({
-      name: service,
-      price: `£${minder.price ?? ""}`,
-      unit: "/hr",
+    services: services.map((service) => ({
+      id: service.minderServiceID || service.serviceTypeID || service.name,
+      name: service.name,
+      price:
+        service.customPrice != null
+          ? `£${service.customPrice}`
+          : service.basePrice != null
+          ? `£${service.basePrice}`
+          : "Price unavailable",
+      unit: service.customPrice != null || service.basePrice != null ? "/hr" : "",
     })),
-    reviews: [
-      {
-        id: 1,
-        reviewer: "Sarah J.",
-        stars: 5,
-        text: `${minder.name} is reliable, caring, and great with pets.`,
-      },
-      {
-        id: 2,
-        reviewer: "Mike T.",
-        stars: 4,
-        text: "Great communication and very trustworthy.",
-      },
-    ],
+    reviews: Array.isArray(reviews)
+      ? reviews.map((review) => ({
+          id: review.reviewID || review.id,
+          reviewer: review.reviewerName || "Happy Tails User",
+          stars: Number(review.rating || 0),
+          text: review.comment || "No written review provided.",
+        }))
+      : [],
   };
 
   return (
@@ -88,7 +168,7 @@ export default function HappyTailsMinderProfile() {
             </div>
 
             <div className="mp-hero">
-              <div className="mp-avatar">{minder.emoji || "🐾"}</div>
+              <div className="mp-avatar">{displayMinder.emoji || "🐾"}</div>
               <div className="mp-hero-info">
                 <div className="mp-name-row">
                   <h1 className="mp-name">{profile.name}</h1>
@@ -105,6 +185,9 @@ export default function HappyTailsMinderProfile() {
 
           <div className="mp-scroll">
             <div className="mp-body">
+              {isLoading && <p className="mp-review-text">Loading minder profile...</p>}
+              {error && <p className="mp-review-text">{error}</p>}
+
               <div className="mp-stats-row">
                 {profile.stats.map((s) => (
                   <div key={s.label} className="mp-stat-card">
@@ -118,27 +201,37 @@ export default function HappyTailsMinderProfile() {
               <section className="mp-section">
                 <h2 className="mp-section-title">Services &amp; Pricing</h2>
                 <div className="mp-service-list">
-                  {profile.services.map((svc) => (
-                    <div key={svc.name} className="mp-service-row">
-                      <span className="mp-service-name">{svc.name}</span>
-                      <span className="mp-service-price">{svc.price}{svc.unit}</span>
-                    </div>
-                  ))}
+                  {profile.services.length > 0 ? (
+                    profile.services.map((svc) => (
+                      <div key={svc.id} className="mp-service-row">
+                        <span className="mp-service-name">{svc.name}</span>
+                        <span className="mp-service-price">
+                          {svc.price}{svc.unit}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="mp-review-text">No services listed yet.</p>
+                  )}
                 </div>
               </section>
 
               <section className="mp-section">
                 <h2 className="mp-section-title">Reviews</h2>
                 <div className="mp-review-list">
-                  {profile.reviews.map((r) => (
-                    <div key={r.id} className="mp-review-card">
-                      <div className="mp-review-top">
-                        <span className="mp-reviewer">{r.reviewer}</span>
-                        <Stars count={r.stars} />
+                  {profile.reviews.length > 0 ? (
+                    profile.reviews.map((r) => (
+                      <div key={r.id} className="mp-review-card">
+                        <div className="mp-review-top">
+                          <span className="mp-reviewer">{r.reviewer}</span>
+                          <Stars count={r.stars} />
+                        </div>
+                        <p className="mp-review-text">{r.text}</p>
                       </div>
-                      <p className="mp-review-text">{r.text}</p>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="mp-review-text">No reviews yet.</p>
+                  )}
                 </div>
               </section>
             </div>
@@ -147,7 +240,11 @@ export default function HappyTailsMinderProfile() {
           <div className="mp-footer">
             <button
               className="mp-book-btn"
-              onClick={() => navigate("/selectService", { state: { minder } })}
+              onClick={() =>
+                navigate("/selectService", {
+                  state: { minder: displayMinder },
+                })
+              }
             >
               BOOK NOW →
             </button>

@@ -29,9 +29,9 @@ function requireUser(req, send, res) {
 // or an array of strings for endpoints that allow multiple roles.
 function requireRole(req, send, res, role) {
   const userRole = String(req.userRole || '').toLowerCase();
-  const allowed = Array.isArray(role)
-    ? role.map(r => r.toLowerCase()).includes(userRole)
-    : userRole === String(role).toLowerCase();
+  const roles = Array.isArray(role) ? role : [role];
+  const allowed = roles.map(r => String(r).toLowerCase()).includes(userRole);
+  console.log(allowed)
 
   if (!allowed) {
     send(res, 403, { error: 'Forbidden: insufficient role' });

@@ -30,6 +30,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* ── Header ── */
@@ -66,8 +67,37 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   gap: 20px;
 }
 
+/* ── Month tab toggle ── */
+.av-month-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.av-month-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.av-month-tab--active {
+  border-color: #f97316;
+  background: #f97316;
+  color: #fff;
+}
+
 /* ── Sections ── */
-.av-section { display: flex; flex-direction: column; gap: 14px; }
+.av-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .av-section-title {
   margin: 0;
@@ -160,7 +190,158 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   pointer-events: none;
 }
 
-/* ── Block Out Dates ── */
+/* ── Calendar Grid ── */
+.av-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px 2px;
+}
+
+.av-cal-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #aaa;
+  padding-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+.av-cal-cell {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.av-cal-cell--blank {
+  pointer-events: none;
+  background: transparent;
+}
+
+.av-cal-cell--past {
+  background: #f0f0f0;
+  color: #ccc;
+  border: 1.5px solid transparent;
+  cursor: not-allowed;
+}
+
+.av-cal-cell--available {
+  background: #fff8f0;
+  color: #e07b10;
+  border: 1.5px solid #fde8cc;
+  cursor: pointer;
+}
+.av-cal-cell--available:hover {
+  background: #fde8cc;
+  transform: scale(1.05);
+}
+
+.av-cal-cell--selected {
+  background: #f28c28 !important;
+  color: #fff !important;
+  border-color: #f28c28 !important;
+  box-shadow: 0 2px 8px rgba(238, 139, 40, 0.4);
+  transform: scale(1.08);
+}
+
+.av-cal-cell--existing {
+  background: #2876F2;
+  color: #fff;
+  border: 1.5px solid #2876F2;
+  cursor: default;
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(40, 118, 242, 0.18);
+}
+
+/* ── Calendar Legend ── */
+.av-cal-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.av-cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #777;
+  font-weight: 500;
+}
+
+.av-cal-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.av-cal-dot--available { background: #fff8f0; border: 1.5px solid #fde8cc; }
+.av-cal-dot--past      { background: #f0f0f0; border: 1.5px solid #e0e0e0; }
+.av-cal-dot--selected  { background: #f28c28; }
+.av-cal-dot--existing  { background: #2876F2; }
+
+/* ── Error ── */
+.av-error {
+  color: #d32f2f;
+  font-size: 0.88rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Current Availability Card ── */
+.av-availability-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fff7ef 100%);
+  border: 1px solid #f8d7b4;
+  border-radius: 18px;
+  padding: 16px 16px;
+  box-shadow: 0 8px 18px rgba(242, 140, 40, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.av-availability-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.av-availability-label {
+  min-width: 54px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #c86d11;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.av-availability-value {
+  flex: 1;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2a2a2a;
+  line-height: 1.45;
+}
+
+.av-availability-value div + div {
+  margin-top: 4px;
+}
+
+/* ── Legacy blocked styles kept harmlessly ── */
 .av-block-card {
   background: #fff;
   border-radius: 14px;
@@ -213,7 +394,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .av-block-add:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
-/* ── Blocked date chips ── */
 .av-blocked-list {
   display: flex;
   flex-wrap: wrap;
@@ -261,8 +441,67 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
-.av-save-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
-.av-save-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+.av-save-btn:hover:not(:disabled)  { filter: brightness(1.06); transform: translateY(-1px); }
+.av-save-btn:active:not(:disabled) { transform: translateY(1px); filter: brightness(0.96); }
+.av-save-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+/* ── Save Toast Overlay ── */
+.av-save-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.av-save-toast {
+  min-width: 190px;
+  max-width: 84%;
+  background: rgba(20, 20, 20, 0.92);
+  color: #fff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+  animation: av-toast-pop 0.18s ease-out;
+}
+
+.av-save-toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #22c55e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.av-save-toast-text {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@keyframes av-toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 /* ── Bottom Nav ── */
 .av-nav {
@@ -305,4 +544,13 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   .mobile-stage { padding: 0; }
   .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
   .av-body { padding: 16px 12px 24px; }
+  .av-hours-row { gap: 10px; }
+  .av-availability-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .av-availability-label,
+  .av-availability-value {
+    text-align: left;
+  }
 }

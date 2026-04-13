@@ -1,34 +1,115 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./ReportIncident.css";
 
+const API_BASE = "http://localhost:3000";
+
 const INCIDENT_TYPES = [
-  "Pet Injury",
-  "Property Damage",
-  "Minder No-Show",
-  "Inappropriate Behaviour",
-  "Lost Pet",
-  "Other",
+  { label: "Pet Injury",               value: "PetInjury" },
+  { label: "Pet Illness",              value: "PetIllness" },
+  { label: "Lost Pet",                 value: "LostPet" },
+  { label: "Minder No-Show",           value: "MinderNoShow" },
+  { label: "Property Damage",          value: "PropertyDamage" },
+  { label: "Inappropriate Behaviour",  value: "InappropriateBehaviour" },
+  { label: "Other",                    value: "Other" },
 ];
 
-const BOOKINGS = [
-  "#HT-20260409-001 — Buddy, 9 Apr",
-  "#HT-20260402-002 — Luna, 2 Apr",
-  "#HT-20260322-003 — Buddy, 22 Mar",
-];
+const SEVERITY_LEVELS = ["Low", "Medium", "High"];
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id":   localStorage.getItem("userID")   || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
+function formatBookingLabel(b) {
+  const date = new Date(b.startTime.replace(" ", "T"))
+    .toLocaleDateString([], { day: "numeric", month: "short" });
+  return `${b.bookingID.slice(0, 8).toUpperCase()} — ${b.serviceTypeID}, ${date}`;
+}
 
 export default function HappyTailsReportIncident() {
-  const [incidentType,    setIncidentType]    = useState(INCIDENT_TYPES[0]);
-  const [booking,         setBooking]         = useState(BOOKINGS[0]);
-  const [description,     setDescription]     = useState("");
-  const [files,           setFiles]           = useState([]);
-  const [typeOpen,        setTypeOpen]        = useState(false);
-  const [bookingOpen,     setBookingOpen]     = useState(false);
-  const [dragging,        setDragging]        = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromBooking = location.state?.booking || null;
+  const fromBookings = location.state?.bookings || null;
+
+  const handleBack = () => {
+    if (fromBooking) {
+      navigate("/bookingDetails", { state: { booking: fromBooking, bookings: fromBookings } });
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const [incidentType, setIncidentType] = useState(INCIDENT_TYPES[0]);
+  const [severity,     setSeverity]     = useState("Low");
+  const [description,  setDescription]  = useState("");
+  const [files,        setFiles]        = useState([]);
+
+  const [bookings,        setBookings]        = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  const [typeOpen,     setTypeOpen]     = useState(false);
+  const [bookingOpen,  setBookingOpen]  = useState(false);
+  const [severityOpen, setSeverityOpen] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error,      setError]      = useState("");
+
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/bookings`, { headers: getAuthHeaders() })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        // Only show accepted/completed bookings — you can only report on real bookings
+        const valid = data.filter((b) => b.status === "accepted" || b.status === "completed");
+        setBookings(valid);
+        if (valid.length > 0) setSelectedBooking(valid[0]);
+      })
+      .catch(() => {})
+      .finally(() => setBookingsLoading(false));
+  }, []);
 
   const handleFiles = (newFiles) => {
     setFiles((prev) => [...prev, ...Array.from(newFiles).map((f) => f.name)]);
   };
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!selectedBooking) { setError("Please select a booking."); return; }
+    if (!description.trim()) { setError("Please describe the incident."); return; }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/reports/incident`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          bookingID:    selectedBooking.bookingID,
+          incidentType: incidentType.value,
+          severityLevel: severity,
+          description:  description.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to submit report. Please try again.");
+        return;
+      }
+      navigate("/reportSubmitted", { state: { incidentID: data.incidentID } });
+    } catch {
+      setError("Server error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeAll = () => { setTypeOpen(false); setBookingOpen(false); setSeverityOpen(false); };
 
   return (
     <div className="mobile-stage">
@@ -37,7 +118,7 @@ export default function HappyTailsReportIncident() {
 
           {/* Header */}
           <header className="ri-header">
-            <button className="ri-back" onClick={() => alert("Go back")}>←</button>
+            <button className="ri-back" onClick={handleBack}>←</button>
             <h1 className="ri-title">🚨 Report an Incident</h1>
           </header>
 
@@ -59,19 +140,19 @@ export default function HappyTailsReportIncident() {
                 <div className="ri-select-wrap">
                   <button
                     className="ri-select-btn"
-                    onClick={() => { setTypeOpen((o) => !o); setBookingOpen(false); }}
+                    onClick={() => { setTypeOpen((o) => !o); setBookingOpen(false); setSeverityOpen(false); }}
                   >
-                    <span>{incidentType}</span>
+                    <span>{incidentType.label}</span>
                     <span className={`ri-arrow${typeOpen ? " ri-arrow--open" : ""}`}>▼</span>
                   </button>
                   {typeOpen && (
                     <div className="ri-dropdown">
                       {INCIDENT_TYPES.map((t) => (
                         <button
-                          key={t}
-                          className={`ri-dropdown-item${incidentType === t ? " ri-dropdown-item--active" : ""}`}
+                          key={t.value}
+                          className={`ri-dropdown-item${incidentType.value === t.value ? " ri-dropdown-item--active" : ""}`}
                           onClick={() => { setIncidentType(t); setTypeOpen(false); }}
-                        >{t}</button>
+                        >{t.label}</button>
                       ))}
                     </div>
                   )}
@@ -84,19 +165,53 @@ export default function HappyTailsReportIncident() {
                 <div className="ri-select-wrap">
                   <button
                     className="ri-select-btn"
-                    onClick={() => { setBookingOpen((o) => !o); setTypeOpen(false); }}
+                    onClick={() => { setBookingOpen((o) => !o); setTypeOpen(false); setSeverityOpen(false); }}
+                    disabled={bookingsLoading}
                   >
-                    <span className="ri-select-truncate">{booking}</span>
+                    <span className="ri-select-truncate">
+                      {bookingsLoading
+                        ? "Loading bookings…"
+                        : bookings.length === 0
+                          ? "No bookings available"
+                          : selectedBooking
+                            ? formatBookingLabel(selectedBooking)
+                            : "Select a booking"}
+                    </span>
                     <span className={`ri-arrow${bookingOpen ? " ri-arrow--open" : ""}`}>▼</span>
                   </button>
-                  {bookingOpen && (
+                  {bookingOpen && bookings.length > 0 && (
                     <div className="ri-dropdown">
-                      {BOOKINGS.map((b) => (
+                      {bookings.map((b) => (
                         <button
-                          key={b}
-                          className={`ri-dropdown-item${booking === b ? " ri-dropdown-item--active" : ""}`}
-                          onClick={() => { setBooking(b); setBookingOpen(false); }}
-                        >{b}</button>
+                          key={b.bookingID}
+                          className={`ri-dropdown-item${selectedBooking?.bookingID === b.bookingID ? " ri-dropdown-item--active" : ""}`}
+                          onClick={() => { setSelectedBooking(b); setBookingOpen(false); }}
+                        >{formatBookingLabel(b)}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Severity Level */}
+              <div className="ri-field">
+                <label className="ri-label">Severity Level</label>
+                <div className="ri-select-wrap">
+                  <button
+                    className="ri-select-btn"
+                    onClick={() => { setSeverityOpen((o) => !o); setTypeOpen(false); setBookingOpen(false); }}
+                  >
+                    <span>{severity}</span>
+                    <span className={`ri-arrow${severityOpen ? " ri-arrow--open" : ""}`}>▼</span>
+                  </button>
+                  {severityOpen && (
+                    <div className="ri-dropdown">
+                      {SEVERITY_LEVELS.map((s) => (
+                        <button
+                          key={s}
+                          className={`ri-dropdown-item${severity === s ? " ri-dropdown-item--active" : ""}`}
+                          onClick={() => { setSeverity(s); setSeverityOpen(false); }}
+                        >{s}</button>
                       ))}
                     </div>
                   )}
@@ -110,7 +225,7 @@ export default function HappyTailsReportIncident() {
                   className="ri-textarea"
                   placeholder="Please describe what happened in detail..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => { setDescription(e.target.value); setError(""); closeAll(); }}
                 />
               </div>
 
@@ -118,10 +233,9 @@ export default function HappyTailsReportIncident() {
               <div className="ri-field">
                 <label className="ri-label">Upload Photos / Evidence (optional)</label>
                 <div
-                  className={`ri-dropzone${dragging ? " ri-dropzone--active" : ""}`}
-                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files); }}
+                  className={`ri-dropzone${files.length > 0 ? " ri-dropzone--has-files" : ""}`}
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
                   onClick={() => fileRef.current?.click()}
                 >
                   <span className="ri-upload-icon">📎</span>
@@ -144,16 +258,19 @@ export default function HappyTailsReportIncident() {
                 </div>
               </div>
 
+              {error && <p className="ri-error">{error}</p>}
+
             </div>
           </div>
 
           {/* Footer */}
           <div className="ri-footer">
             <button
-              className="ri-submit-btn"
-              onClick={() => alert("Incident report submitted!")}
+              className={`ri-submit-btn${submitting ? " ri-submit-btn--loading" : ""}`}
+              onClick={handleSubmit}
+              disabled={submitting}
             >
-              SUBMIT INCIDENT REPORT
+              {submitting ? "SUBMITTING…" : "SUBMIT INCIDENT REPORT"}
             </button>
           </div>
 
