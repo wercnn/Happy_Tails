@@ -223,49 +223,61 @@ export default function HappyTailsConversations() {
 
               {!loading &&
                 !error &&
-                filteredConversations.map((conversation) => (
-                  <button
-                    key={conversation.conversationKey || conversation.conversationID}
-                    type="button"
-                    className="conv-card"
-                    onClick={() => handleOpenConversation(conversation)}
-                  >
-                    <div className="conv-avatar">
-                      {conversation.avatar ? (
-                        <img
-                          src={conversation.avatar}
-                          alt={conversation.otherUserName}
-                          className="conv-avatar-img"
-                        />
-                      ) : (
-                        <span className="conv-avatar-text">
-                          {getInitials(conversation.otherUserName)}
-                        </span>
-                      )}
-                    </div>
+                filteredConversations.map((conversation) => {
+                  const isUnread = Number(conversation.unreadCount || 0) > 0;
 
-                    <div className="conv-main">
-                      <div className="conv-top-row">
-                        <span className="conv-name">{conversation.otherUserName}</span>
-                        <span className="conv-time">
-                          {formatConversationTime(conversation.timestamp)}
-                        </span>
-                      </div>
-
-                      <div className="conv-bottom-row">
-                        <span className="conv-preview">
-                          {conversation.lastMessage}
-                        </span>
-
-                        {conversation.unreadCount > 0 && (
-                          <span className="conv-unread">
-                            {conversation.unreadCount}
+                  return (
+                    <button
+                      key={conversation.conversationKey || conversation.conversationID}
+                      type="button"
+                      className={`conv-card${isUnread ? " conv-card--unread" : ""}`}
+                      onClick={() => handleOpenConversation(conversation)}
+                    >
+                      <div className="conv-avatar">
+                        {conversation.avatar ? (
+                          <img
+                            src={conversation.avatar}
+                            alt={conversation.otherUserName}
+                            className="conv-avatar-img"
+                          />
+                        ) : (
+                          <span className="conv-avatar-text">
+                            {getInitials(conversation.otherUserName)}
                           </span>
                         )}
                       </div>
-                    </div>
-                  </button>
-                ))}
+
+                      <div className="conv-main">
+                        <div className="conv-top-row">
+                          <div className="conv-name-wrap">
+                            <span className={`conv-name${isUnread ? " conv-name--unread" : ""}`}>
+                              {conversation.otherUserName}
+                            </span>
+                            {isUnread && <span className="conv-blue-dot" />}
+                          </div>
+
+                          <span className="conv-time">
+                            {formatConversationTime(conversation.timestamp)}
+                          </span>
+                        </div>
+
+                        <div className="conv-bottom-row">
+                          <span
+                            className={`conv-preview${isUnread ? " conv-preview--unread" : ""}`}
+                          >
+                            {conversation.lastMessage}
+                          </span>
+
+                          {conversation.unreadCount > 0 && (
+                            <span className="conv-unread">
+                              {conversation.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
           </div>
 

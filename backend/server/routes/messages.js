@@ -113,6 +113,19 @@ register('GET', '/api/messages/direct/user/:otherUserID', async (req, res, send)
     return send(res, 403, { error: 'Forbidden' });
   }
 
+  await db.query(
+    `
+    UPDATE MESSAGE M
+    JOIN CONVERSATION C ON C.conversationID = M.conversationID
+    SET M.isRead = TRUE
+    WHERE C.bookingID IS NULL
+      AND M.senderUserID = ?
+      AND M.receiverUserID = ?
+      AND M.isRead = FALSE
+    `,
+    [otherUserID, currentUserID]
+  );
+
   const [rows] = await db.query(
     `
     SELECT M.*
@@ -177,6 +190,17 @@ register('GET', '/api/messages/conversations', async (req, res, send) => {
 
     const otherUserName = await getProfileNameByUserID(otherUserID);
 
+    const [[unreadRow]] = await db.query(
+      `
+      SELECT COUNT(*) AS unreadCount
+      FROM MESSAGE
+      WHERE conversationID = ?
+        AND receiverUserID = ?
+        AND isRead = FALSE
+      `,
+      [conv.conversationID, currentUserID]
+    );
+
     results.push({
       conversationKey: `direct-${conv.conversationID}`,
       conversationType: 'direct',
@@ -190,7 +214,7 @@ register('GET', '/api/messages/conversations', async (req, res, send) => {
       lastMessage: lastMessage.content || '',
       timestamp: lastMessage.timestamp,
       rawTimestamp: lastMessage.timestamp,
-      unreadCount: 0,
+      unreadCount: Number(unreadRow?.unreadCount || 0),
     });
   }
 

@@ -252,6 +252,36 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: #f28c28;
 }
 
+.conv-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.conv-name--unread {
+  font-weight: 800;
+  color: #111827;
+}
+
+.conv-preview--unread {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.conv-blue-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.conv-card--unread {
+  border: 1px solid rgba(37, 99, 235, 0.12);
+}
+
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
 
