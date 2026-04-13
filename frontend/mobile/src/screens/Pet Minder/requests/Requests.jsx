@@ -104,6 +104,53 @@ function getDisplayedTime(item) {
   return formatTime(item.startTime);
 }
 
+function toBoolean(value) {
+  if (value === true || value === 1 || value === "1") return true;
+  if (typeof value === "string") {
+    const lowered = value.toLowerCase();
+    if (lowered === "true" || lowered === "yes") return true;
+  }
+  return false;
+}
+
+function getMeetAndGreetFromItem(item) {
+  if (!item) return null;
+
+  if (item.meetAndGreet && typeof item.meetAndGreet === "object") {
+    return item.meetAndGreet;
+  }
+
+  const hasMeetFields =
+    item.meetID ||
+    item.scheduledTime ||
+    item.meetingLinkOrLocation ||
+    item.meetAndGreetStatus ||
+    item.meetStatus ||
+    item.isVirtual !== undefined;
+
+  if (!hasMeetFields) return null;
+
+  return {
+    meetID: item.meetID || null,
+    scheduledTime: item.scheduledTime || null,
+    isVirtual: toBoolean(item.isVirtual),
+    meetingLinkOrLocation: item.meetingLinkOrLocation || null,
+    status: item.meetAndGreetStatus || item.meetStatus || item.status || null,
+    note: item.meetAndGreetNote || item.note || null,
+  };
+}
+
+function formatMeetAndGreetTime(dateStr) {
+  if (!dateStr) return "Not scheduled";
+  return toDate(dateStr).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function getCreatedMinuteKey(createdAt) {
   if (!createdAt) return "no-created-at";
   const d = toDate(createdAt);
@@ -169,6 +216,7 @@ function groupBookings(bookings) {
         startTime: b.startTime,
         endTime: b.endTime,
         selectedTime: b.selectedTime || null,
+        meetAndGreet: getMeetAndGreetFromItem(b),
         subtotal: 0,
       });
     }
@@ -182,6 +230,10 @@ function groupBookings(bookings) {
 
       if (!group.selectedTime && b.selectedTime) {
         group.selectedTime = b.selectedTime;
+      }
+
+      if (!group.meetAndGreet) {
+        group.meetAndGreet = getMeetAndGreetFromItem(b);
       }
 
       const currentStart = toDate(group.startTime);
@@ -402,6 +454,9 @@ export default function HappyTailsBookingRequests() {
                   : `${group.dates.length} dates: ${group.dates.map((d) => formatShortDate(d)).join(", ")}`}
               </span>
               <span className="br-detail">⏰ {getDisplayedTime(group)}</span>
+              <span className="br-detail">
+                🤝 Meet &amp; Greet: {group.meetAndGreet ? formatMeetAndGreetTime(group.meetAndGreet.scheduledTime) : "Not scheduled"}
+              </span>
               {group.ownerNotes && (
                 <span className="br-detail">📝 {group.ownerNotes}</span>
               )}

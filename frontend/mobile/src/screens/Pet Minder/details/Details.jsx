@@ -40,6 +40,59 @@ function formatDateShort(dateStr) {
   });
 }
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return "Not scheduled";
+  return toDate(dateStr).toLocaleString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function toBoolean(value) {
+  if (value === true || value === 1 || value === "1") return true;
+  if (typeof value === "string") {
+    const lowered = value.toLowerCase();
+    if (lowered === "true" || lowered === "yes") return true;
+  }
+  return false;
+}
+
+function getMeetAndGreetFromItem(item) {
+  if (!item) return null;
+
+  if (item.meetAndGreet && typeof item.meetAndGreet === "object") {
+    return item.meetAndGreet;
+  }
+
+  const hasMeetFields =
+    item.meetID ||
+    item.scheduledTime ||
+    item.meetingLinkOrLocation ||
+    item.meetAndGreetStatus ||
+    item.meetStatus ||
+    item.isVirtual !== undefined;
+
+  if (!hasMeetFields) return null;
+
+  return {
+    meetID: item.meetID || null,
+    scheduledTime: item.scheduledTime || null,
+    isVirtual: toBoolean(item.isVirtual),
+    meetingLinkOrLocation: item.meetingLinkOrLocation || null,
+    status: item.meetAndGreetStatus || item.meetStatus || "Scheduled",
+    note: item.meetAndGreetNote || item.note || null,
+  };
+}
+
+function getMeetAndGreetStatusLabel(meetAndGreet) {
+  if (!meetAndGreet) return "Not scheduled";
+  return meetAndGreet.status || "Scheduled";
+}
+
 function getOwnerName(item) {
   const full = [item?.ownerFirstName, item?.ownerLastName].filter(Boolean).join(" ").trim();
   return full || item?.ownerName || "Pet owner";
@@ -123,6 +176,10 @@ export default function HappyTailsRequestDetails() {
   const locationText = getLocationText(primary);
   const notes = primary?.ownerNotes || "No notes provided";
   const totalCost = bookings.reduce((sum, b) => sum + Number(b.totalCost || 0), 0);
+  const meetAndGreet =
+    getMeetAndGreetFromItem(stateGroup) ||
+    bookings.map(getMeetAndGreetFromItem).find(Boolean) ||
+    null;
 
   const handleBack = () => {
     navigate(-1);
@@ -273,6 +330,39 @@ export default function HappyTailsRequestDetails() {
               </section>
 
               <section className="rd-card">
+                <h3 className="rd-card-title">Meet &amp; Greet</h3>
+
+                <div className="rd-row">
+                  <span className="rd-label">Status</span>
+                  <span className="rd-value">{getMeetAndGreetStatusLabel(meetAndGreet)}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Scheduled time</span>
+                  <span className="rd-value">{formatDateTime(meetAndGreet?.scheduledTime)}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Type</span>
+                  <span className="rd-value">
+                    {!meetAndGreet ? "Not set" : meetAndGreet.isVirtual ? "Virtual" : "In-person"}
+                  </span>
+                </div>
+
+                <div className="rd-row rd-row--top">
+                  <span className="rd-label">Link / Location</span>
+                  <span className="rd-value">{meetAndGreet?.meetingLinkOrLocation || "Not provided"}</span>
+                </div>
+
+                {meetAndGreet?.note && (
+                  <div className="rd-row rd-row--top">
+                    <span className="rd-label">Notes</span>
+                    <span className="rd-value">{meetAndGreet.note}</span>
+                  </div>
+                )}
+              </section>
+
+              <section className="rd-card">
                 <h3 className="rd-card-title">Request Summary</h3>
 
                 <div className="rd-row">
@@ -293,6 +383,11 @@ export default function HappyTailsRequestDetails() {
                 <div className="rd-row">
                   <span className="rd-label">Total amount</span>
                   <span className="rd-value">£{totalCost.toFixed(2)}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Meet &amp; Greet</span>
+                  <span className="rd-value">{meetAndGreet ? "Included" : "Not requested"}</span>
                 </div>
 
                 <div className="rd-row rd-row--top">
