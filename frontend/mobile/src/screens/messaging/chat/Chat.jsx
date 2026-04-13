@@ -74,7 +74,7 @@ export default function HappyTailsChat() {
   const bottomRef = useRef(null);
 
   const bookingID = location.state?.bookingID || null;
-  const fromProfile = Boolean(location.state?.fromProfile);
+  const sitterID = location.state?.sitterID || null;
   const otherUserName = location.state?.otherUserName || "Conversation";
   const petName = location.state?.petName || "";
   const serviceName = location.state?.serviceName || "";
@@ -90,17 +90,21 @@ export default function HappyTailsChat() {
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
 
   const fetchMessages = async () => {
-    if (!bookingID) {
+    if (!bookingID && !sitterID) {
       setMessages([]);
       setLoading(false);
-      setError("");
+      setError("Missing conversation details.");
       return;
     }
 
     try {
       setError("");
 
-      const res = await fetch(`${API_BASE}/api/messages/${bookingID}`, {
+      const url = bookingID
+        ? `${API_BASE}/api/messages/${bookingID}`
+        : `${API_BASE}/api/messages/direct/${sitterID}`;
+
+      const res = await fetch(url, {
         headers: getAuthHeaders(),
       });
 
@@ -120,16 +124,9 @@ export default function HappyTailsChat() {
   };
 
   useEffect(() => {
-    if (!bookingID) {
-      setLoading(false);
-      setMessages([]);
-      setError("");
-      return;
-    }
-
     fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingID]);
+  }, [bookingID, sitterID]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -140,8 +137,8 @@ export default function HappyTailsChat() {
 
     if (!trimmed || sending) return;
 
-    if (!bookingID) {
-      setError("Messaging will be available once a booking conversation is created.");
+    if (!bookingID && !sitterID) {
+      setError("Missing conversation details.");
       return;
     }
 
@@ -149,13 +146,20 @@ export default function HappyTailsChat() {
       setSending(true);
       setError("");
 
+      const payload = {
+        content: trimmed,
+      };
+
+      if (bookingID) {
+        payload.bookingID = bookingID;
+      } else {
+        payload.sitterID = sitterID;
+      }
+
       const res = await fetch(`${API_BASE}/api/messages`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bookingID,
-          content: trimmed,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -210,20 +214,12 @@ export default function HappyTailsChat() {
 
               {!loading && error && <p className="chat-empty">{error}</p>}
 
-              {!loading && !error && !bookingID && fromProfile && (
-                <p className="chat-empty">
-                  You can view this chat now. Messaging will be available once a booking
-                  conversation is created.
-                </p>
-              )}
-
-              {!loading && !error && bookingID && chatItems.length === 0 && (
+              {!loading && !error && chatItems.length === 0 && (
                 <p className="chat-empty">No messages yet. Start the conversation.</p>
               )}
 
               {!loading &&
                 !error &&
-                bookingID &&
                 chatItems.map((item) => {
                   if (item.type === "date") {
                     return (
@@ -262,23 +258,18 @@ export default function HappyTailsChat() {
             <div className="chat-input-wrap">
               <textarea
                 className="chat-input"
-                placeholder={
-                  bookingID
-                    ? "Type a message..."
-                    : "Messaging available after a booking is created..."
-                }
+                placeholder="Type a message..."
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
-                disabled={!bookingID}
               />
 
               <button
                 className="chat-send-btn"
                 type="button"
                 onClick={handleSendMessage}
-                disabled={!bookingID || !messageText.trim() || sending}
+                disabled={!messageText.trim() || sending}
               >
                 {sending ? "..." : "➤"}
               </button>
