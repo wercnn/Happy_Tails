@@ -73,11 +73,8 @@ export default function HappyTailsChat() {
   const location = useLocation();
   const bottomRef = useRef(null);
 
-  const bookingID = location.state?.bookingID || null;
-  const sitterID = location.state?.sitterID || null;
+  const otherUserID = location.state?.otherUserID || null;
   const otherUserName = location.state?.otherUserName || "Conversation";
-  const petName = location.state?.petName || "";
-  const serviceName = location.state?.serviceName || "";
 
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
@@ -90,7 +87,7 @@ export default function HappyTailsChat() {
   const chatItems = useMemo(() => buildChatItems(messages), [messages]);
 
   const fetchMessages = async () => {
-    if (!bookingID && !sitterID) {
+    if (!otherUserID) {
       setMessages([]);
       setLoading(false);
       setError("Missing conversation details.");
@@ -100,13 +97,12 @@ export default function HappyTailsChat() {
     try {
       setError("");
 
-      const url = bookingID
-        ? `${API_BASE}/api/messages/${bookingID}`
-        : `${API_BASE}/api/messages/direct/${sitterID}`;
-
-      const res = await fetch(url, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(
+        `${API_BASE}/api/messages/direct/user/${otherUserID}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
 
       const data = await res.json();
 
@@ -126,7 +122,7 @@ export default function HappyTailsChat() {
   useEffect(() => {
     fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingID, sitterID]);
+  }, [otherUserID]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -137,7 +133,7 @@ export default function HappyTailsChat() {
 
     if (!trimmed || sending) return;
 
-    if (!bookingID && !sitterID) {
+    if (!otherUserID) {
       setError("Missing conversation details.");
       return;
     }
@@ -146,20 +142,13 @@ export default function HappyTailsChat() {
       setSending(true);
       setError("");
 
-      const payload = {
-        content: trimmed,
-      };
-
-      if (bookingID) {
-        payload.bookingID = bookingID;
-      } else {
-        payload.sitterID = sitterID;
-      }
-
       const res = await fetch(`${API_BASE}/api/messages`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          otherUserID,
+          content: trimmed,
+        }),
       });
 
       const data = await res.json();
@@ -200,20 +189,13 @@ export default function HappyTailsChat() {
 
             <div className="chat-header-info">
               <h1 className="chat-title">{otherUserName}</h1>
-              {(petName || serviceName) && (
-                <p className="chat-subtitle">
-                  {[petName, serviceName].filter(Boolean).join(" · ")}
-                </p>
-              )}
             </div>
           </header>
 
           <div className="chat-scroll">
             <div className="chat-body">
               {loading && <p className="chat-empty">Loading messages...</p>}
-
               {!loading && error && <p className="chat-empty">{error}</p>}
-
               {!loading && !error && chatItems.length === 0 && (
                 <p className="chat-empty">No messages yet. Start the conversation.</p>
               )}

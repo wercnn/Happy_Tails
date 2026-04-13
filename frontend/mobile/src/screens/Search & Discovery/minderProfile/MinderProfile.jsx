@@ -95,6 +95,8 @@ export default function HappyTailsMinderProfile() {
   }
 
   const displayMinder = fullMinder || minderFromState || {};
+  const sitterID = displayMinder.sitterID || displayMinder.id || null;
+
   const minderName =
     displayMinder.name ||
     [displayMinder.firstName, displayMinder.lastName].filter(Boolean).join(" ").trim() ||
@@ -152,6 +154,36 @@ export default function HappyTailsMinderProfile() {
           text: review.comment || "No written review provided.",
         }))
       : [],
+  };
+
+  const handleMessageClick = () => {
+    const otherUserID = displayMinder.userID || null;
+    if (!otherUserID) return;
+
+    const existing = JSON.parse(localStorage.getItem("directChatContacts") || "[]");
+
+    const next = [
+      ...existing.filter((x) => x.otherUserID !== otherUserID),
+      {
+        otherUserID,
+        otherUserName: minderName,
+        avatar: "",
+        role: "minder",
+      },
+    ];
+
+    localStorage.setItem("directChatContacts", JSON.stringify(next));
+
+    navigate("/chat", {
+      state: {
+        bookingID: null,
+        otherUserID,
+        otherUserName: minderName,
+        petName: "",
+        serviceName: "",
+        fromProfile: true,
+      },
+    });
   };
 
   return (
@@ -244,18 +276,8 @@ export default function HappyTailsMinderProfile() {
               <button
                 className="mp-message-btn"
                 type="button"
-                onClick={() =>
-                  navigate("/chat", {
-                    state: {
-                      bookingID: null,
-                      otherUserName: minderName,
-                      petName: "",
-                      serviceName: "",
-                      sitterID: displayMinder.sitterID || displayMinder.id || null,
-                      fromProfile: true,
-                    },
-                  })
-                }
+                onClick={handleMessageClick}
+                disabled={!displayMinder.userID}
               >
                 💬 MESSAGE
               </button>

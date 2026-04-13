@@ -68,22 +68,6 @@ function formatConversationTime(dateStr) {
   });
 }
 
-function getOtherPersonName(booking, role) {
-  if (role === "owner") {
-    const full = [booking.minderFirstName, booking.minderLastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-    return full || "Pet Minder";
-  }
-
-  const full = [booking.ownerFirstName, booking.ownerLastName]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return full || "Pet Owner";
-}
-
 export default function HappyTailsConversations() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
@@ -100,61 +84,17 @@ export default function HappyTailsConversations() {
       setError("");
 
       try {
-        const bookingsRes = await fetch(`${API_BASE}/api/bookings`, {
+        const res = await fetch(`${API_BASE}/api/messages/conversations`, {
           headers: getAuthHeaders(),
         });
 
-        const bookingsData = await bookingsRes.json();
+        const data = await res.json();
 
-        if (!bookingsRes.ok) {
-          throw new Error(bookingsData.error || "Failed to load bookings.");
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load conversations.");
         }
 
-        const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-
-        const conversationResults = await Promise.all(
-          bookings.map(async (booking) => {
-            try {
-              const messagesRes = await fetch(
-                `${API_BASE}/api/messages/${booking.bookingID}`,
-                {
-                  headers: getAuthHeaders(),
-                }
-              );
-
-              const messagesData = await messagesRes.json();
-
-              if (!messagesRes.ok) {
-                return null;
-              }
-
-              const messages = Array.isArray(messagesData) ? messagesData : [];
-              const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-
-              return {
-                conversationID: booking.bookingID,
-                bookingID: booking.bookingID,
-                otherUserName: getOtherPersonName(booking, userRole),
-                petName: booking.petName || "Pet",
-                serviceName: booking.serviceName || "Service",
-                avatar: "",
-                lastMessage: lastMessage?.content || "No messages yet",
-                timestamp: lastMessage?.timestamp || booking.createdAt || booking.startTime,
-                rawTimestamp: lastMessage?.timestamp || booking.createdAt || booking.startTime,
-                unreadCount: 0,
-              };
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        const cleaned = conversationResults
-          .filter(Boolean)
-          .filter((item) => item.lastMessage && item.bookingID)
-          .sort((a, b) => toDate(b.rawTimestamp) - toDate(a.rawTimestamp));
-
-        setConversations(cleaned);
+        setConversations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to load conversations:", err);
         setError(err.message || "Failed to load conversations.");
@@ -164,7 +104,7 @@ export default function HappyTailsConversations() {
     };
 
     loadConversations();
-  }, [userRole]);
+  }, []);
 
   const filteredConversations = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -173,10 +113,8 @@ export default function HappyTailsConversations() {
 
     return conversations.filter((item) => {
       return (
-        item.otherUserName.toLowerCase().includes(q) ||
-        item.lastMessage.toLowerCase().includes(q) ||
-        item.petName.toLowerCase().includes(q) ||
-        item.serviceName.toLowerCase().includes(q)
+        String(item.otherUserName || "").toLowerCase().includes(q) ||
+        String(item.lastMessage || "").toLowerCase().includes(q)
       );
     });
   }, [search, conversations]);
@@ -231,11 +169,9 @@ export default function HappyTailsConversations() {
   const handleOpenConversation = (conversation) => {
     navigate("/chat", {
       state: {
-        bookingID: conversation.bookingID,
-        conversationID: conversation.conversationID,
+        otherUserID: conversation.otherUserID,
         otherUserName: conversation.otherUserName,
-        petName: conversation.petName,
-        serviceName: conversation.serviceName,
+        conversationID: conversation.conversationID,
       },
     });
   };
@@ -289,7 +225,7 @@ export default function HappyTailsConversations() {
                 !error &&
                 filteredConversations.map((conversation) => (
                   <button
-                    key={conversation.conversationID}
+                    key={conversation.conversationKey || conversation.conversationID}
                     type="button"
                     className="conv-card"
                     onClick={() => handleOpenConversation(conversation)}

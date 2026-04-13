@@ -266,7 +266,7 @@ export default function HappyTailsMinderDashboard() {
       const thisWeekCount = accepted.filter((b) => isThisWeek(b.startTime)).length;
 
       setPendingRequests(pending);
-      setTodaySchedule(accepted.filter((b) => isToday(b.startTime)));
+      setTodaySchedule(today);
       setUpcomingBookings(upcoming);
       setStats({
         newRequests: groupBookings(pending).length,
@@ -358,14 +358,25 @@ export default function HappyTailsMinderDashboard() {
             </div>
 
             <div className="md-header-right">
-              <button
-                className="md-notif-btn"
-                onClick={() => navigate("/mindNotifications")}
-                aria-label="Notifications"
-                type="button"
-              >
-                🔔
-              </button>
+              <div className="md-header-actions">
+                <button
+                  className="md-message-btn"
+                  onClick={() => navigate("/conversation")}
+                  aria-label="Messages"
+                  type="button"
+                >
+                  💬
+                </button>
+
+                <button
+                  className="md-notif-btn"
+                  onClick={() => navigate("/mindNotifications")}
+                  aria-label="Notifications"
+                  type="button"
+                >
+                  🔔
+                </button>
+              </div>
 
               <div className="md-status-pill">
                 <span className="md-status-dot" />

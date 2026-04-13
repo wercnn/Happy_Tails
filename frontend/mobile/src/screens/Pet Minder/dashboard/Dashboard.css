@@ -485,6 +485,34 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .md-nav-item--active .md-nav-label { color: #f28c28; }
 
+.md-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.md-message-btn,
+.md-notif-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.md-message-btn:hover,
+.md-notif-btn:hover {
+  background: rgba(255,255,255,0.32);
+  transform: scale(1.05);
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
