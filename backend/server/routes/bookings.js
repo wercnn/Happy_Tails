@@ -571,6 +571,46 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
 
 
 // ─────────────────────────────────────────────
+// POST /api/bookings/:id/meet-and-greet
+// Owner creates a meet & greet for a booking.
+// ─────────────────────────────────────────────
+register('POST', '/api/bookings/:id/meet-and-greet', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
+
+  const body = await req.parseBody();
+  const { scheduledTime, isVirtual, meetingLinkOrLocation, note } = body;
+
+  if (!scheduledTime) return send(res, 400, { error: 'scheduledTime is required' });
+
+  const meetID = uuid();
+  await db.query(
+    `INSERT INTO MEET_AND_GREET (meetID, bookingID, scheduledTime, isVirtual, meetingLinkOrLocation, status)
+     VALUES (?, ?, ?, ?, ?, 'Scheduled')`,
+    [meetID, bookingID, scheduledTime, isVirtual ? 1 : 0, meetingLinkOrLocation || null]
+  );
+
+  if (note && String(note).trim()) {
+    await db.query(
+      `INSERT INTO MEET_AND_GREET_NOTE (noteID, meetID, content) VALUES (?, ?, ?)`,
+      [uuid(), meetID, String(note).trim()]
+    );
+  }
+
+  const [[row]] = await db.query('SELECT * FROM MEET_AND_GREET WHERE meetID = ?', [meetID]);
+  send(res, 201, row);
+});
+
+
+// ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/complete
 // Minder marks a booking as completed. Notifies the owner and prompts a review.
 // ─────────────────────────────────────────────
