@@ -70,6 +70,19 @@ export default function HappyTailsBookingDetail() {
         throw new Error(body.error || `Failed to accept (${res.status})`);
       }
       setStatus("accepted");
+
+      const serviceName = SERVICE_NAMES[booking.serviceTypeID] || booking.serviceTypeID;
+      const startDate = formatDatetime(booking.startTime);
+      await fetch(`${API_BASE}/api/notifications`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ownerID: booking.ownerID,
+          title: "Booking Accepted",
+          body: `Your booking for ${serviceName} on ${startDate} has been accepted by your minder.`,
+          channel: "in-app",
+        }),
+      });
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {

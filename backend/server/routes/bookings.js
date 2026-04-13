@@ -263,6 +263,50 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
 
   await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['accepted', bookingID]);
+
+  // Notify the pet owner that their booking has been accepted
+  try {
+    const [[ownerRow]] = await db.query(
+      'SELECT userID FROM PET_OWNER WHERE ownerID = ?',
+      [booking.ownerID]
+    );
+    const [[serviceRow]] = await db.query(
+      'SELECT name FROM SERVICE_TYPE WHERE serviceTypeID = ?',
+      [booking.serviceTypeID]
+    );
+    const [[minderRow]] = await db.query(
+      `SELECT UP.firstName, UP.lastName
+       FROM PET_MINDER PM
+       JOIN USER_PROFILE UP ON UP.userID = PM.userID
+       WHERE PM.sitterID = ?`,
+      [sitterID]
+    );
+
+    if (ownerRow) {
+      const serviceName = serviceRow?.name || booking.serviceTypeID;
+      const minderName  = minderRow
+        ? `${minderRow.firstName} ${minderRow.lastName}`.trim()
+        : 'your minder';
+      const startDate = new Date(booking.startTime).toLocaleString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+
+      await db.query(
+        `INSERT INTO NOTIFICATION (notificationID, recipientID, channel, title, body)
+         VALUES (?, ?, 'in-app', ?, ?)`,
+        [
+          uuid(),
+          ownerRow.userID,
+          'Booking Accepted',
+          `Your booking for ${serviceName} on ${startDate} has been accepted by ${minderName}.`,
+        ]
+      );
+    }
+  } catch (notifErr) {
+    console.error('Failed to create acceptance notification:', notifErr.message);
+  }
+
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
 });
