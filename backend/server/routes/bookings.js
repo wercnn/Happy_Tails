@@ -20,6 +20,10 @@ async function canAccessBooking(booking, ownerID, sitterID) {
   return false;
 }
 
+
+// ─────────────────────────────────────────────
+// POST /api/bookings → create booking
+// ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
 // POST /api/bookings → create booking
 // ─────────────────────────────────────────────
@@ -126,6 +130,8 @@ register('POST', '/api/bookings', async (req, res, send) => {
   send(res, 201, booking);
 });
 
+
+
 // ─────────────────────────────────────────────
 // GET /api/bookings → list own bookings
 // ─────────────────────────────────────────────
@@ -208,6 +214,7 @@ register('GET', '/api/bookings', async (req, res, send) => {
   return send(res, 403, { error: 'Forbidden' });
 });
 
+
 // ─────────────────────────────────────────────
 // GET /api/bookings/:id
 // ─────────────────────────────────────────────
@@ -216,8 +223,8 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const role = String(req.userRole || '').toLowerCase();
-  const bookingID = req.params.id;
 
+  const bookingID = req.params.id;
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   if (!booking) return notFound(send, res, 'Booking not found');
 
@@ -238,6 +245,7 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
   return send(res, 403, { error: 'Forbidden' });
 });
 
+
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/accept
 // ─────────────────────────────────────────────
@@ -252,14 +260,13 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
-  if (String(booking.status).toLowerCase() !== 'pending') {
-    return send(res, 409, { error: 'Booking not pending' });
-  }
+  if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
 
   await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['accepted', bookingID]);
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
 });
+
 
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/reject
@@ -275,9 +282,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
-  if (String(booking.status).toLowerCase() !== 'pending') {
-    return send(res, 409, { error: 'Booking not pending' });
-  }
+  if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
 
   await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['rejected', bookingID]);
   await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
@@ -285,6 +290,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
 });
+
 
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/cancel
@@ -302,17 +308,17 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
 
   const body = await req.parseBody();
+  // Example: { cancellationReason: 'Change of plans.' }
   const reason = body?.cancellationReason;
 
   const status = String(booking.status).toLowerCase();
-  if (['completed', 'cancelled'].includes(status)) {
-    return send(res, 409, { error: 'Booking cannot be cancelled' });
-  }
+  if (['completed', 'cancelled'].includes(status)) return send(res, 409, { error: 'Booking cannot be cancelled' });
 
-  await db.query(
-    'UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?',
-    ['cancelled', reason, bookingID]
-  );
+  await db.query('UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?', [
+    'cancelled',
+    reason,
+    bookingID,
+  ]);
   await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
 
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);

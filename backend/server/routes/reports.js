@@ -98,7 +98,6 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
   send(res, 201, row);
 });
 
-
 // save generated case reference back onto the incident report
 register('PATCH', '/api/reports/incident/:incident_id/case-reference', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -120,6 +119,7 @@ register('PATCH', '/api/reports/incident/:incident_id/case-reference', async (re
   await db.query('UPDATE INCIDENT_REPORT SET caseReference = ? WHERE incidentID = ?', [caseReference, incidentID]);
   send(res, 200, { incidentID, caseReference });
 });
+
 
 
 // get all incident reports for ONLY support staff
