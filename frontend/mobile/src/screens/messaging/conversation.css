@@ -1,0 +1,263 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.conv-screen {
+  height: 100%;
+  width: 100%;
+  background: #f7f7f7;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conv-header {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
+  padding: 20px 18px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.conv-back-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.conv-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.conv-search-wrap {
+  padding: 14px 14px 10px;
+  background: #f7f7f7;
+}
+
+.conv-search-box {
+  width: 100%;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.conv-search-icon {
+  font-size: 0.95rem;
+}
+
+.conv-search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.92rem;
+  background: transparent;
+  font-family: inherit;
+}
+
+.conv-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.conv-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.conv-list {
+  padding: 4px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conv-card {
+  width: 100%;
+  border: none;
+  background: #fff;
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.conv-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.09);
+}
+
+.conv-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f8b163 0%, #f28c28 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.conv-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conv-avatar-text {
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.conv-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conv-top-row,
+.conv-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.conv-top-row {
+  justify-content: space-between;
+}
+
+.conv-bottom-row {
+  justify-content: space-between;
+}
+
+.conv-name {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.conv-time {
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  color: #999;
+}
+
+.conv-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.84rem;
+  color: #6d6d6d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conv-unread {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #f28c28;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.conv-empty {
+  margin: 30px 0;
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.conv-nav {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: stretch;
+  padding: 6px 0 10px;
+}
+
+.conv-nav-item {
+  flex: 1;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px 2px;
+  cursor: pointer;
+}
+
+.conv-nav-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.conv-nav-label {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.conv-nav-item--active .conv-nav-label {
+  color: #f28c28;
+}
+
+@media (max-width: 430px) {
+  .mobile-stage { padding: 0; }
+
+  .mobile-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

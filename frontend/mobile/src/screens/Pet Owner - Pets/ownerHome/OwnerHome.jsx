@@ -301,7 +301,7 @@ export default function HappyTailsHome() {
             <div className="home-header-right">
               <button
                 className="home-message-btn"
-                onClick={() => navigate("/messages")}
+                onClick={() => navigate("/conversation")}
                 aria-label="Messages"
                 type="button"
               >
