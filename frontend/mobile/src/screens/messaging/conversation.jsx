@@ -20,6 +20,20 @@ const MINDER_NAV = [
   { id: "profile", emoji: "👤", label: "Profile" },
 ];
 
+function isSystemBookingMessage(content) {
+  return String(content || "").startsWith("[[SYSTEM_BOOKING_CONFIRMED]]");
+}
+
+function getConversationPreview(content) {
+  const text = String(content || "");
+
+  if (isSystemBookingMessage(text)) {
+    return text.replace("[[SYSTEM_BOOKING_CONFIRMED]]", "").trim();
+  }
+
+  return text;
+}
+
 function getAuthHeaders() {
   return {
     "Content-Type": "application/json",
@@ -29,22 +43,25 @@ function getAuthHeaders() {
 }
 
 function getInitials(name) {
-  return String(name || "")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "U";
+  return (
+    String(name || "")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U"
+  );
 }
 
 function toDate(dateStr) {
-  return new Date(String(dateStr).replace(" ", "T"));
+  const d = new Date(String(dateStr).replace(" ", "T"));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function formatConversationTime(dateStr) {
-  if (!dateStr) return "";
-
   const date = toDate(dateStr);
+  if (!date) return "";
+
   const now = new Date();
 
   const isToday =
@@ -125,7 +142,7 @@ export default function HappyTailsConversations() {
     return conversations.filter((item) => {
       return (
         String(item.otherUserName || "").toLowerCase().includes(q) ||
-        String(item.lastMessage || "").toLowerCase().includes(q)
+        String(getConversationPreview(item.lastMessage) || "").toLowerCase().includes(q)
       );
     });
   }, [search, conversations]);
@@ -235,7 +252,9 @@ export default function HappyTailsConversations() {
               {!loading &&
                 !error &&
                 filteredConversations.map((conversation) => {
-                  const isUnread = Number(conversation.unreadCount || 0) > 0;
+                  const unreadCount = Number(conversation.unreadCount || 0);
+                  const isUnread = unreadCount > 0;
+                  const previewText = getConversationPreview(conversation.lastMessage);
 
                   return (
                     <button
@@ -276,12 +295,12 @@ export default function HappyTailsConversations() {
                           <span
                             className={`conv-preview${isUnread ? " conv-preview--unread" : ""}`}
                           >
-                            {conversation.lastMessage}
+                            {previewText}
                           </span>
 
-                          {conversation.unreadCount > 0 && (
+                          {unreadCount > 0 && (
                             <span className="conv-unread">
-                              {conversation.unreadCount}
+                              {unreadCount}
                             </span>
                           )}
                         </div>

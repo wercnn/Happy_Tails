@@ -133,13 +133,24 @@ async function createGroupedBookingConfirmedMessage(bookings, acceptedByUserID) 
 
   if (!ownerUserID || !sitterUserID) return;
 
+  const [[ownerProfile]] = await db.query(
+    'SELECT firstName, lastName FROM USER_PROFILE WHERE userID = ?',
+    [ownerUserID]
+  );
+
+  const ownerName =
+    [ownerProfile?.firstName, ownerProfile?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || 'Pet Owner';
+
   const receiverUserID =
     String(acceptedByUserID) === String(ownerUserID) ? sitterUserID : ownerUserID;
 
   const conversationID = await getOrCreateDirectConversation(ownerUserID, sitterUserID);
 
   const serviceLabel = serviceRow?.name || 'booking';
-  const petLabel = petRow?.name || 'your pet';
+  const petName = petRow?.name || 'pet';
 
   const dateLabels = unique(bookings.map((b) => formatBookingDate(b.startTime)));
   const timeLabels = unique(bookings.map((b) => getDisplayTime(b)));
