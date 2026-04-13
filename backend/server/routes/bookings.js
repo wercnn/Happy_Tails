@@ -19,6 +19,30 @@ async function canAccessBooking(booking, ownerID, sitterID) {
   return false;
 }
 
+async function insertNotification(recipientUserID, title, body) {
+  await db.query(
+    `INSERT INTO NOTIFICATION (notificationID, recipientID, channel, title, body)
+     VALUES (?, ?, 'in-app', ?, ?)`,
+    [uuid(), recipientUserID, title, body]
+  );
+}
+
+async function getMinderName(sitterID) {
+  const [[row]] = await db.query(
+    `SELECT UP.firstName, UP.lastName
+     FROM PET_MINDER PM
+     JOIN USER_PROFILE UP ON UP.userID = PM.userID
+     WHERE PM.sitterID = ?`,
+    [sitterID]
+  );
+  return row ? `${row.firstName} ${row.lastName}`.trim() : 'your minder';
+}
+
+async function getServiceName(serviceTypeID) {
+  const [[row]] = await db.query('SELECT name FROM SERVICE_TYPE WHERE serviceTypeID = ?', [serviceTypeID]);
+  return row?.name || serviceTypeID;
+}
+
 async function getUserIdForOwner(ownerID) {
   const [[row]] = await db.query(
     'SELECT userID FROM PET_OWNER WHERE ownerID = ?',
@@ -446,6 +470,22 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     console.error('Failed to create grouped booking confirmation chat message:', err);
   }
 
+  try {
+    const ownerUserID  = await getUserIdForOwner(booking.ownerID);
+    const serviceName  = await getServiceName(booking.serviceTypeID);
+    const minderName   = await getMinderName(sitterID);
+    const startDate    = formatBookingDate(booking.startTime) || '';
+    if (ownerUserID) {
+      await insertNotification(
+        ownerUserID,
+        'Booking Accepted',
+        `Your booking for ${serviceName}${startDate ? ` on ${startDate}` : ''} has been accepted by ${minderName}.`
+      );
+    }
+  } catch (notifErr) {
+    console.error('Failed to create acceptance notification:', notifErr.message);
+  }
+
   const [updatedRows] = await db.query(
     `SELECT * FROM BOOKING WHERE bookingID IN (${bookingIDsToAccept
       .map(() => '?')
@@ -475,6 +515,21 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
 
   await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['rejected', bookingID]);
   await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  try {
+    const ownerUserID = await getUserIdForOwner(booking.ownerID);
+    const serviceName = await getServiceName(booking.serviceTypeID);
+    const startDate   = formatBookingDate(booking.startTime) || '';
+    if (ownerUserID) {
+      await insertNotification(
+        ownerUserID,
+        'Booking Declined',
+        `Unfortunately, your booking request for ${serviceName}${startDate ? ` on ${startDate}` : ''} was not accepted.`
+      );
+    }
+  } catch (notifErr) {
+    console.error('Failed to create rejection notification:', notifErr.message);
+  }
 
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
@@ -509,6 +564,53 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
     bookingID,
   ]);
   await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
+});
+
+
+// ─────────────────────────────────────────────
+// PATCH /api/bookings/:id/complete
+// Minder marks a booking as completed. Notifies the owner and prompts a review.
+// ─────────────────────────────────────────────
+register('PATCH', '/api/bookings/:id/complete', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
+  if (String(booking.status).toLowerCase() !== 'accepted') {
+    return send(res, 409, { error: 'Only accepted bookings can be marked as complete' });
+  }
+
+  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['completed', bookingID]);
+
+  try {
+    const ownerUserID = await getUserIdForOwner(booking.ownerID);
+    const serviceName = await getServiceName(booking.serviceTypeID);
+    const minderName  = await getMinderName(sitterID);
+    const startDate   = formatBookingDate(booking.startTime) || '';
+    if (ownerUserID) {
+      await insertNotification(
+        ownerUserID,
+        'Visit Complete',
+        `Your ${serviceName} session${startDate ? ` on ${startDate}` : ''} with ${minderName} has been completed.`
+      );
+      await insertNotification(
+        ownerUserID,
+        'Leave a Review',
+        `How was your experience with ${minderName}? Share your feedback to help other pet owners.`
+      );
+    }
+  } catch (notifErr) {
+    console.error('Failed to create completion notifications:', notifErr.message);
+  }
 
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
