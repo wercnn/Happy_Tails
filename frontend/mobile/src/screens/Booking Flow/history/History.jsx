@@ -374,16 +374,7 @@ export default function HappyTailsBookingHistory() {
               SERVICE_NAMES[group.serviceTypeID] || group.serviceTypeID || "Service";
 
             return (
-              <button
-                key={group.groupKey}
-                className="bh-card"
-                onClick={() =>
-                  navigate("/ownerBooking", {
-                    state: { booking: group.bookings[0], bookings: group.bookings, grouped: true },
-                  })
-                }
-                type="button"
-              >
+              <div key={group.groupKey} className="bh-card">
                 <span className="bh-card-avatar">
                   {SERVICE_EMOJI[group.serviceTypeID] || "🐾"}
                 </span>
@@ -403,7 +394,33 @@ export default function HappyTailsBookingHistory() {
                 </div>
 
                 <span className={`bh-badge ${cls || ""}`}>{label || group.status}</span>
-              </button>
+
+                <div className="bh-card-actions">
+                  <button
+                    className="bh-card-btn bh-card-btn--details"
+                    onClick={() =>
+                      navigate("/ownerBooking", {
+                        state: { booking: group.bookings[0], bookings: group.bookings, grouped: true },
+                      })
+                    }
+                    type="button"
+                  >
+                    View Details
+                  </button>
+
+                  <button
+                    className="bh-card-btn bh-card-btn--dispute"
+                    onClick={() =>
+                      navigate("/raiseDispute", {
+                        state: { booking: group.bookings[0], bookings: group.bookings, grouped: true },
+                      })
+                    }
+                    type="button"
+                  >
+                    Raise Dispute
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>

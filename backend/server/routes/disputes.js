@@ -44,15 +44,115 @@ register('POST', '/api/disputes', async (req, res, send) => {
   const validTypes = ['RefundRequest', 'NoShowComplaint', 'ServiceQuality', 'PaymentDispute', 'Other'];
   const type = validTypes.includes(disputeType) ? disputeType : 'Other';
 
+  const [[existingOpenDispute]] = await db.query(
+    `SELECT disputeID FROM DISPUTE WHERE bookingID = ? AND status IN ('Open', 'Escalated') LIMIT 1`,
+    [bookingID]
+  );
+  if (existingOpenDispute) {
+    return send(res, 409, { error: 'An open dispute already exists for this booking' });
+  }
+
   const disputeID = uuid();
   await db.query(
     `INSERT INTO DISPUTE (disputeID, bookingID, userID, disputeType, reason, status, isRefundRequested, severityLevel)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [disputeID, bookingID, req.userId, type, reason, 'Open', isRefundRequested ? 1 : 0, severityLevel]
+    [
+      disputeID,
+      bookingID,
+      req.userId,
+      type,
+      reason,
+      'Open',
+      isRefundRequested ? 1 : 0,
+      ['Low', 'Medium', 'High'].includes(severityLevel) ? severityLevel : 'Low',
+    ]
   );
 
   const dispute = await getDispute(disputeID);
   send(res, 201, dispute);
+});
+
+// GET /api/disputes/my (Owner) — list disputes raised by current owner
+register('GET', '/api/disputes/my', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const ownerID = await getOwnerId(db, req.userId);
+  if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+  const [rows] = await db.query(
+    `SELECT
+      D.disputeID,
+      D.bookingID,
+      D.userID,
+      D.disputeType,
+      D.reason,
+      D.status,
+      D.isRefundRequested,
+      D.resolutionNotes,
+      D.severityLevel,
+      D.assignedAt,
+      D.createdAt,
+      B.startTime,
+      B.endTime,
+      B.status AS bookingStatus,
+      B.totalCost
+    FROM DISPUTE D
+    JOIN BOOKING B ON B.bookingID = D.bookingID
+    WHERE B.ownerID = ?
+    ORDER BY D.createdAt DESC`,
+    [ownerID]
+  );
+
+  send(res, 200, rows);
+});
+
+// GET /api/disputes/:id (Owner/Support) — single dispute detail
+register('GET', '/api/disputes/:id', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'support'])) return;
+
+  const disputeID = req.params.id;
+  const role = String(req.userRole || '').toLowerCase();
+
+  if (role === 'owner') {
+    const ownerID = await getOwnerId(db, req.userId);
+    if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
+
+    const [[row]] = await db.query(
+      `SELECT
+         D.disputeID, D.bookingID, D.userID, D.employeeID,
+         D.disputeType, D.reason, D.status, D.isRefundRequested,
+         D.resolutionNotes, D.severityLevel, D.assignedAt, D.createdAt,
+         B.ownerID, B.sitterID, B.status AS bookingStatus, B.totalCost
+       FROM DISPUTE D
+       JOIN BOOKING B ON B.bookingID = D.bookingID
+       WHERE D.disputeID = ? AND B.ownerID = ?`,
+      [disputeID, ownerID]
+    );
+
+    if (!row) return notFound(send, res, 'Dispute not found');
+    return send(res, 200, row);
+  }
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [[row]] = await db.query(
+    `SELECT
+       D.disputeID, D.bookingID, D.userID, D.employeeID,
+       D.disputeType, D.reason, D.status, D.isRefundRequested,
+       D.resolutionNotes, D.severityLevel, D.assignedAt, D.createdAt,
+       P.firstName AS raisedByFirstName, P.lastName AS raisedByLastName, P.email AS raisedByEmail,
+       B.ownerID, B.sitterID, B.status AS bookingStatus, B.totalCost
+     FROM DISPUTE D
+     JOIN USER_PROFILE P ON P.userID = D.userID
+     JOIN BOOKING B ON B.bookingID = D.bookingID
+     WHERE D.disputeID = ?`,
+    [disputeID]
+  );
+  if (!row) return notFound(send, res, 'Dispute not found');
+  send(res, 200, row);
 });
 
 // GET /api/disputes (Support) — list all disputes
@@ -97,32 +197,6 @@ register('GET', '/api/disputes', async (req, res, send) => {
 
   const [rows] = await db.query(sql, params);
   send(res, 200, rows);
-});
-
-// GET /api/disputes/:id (Support) — single dispute detail
-register('GET', '/api/disputes/:id', async (req, res, send) => {
-  if (!requireUser(req, send, res)) return;
-  if (!requireRole(req, send, res, 'support')) return;
-
-  const employeeID = await getEmployeeId(db, req.userId);
-  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
-
-  const disputeID = req.params.id;
-  const [[row]] = await db.query(
-    `SELECT
-       D.disputeID, D.bookingID, D.userID, D.employeeID,
-       D.disputeType, D.reason, D.status, D.isRefundRequested,
-       D.resolutionNotes, D.severityLevel, D.assignedAt, D.createdAt,
-       P.firstName AS raisedByFirstName, P.lastName AS raisedByLastName, P.email AS raisedByEmail,
-       B.ownerID, B.sitterID, B.status AS bookingStatus, B.totalCost
-     FROM DISPUTE D
-     JOIN USER_PROFILE P ON P.userID = D.userID
-     JOIN BOOKING B ON B.bookingID = D.bookingID
-     WHERE D.disputeID = ?`,
-    [disputeID]
-  );
-  if (!row) return notFound(send, res, 'Dispute not found');
-  send(res, 200, row);
 });
 
 // PATCH /api/disputes/:id/resolve (Support) — resolve a dispute

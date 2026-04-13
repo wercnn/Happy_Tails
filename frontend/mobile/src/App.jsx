@@ -34,6 +34,7 @@ import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/Av
 import BookingSummary from './screens/Booking Flow/summary/Summary'
 import MeetAndGreet from './screens/Booking Flow/meetAndGreet/MeetAndGreet'
 import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
+import RaiseDispute from './screens/Booking Flow/dispute/RaiseDispute'
 import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import Notifications from './screens/Notifications & Profile/notifications/Notifications'
 import MindNotifications from './screens/Pet Minder/notifications/MindNotifications'
@@ -83,6 +84,7 @@ function App() {
       <Route path="/meetAndGreet" element={<MeetAndGreet />} />
       <Route path="/bookingSummary" element={<BookingSummary />} />
       <Route path="/requestSent" element={<RequestSent />} />
+      <Route path="/raiseDispute" element={<RaiseDispute />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/mindNotifications" element={<MindNotifications />} />
 
