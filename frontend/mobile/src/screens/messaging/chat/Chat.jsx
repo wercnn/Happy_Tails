@@ -73,7 +73,8 @@ export default function HappyTailsChat() {
   const location = useLocation();
   const bottomRef = useRef(null);
 
-  const bookingID = location.state?.bookingID || "";
+  const bookingID = location.state?.bookingID || null;
+  const fromProfile = Boolean(location.state?.fromProfile);
   const otherUserName = location.state?.otherUserName || "Conversation";
   const petName = location.state?.petName || "";
   const serviceName = location.state?.serviceName || "";
@@ -90,8 +91,9 @@ export default function HappyTailsChat() {
 
   const fetchMessages = async () => {
     if (!bookingID) {
-      setError("Missing booking.");
+      setMessages([]);
       setLoading(false);
+      setError("");
       return;
     }
 
@@ -118,18 +120,30 @@ export default function HappyTailsChat() {
   };
 
   useEffect(() => {
+    if (!bookingID) {
+      setLoading(false);
+      setMessages([]);
+      setError("");
+      return;
+    }
+
     fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingID]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatItems]);
+  }, [chatItems, loading]);
 
   const handleSendMessage = async () => {
     const trimmed = messageText.trim();
 
-    if (!trimmed || !bookingID || sending) return;
+    if (!trimmed || sending) return;
+
+    if (!bookingID) {
+      setError("Messaging will be available once a booking conversation is created.");
+      return;
+    }
 
     try {
       setSending(true);
@@ -193,14 +207,23 @@ export default function HappyTailsChat() {
           <div className="chat-scroll">
             <div className="chat-body">
               {loading && <p className="chat-empty">Loading messages...</p>}
+
               {!loading && error && <p className="chat-empty">{error}</p>}
 
-              {!loading && !error && chatItems.length === 0 && (
+              {!loading && !error && !bookingID && fromProfile && (
+                <p className="chat-empty">
+                  You can view this chat now. Messaging will be available once a booking
+                  conversation is created.
+                </p>
+              )}
+
+              {!loading && !error && bookingID && chatItems.length === 0 && (
                 <p className="chat-empty">No messages yet. Start the conversation.</p>
               )}
 
               {!loading &&
                 !error &&
+                bookingID &&
                 chatItems.map((item) => {
                   if (item.type === "date") {
                     return (
@@ -218,7 +241,9 @@ export default function HappyTailsChat() {
                       className={`chat-row${isMine ? " chat-row--mine" : ""}`}
                     >
                       <div
-                        className={`chat-bubble${isMine ? " chat-bubble--mine" : " chat-bubble--theirs"}`}
+                        className={`chat-bubble${
+                          isMine ? " chat-bubble--mine" : " chat-bubble--theirs"
+                        }`}
                       >
                         <p className="chat-message-text">{item.content}</p>
                         <span className="chat-message-time">
@@ -237,18 +262,23 @@ export default function HappyTailsChat() {
             <div className="chat-input-wrap">
               <textarea
                 className="chat-input"
-                placeholder="Type a message..."
+                placeholder={
+                  bookingID
+                    ? "Type a message..."
+                    : "Messaging available after a booking is created..."
+                }
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
+                disabled={!bookingID}
               />
 
               <button
                 className="chat-send-btn"
                 type="button"
                 onClick={handleSendMessage}
-                disabled={!messageText.trim() || sending}
+                disabled={!bookingID || !messageText.trim() || sending}
               >
                 {sending ? "..." : "➤"}
               </button>

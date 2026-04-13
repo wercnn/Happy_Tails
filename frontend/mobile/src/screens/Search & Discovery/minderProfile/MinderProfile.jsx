@@ -95,15 +95,14 @@ export default function HappyTailsMinderProfile() {
   }
 
   const displayMinder = fullMinder || minderFromState || {};
-  const name =
+  const minderName =
     displayMinder.name ||
-    `${displayMinder.firstName || ""} ${displayMinder.lastName || ""}`.trim() ||
-    "Minder";
+    [displayMinder.firstName, displayMinder.lastName].filter(Boolean).join(" ").trim() ||
+    "Pet Minder";
 
-  const locationText =
-    displayMinder.distance
-      ? `${displayMinder.distance} away`
-      : displayMinder.city || displayMinder.postcode || "Location unavailable";
+  const locationText = displayMinder.distance
+    ? `${displayMinder.distance} away`
+    : displayMinder.city || displayMinder.postcode || "Location unavailable";
 
   const rating = Number(displayMinder.ratingAvg || 0).toFixed(1);
   const reviews = displayMinder.reviews || [];
@@ -122,7 +121,7 @@ export default function HappyTailsMinderProfile() {
       : services.map((s) => s.name);
 
   const profile = {
-    name,
+    name: minderName,
     location: locationText,
     services_tags: tags,
     stats: [
@@ -176,7 +175,9 @@ export default function HappyTailsMinderProfile() {
                 <p className="mp-location">📍 {profile.location}</p>
                 <div className="mp-tags">
                   {profile.services_tags.map((t) => (
-                    <span key={t} className="mp-tag">{t}</span>
+                    <span key={t} className="mp-tag">
+                      {t}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -206,7 +207,8 @@ export default function HappyTailsMinderProfile() {
                       <div key={svc.id} className="mp-service-row">
                         <span className="mp-service-name">{svc.name}</span>
                         <span className="mp-service-price">
-                          {svc.price}{svc.unit}
+                          {svc.price}
+                          {svc.unit}
                         </span>
                       </div>
                     ))
@@ -238,16 +240,38 @@ export default function HappyTailsMinderProfile() {
           </div>
 
           <div className="mp-footer">
-            <button
-              className="mp-book-btn"
-              onClick={() =>
-                navigate("/selectService", {
-                  state: { minder: displayMinder },
-                })
-              }
-            >
-              BOOK NOW →
-            </button>
+            <div className="mp-footer-actions">
+              <button
+                className="mp-message-btn"
+                type="button"
+                onClick={() =>
+                  navigate("/chat", {
+                    state: {
+                      bookingID: null,
+                      otherUserName: minderName,
+                      petName: "",
+                      serviceName: "",
+                      sitterID: displayMinder.sitterID || displayMinder.id || null,
+                      fromProfile: true,
+                    },
+                  })
+                }
+              >
+                💬 MESSAGE
+              </button>
+
+              <button
+                className="mp-book-btn"
+                type="button"
+                onClick={() =>
+                  navigate("/selectService", {
+                    state: { minder: displayMinder },
+                  })
+                }
+              >
+                BOOK NOW
+              </button>
+            </div>
           </div>
         </div>
       </div>
