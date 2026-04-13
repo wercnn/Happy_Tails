@@ -280,7 +280,7 @@ export default function HappyTailsMinderDashboard() {
   };
 
   const handleViewRequestDetails = (requestGroup) => {
-    navigate("/minderDetails", {
+    navigate("/bookingDetails", {
       state: {
         requestGroup,
       },
