@@ -61,8 +61,9 @@ function formatDate(dateStr) {
   return toDate(dateStr).toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -75,9 +76,32 @@ function formatShortDate(dateStr) {
 
 function formatTime(dateStr) {
   return toDate(dateStr).toLocaleTimeString("en-GB", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
+}
+
+function formatSelectedTimeLabel(timeLabel) {
+  if (!timeLabel || typeof timeLabel !== "string") return "";
+
+  const [timePart, meridiem] = timeLabel.trim().split(" ");
+  if (!timePart || !meridiem) return timeLabel;
+
+  let [hours, minutes] = timePart.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeLabel;
+
+  if (meridiem.toUpperCase() === "PM" && hours !== 12) hours += 12;
+  if (meridiem.toUpperCase() === "AM" && hours === 12) hours = 0;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function getDisplayedTime(item) {
+  if (item?.selectedTime) {
+    return formatSelectedTimeLabel(item.selectedTime);
+  }
+  return formatTime(item.startTime);
 }
 
 function getCreatedMinuteKey(createdAt) {
@@ -144,31 +168,54 @@ function groupBookings(bookings) {
         createdAt: b.createdAt,
         startTime: b.startTime,
         endTime: b.endTime,
-        totalCost: 0,
+        selectedTime: b.selectedTime || null,
+        subtotal: 0,
       });
     }
 
     const group = groups.get(key);
-    group.bookingIDs.push(b.bookingID);
-    group.bookings.push(b);
-    group.totalCost += Number(b.totalCost || 0);
 
-    const currentStart = toDate(group.startTime);
-    const nextStart = toDate(b.startTime);
-    if (nextStart < currentStart) {
-      group.startTime = b.startTime;
-      group.endTime = b.endTime;
-      group.bookingID = b.bookingID;
+    if (!group.bookingIDs.includes(b.bookingID)) {
+      group.bookingIDs.push(b.bookingID);
+      group.bookings.push(b);
+      group.subtotal += Number(b.totalCost || 0);
+
+      if (!group.selectedTime && b.selectedTime) {
+        group.selectedTime = b.selectedTime;
+      }
+
+      const currentStart = toDate(group.startTime);
+      const nextStart = toDate(b.startTime);
+      if (nextStart < currentStart) {
+        group.startTime = b.startTime;
+        group.endTime = b.endTime;
+        group.bookingID = b.bookingID;
+      }
     }
   }
 
   return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      dates: group.bookings
-        .map((b) => b.startTime)
-        .sort((a, b) => toDate(a) - toDate(b)),
-    }))
+    .map((group) => {
+      const uniqueBookings = group.bookings
+        .filter((b, index, arr) => arr.findIndex((x) => x.bookingID === b.bookingID) === index)
+        .sort((a, b) => toDate(a.startTime) - toDate(b.startTime));
+
+      const subtotal = Number(group.subtotal || 0);
+      const platformFee = Number((subtotal * 0.05).toFixed(2));
+      const total = Number((subtotal + platformFee).toFixed(2));
+
+      return {
+        ...group,
+        subtotal,
+        platformFee,
+        total,
+        dates: [
+          ...new Map(
+            uniqueBookings.map((b) => [String(b.startTime).slice(0, 10), b.startTime])
+          ).values(),
+        ],
+      };
+    })
     .sort((a, b) => toDate(b.startTime) - toDate(a.startTime));
 }
 
@@ -354,11 +401,11 @@ export default function HappyTailsBookingRequests() {
                   ? formatDate(group.dates[0])
                   : `${group.dates.length} dates: ${group.dates.map((d) => formatShortDate(d)).join(", ")}`}
               </span>
-              <span className="br-detail">⏰ {formatTime(group.startTime)}</span>
+              <span className="br-detail">⏰ {getDisplayedTime(group)}</span>
               {group.ownerNotes && (
                 <span className="br-detail">📝 {group.ownerNotes}</span>
               )}
-              <span className="br-detail">💰 £{Number(group.totalCost).toFixed(2)}</span>
+              <span className="br-detail">💰 £{Number(group.total || 0).toFixed(2)}</span>
             </div>
 
             <div className="br-card-actions">
