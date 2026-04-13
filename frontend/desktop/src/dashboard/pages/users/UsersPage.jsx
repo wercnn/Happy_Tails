@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C } from "../../constants.js";
 import { StatusBadge } from "../../components/badge/Badge.jsx";
 import { Avatar } from "../../components/avatar/Avatar.jsx";
@@ -8,31 +8,30 @@ import { Input } from "../../components/input/Input.jsx";
 import { SectionHeader } from "../../components/sectionHeader/SectionHeader.jsx";
 import "./UsersPage.css";
 
-export default function UsersPage() {
+const API = "http://localhost:3000/api";
+
+function authHeaders(user) {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": user.userID,
+    "X-User-Role": user.role,
+  };
+}
+
+export default function UsersPage({ user, searchQuery = "" }) {
   const [tab, setTab] = useState("owners");
+  const [owners, setOwners] = useState([]);
+  const [minders, setMinders] = useState([]);
+  const [pending, setPending] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const owners = [
-    { id: "U001", name: "Sarah Johnson", email: "sarah@email.com", location: "Luton", pets: 2, bookings: 14, joined: "Jan 2025", status: "active", verification: "verified", type: "owner" },
-    { id: "U002", name: "Mike Torres", email: "mike@email.com", location: "Luton", pets: 1, bookings: 8, joined: "Feb 2025", status: "active", verification: "verified", type: "owner" },
-    { id: "U003", name: "Anna Brown", email: "anna@email.com", location: "Bedford", pets: 3, bookings: 21, joined: "Dec 2024", status: "active", verification: "verified", type: "owner" },
-    { id: "U004", name: "Chris Lim", email: "chris@email.com", location: "St Albans", pets: 1, bookings: 3, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "owner" },
-    { id: "U005", name: "Rachel Kim", email: "rachel@email.com", location: "Luton", pets: 2, bookings: 7, joined: "Jan 2025", status: "active", verification: "verified", type: "owner" },
-  ];
-
-  const minders = [
-    { id: "M001", name: "James Walker", email: "james@email.com", location: "Luton", services: 3, rating: 4.9, bookings: 87, joined: "Oct 2024", status: "active", verification: "verified", type: "minder" },
-    { id: "M002", name: "Priya Patel", email: "priya@email.com", location: "Luton", services: 2, rating: 4.7, bookings: 54, joined: "Nov 2024", status: "active", verification: "verified", type: "minder" },
-    { id: "M003", name: "Tom Hughes", email: "tom@email.com", location: "Bedford", services: 1, rating: 4.8, bookings: 32, joined: "Jan 2025", status: "active", verification: "verified", type: "minder" },
-    { id: "M004", name: "Emma Reeves", email: "emma@email.com", location: "Luton", services: 4, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "minder" },
-    { id: "M005", name: "Dan Foster", email: "dan@email.com", location: "Watford", services: 2, rating: 0, bookings: 0, joined: "Mar 2025", status: "inactive", verification: "unverified", type: "minder" },
-  ];
-
-  const pendingMinders = [
-    { name: "Emma Reeves", submitted: "28 Mar 2026", doc: "Passport + DBS Check", exp: "2 years" },
-    { name: "Dan Foster", submitted: "27 Mar 2026", doc: "Driving Licence", exp: "1 year" },
-    { name: "Yuki Tanaka", submitted: "26 Mar 2026", doc: "Passport + References", exp: "4 years" },
-  ];
+  // Sync global search query into local search state
+  useEffect(() => {
+    if (searchQuery) setSearch(searchQuery);
+  }, [searchQuery]);
 
   const tabs = [
     ["owners", "Pet Owners"],
@@ -40,12 +39,146 @@ export default function UsersPage() {
     ["pending", "Pending Verification"],
   ];
 
+  useEffect(() => {
+    if (tab === "owners") fetchOwners();
+    else if (tab === "minders") fetchMinders();
+    else if (tab === "pending") fetchPending();
+  }, [tab]);
+
+  async function fetchOwners() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/users?role=owner`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setOwners(data);
+    } catch (e) {
+      setError(e.message || "Failed to load owners");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchMinders() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/users?role=minder`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMinders(data);
+    } catch (e) {
+      setError(e.message || "Failed to load minders");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchPending() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/minders/pending`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPending(data);
+    } catch (e) {
+      setError(e.message || "Failed to load pending verifications");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleViewUser(userID) {
+    try {
+      const res = await fetch(`${API}/users/${userID}`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSelectedUser(data);
+    } catch (e) {
+      alert(e.message || "Failed to load user details");
+    }
+  }
+
+  async function handleSuspend(userID, currentStatus) {
+    const newStatus = currentStatus === "Suspended" ? "Active" : "Suspended";
+    try {
+      const res = await fetch(`${API}/users/${userID}/suspend`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      // Update local state
+      const update = (list) =>
+        list.map((u) => (u.userID === userID ? { ...u, status: newStatus } : u));
+      setOwners(update);
+      setMinders(update);
+      if (selectedUser?.userID === userID) setSelectedUser({ ...selectedUser, status: newStatus });
+    } catch (e) {
+      alert(e.message || "Failed to update user status");
+    }
+  }
+
+  async function handleVerify(sitterID) {
+    try {
+      const res = await fetch(`${API}/minders/${sitterID}/verify`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPending((prev) => prev.filter((m) => m.sitterID !== sitterID));
+    } catch (e) {
+      alert(e.message || "Failed to verify minder");
+    }
+  }
+
+  async function handleReject(sitterID) {
+    try {
+      const res = await fetch(`${API}/minders/${sitterID}/reject`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPending((prev) => prev.filter((m) => m.sitterID !== sitterID));
+    } catch (e) {
+      alert(e.message || "Failed to reject minder");
+    }
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  }
+
+  function filterBySearch(list) {
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter(
+      (u) =>
+        `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+    );
+  }
+
   return (
     <div className="users-page">
       <SectionHeader
         title="User Management"
         subtitle="Review pet owner and pet minder accounts, verification status and account actions."
-        action={<Input placeholder="Search users..." icon="🔍" className="users-page__search" />}
+        action={
+          <Input
+            placeholder="Search users..."
+            icon="🔍"
+            className="users-page__search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        }
       />
 
       <div className="users-page__tabs">
@@ -54,138 +187,132 @@ export default function UsersPage() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`users-page__tab-btn ${
-              tab === key ? "users-page__tab-btn--active" : ""
-            }`}
+            className={`users-page__tab-btn ${tab === key ? "users-page__tab-btn--active" : ""}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {tab === "owners" && (
+      {error && (
+        <p style={{ color: C.red, padding: "12px 0" }}>⚠️ {error}</p>
+      )}
+
+      {loading && <p style={{ color: C.mid, padding: "12px 0" }}>Loading...</p>}
+
+      {!loading && tab === "owners" && (
         <Card>
           <table className="users-page__table">
             <thead>
               <tr>
                 <Th>User</Th>
                 <Th>Location</Th>
-                <Th>Pets</Th>
-                <Th>Bookings</Th>
                 <Th>Joined</Th>
-                <Th>Verification</Th>
                 <Th>Status</Th>
                 <Th>Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {owners.map((u) => (
-                <tr key={u.id}>
+              {filterBySearch(owners).map((u) => (
+                <tr key={u.userID}>
                   <Td>
                     <div className="users-page__person">
-                      <Avatar name={u.name} size={34} />
+                      <Avatar name={`${u.firstName} ${u.lastName}`} size={34} />
                       <div className="users-page__person-meta">
-                        <div className="users-page__person-name">{u.name}</div>
+                        <div className="users-page__person-name">{u.firstName} {u.lastName}</div>
                         <div className="users-page__person-email">{u.email}</div>
                       </div>
                     </div>
                   </Td>
-                  <Td>📍 {u.location}</Td>
-                  <Td>
-                    {u.pets} pet{u.pets !== 1 ? "s" : ""}
-                  </Td>
-                  <Td>{u.bookings}</Td>
-                  <Td>{u.joined}</Td>
-                  <Td>
-                    <StatusBadge status={u.verification} />
-                  </Td>
-                  <Td>
-                    <StatusBadge status={u.status} />
-                  </Td>
+                  <Td>📍 {u.city || "—"}</Td>
+                  <Td>{formatDate(u.createdAt)}</Td>
+                  <Td><StatusBadge status={u.status?.toLowerCase()} /></Td>
                   <Td>
                     <div className="users-page__actions">
-                      <Btn variant="outline" small onClick={() => setSelectedUser(u)}>
-                        View
-                      </Btn>
-                      <Btn variant="danger" small>
-                        Suspend
+                      <Btn variant="outline" small onClick={() => handleViewUser(u.userID)}>View</Btn>
+                      <Btn
+                        variant="danger"
+                        small
+                        onClick={() => handleSuspend(u.userID, u.status)}
+                      >
+                        {u.status === "Suspended" ? "Reactivate" : "Suspend"}
                       </Btn>
                     </div>
                   </Td>
                 </tr>
               ))}
+              {filterBySearch(owners).length === 0 && (
+                <tr><Td colSpan={5} style={{ textAlign: "center", color: C.mid }}>No owners found.</Td></tr>
+              )}
             </tbody>
           </table>
         </Card>
       )}
 
-      {tab === "minders" && (
+      {!loading && tab === "minders" && (
         <Card>
           <table className="users-page__table">
             <thead>
               <tr>
                 <Th>Minder</Th>
                 <Th>Location</Th>
-                <Th>Services</Th>
-                <Th>Rating</Th>
-                <Th>Bookings</Th>
-                <Th>Verification</Th>
+                <Th>Joined</Th>
                 <Th>Status</Th>
                 <Th>Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {minders.map((m) => (
-                <tr key={m.id}>
+              {filterBySearch(minders).map((m) => (
+                <tr key={m.userID}>
                   <Td>
                     <div className="users-page__person">
-                      <Avatar name={m.name} size={34} color={C.blue} />
+                      <Avatar name={`${m.firstName} ${m.lastName}`} size={34} color={C.blue} />
                       <div className="users-page__person-meta">
-                        <div className="users-page__person-name">{m.name}</div>
+                        <div className="users-page__person-name">{m.firstName} {m.lastName}</div>
                         <div className="users-page__person-email">{m.email}</div>
                       </div>
                     </div>
                   </Td>
-                  <Td>📍 {m.location}</Td>
-                  <Td>{m.services}</Td>
-                  <Td>{m.rating > 0 ? `⭐ ${m.rating}` : "—"}</Td>
-                  <Td>{m.bookings}</Td>
-                  <Td>
-                    <StatusBadge status={m.verification} />
-                  </Td>
-                  <Td>
-                    <StatusBadge status={m.status} />
-                  </Td>
+                  <Td>📍 {m.city || "—"}</Td>
+                  <Td>{formatDate(m.createdAt)}</Td>
+                  <Td><StatusBadge status={m.status?.toLowerCase()} /></Td>
                   <Td>
                     <div className="users-page__actions">
-                      <Btn variant="outline" small onClick={() => setSelectedUser(m)}>
-                        View
-                      </Btn>
-                      <Btn variant="danger" small>
-                        Suspend
+                      <Btn variant="outline" small onClick={() => handleViewUser(m.userID)}>View</Btn>
+                      <Btn
+                        variant="danger"
+                        small
+                        onClick={() => handleSuspend(m.userID, m.status)}
+                      >
+                        {m.status === "Suspended" ? "Reactivate" : "Suspend"}
                       </Btn>
                     </div>
                   </Td>
                 </tr>
               ))}
+              {filterBySearch(minders).length === 0 && (
+                <tr><Td colSpan={5} style={{ textAlign: "center", color: C.mid }}>No minders found.</Td></tr>
+              )}
             </tbody>
           </table>
         </Card>
       )}
 
-      {tab === "pending" && (
+      {!loading && tab === "pending" && (
         <div>
-          <div className="users-page__notice">
-            <span className="users-page__notice-icon">⚠️</span>
-            <div className="users-page__notice-content">
-              <strong className="users-page__notice-title">
-                5 minders awaiting identity verification
-              </strong>
-              <p className="users-page__notice-text">
-                Profiles remain hidden from pet owners until verified. Review submitted documents below.
-              </p>
+          {pending.length > 0 && (
+            <div className="users-page__notice">
+              <span className="users-page__notice-icon">⚠️</span>
+              <div className="users-page__notice-content">
+                <strong className="users-page__notice-title">
+                  {pending.length} minder{pending.length !== 1 ? "s" : ""} awaiting identity verification
+                </strong>
+                <p className="users-page__notice-text">
+                  Profiles remain hidden from pet owners until verified. Review submitted documents below.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <Card>
             <table className="users-page__table">
@@ -193,38 +320,40 @@ export default function UsersPage() {
                 <tr>
                   <Th>Minder</Th>
                   <Th>Submitted</Th>
-                  <Th>Document Type</Th>
                   <Th>Experience</Th>
+                  <Th>Verification Status</Th>
                   <Th>Actions</Th>
                 </tr>
               </thead>
               <tbody>
-                {pendingMinders.map((v) => (
-                  <tr key={v.name}>
+                {pending.map((v) => (
+                  <tr key={v.sitterID}>
                     <Td>
                       <div className="users-page__person">
-                        <Avatar name={v.name} size={34} color={C.yellow} />
-                        <span className="users-page__pending-name">{v.name}</span>
+                        <Avatar name={`${v.firstName} ${v.lastName}`} size={34} color={C.yellow} />
+                        <div className="users-page__person-meta">
+                          <div className="users-page__person-name">{v.firstName} {v.lastName}</div>
+                          <div className="users-page__person-email">{v.email}</div>
+                        </div>
                       </div>
                     </Td>
-                    <Td>{v.submitted}</Td>
-                    <Td>📄 {v.doc}</Td>
-                    <Td>{v.exp}</Td>
+                    <Td>{formatDate(v.submittedAt)}</Td>
+                    <Td>{v.experienceYears} yr{v.experienceYears !== 1 ? "s" : ""}</Td>
+                    <Td><StatusBadge status={v.verificationStatus?.toLowerCase()} /></Td>
                     <Td>
                       <div className="users-page__actions">
-                        <Btn variant="success" small>
-                          Verify
-                        </Btn>
-                        <Btn variant="danger" small>
-                          Reject
-                        </Btn>
-                        <Btn variant="outline" small>
-                          View Docs
-                        </Btn>
+                        <Btn variant="success" small onClick={() => handleVerify(v.sitterID)}>Verify</Btn>
+                        <Btn variant="danger" small onClick={() => handleReject(v.sitterID)}>Reject</Btn>
+                        {v.documentURL && (
+                          <Btn variant="outline" small onClick={() => window.open(v.documentURL, "_blank")}>View Docs</Btn>
+                        )}
                       </div>
                     </Td>
                   </tr>
                 ))}
+                {pending.length === 0 && (
+                  <tr><Td colSpan={5} style={{ textAlign: "center", color: C.mid }}>No pending verifications.</Td></tr>
+                )}
               </tbody>
             </table>
           </Card>
@@ -233,32 +362,20 @@ export default function UsersPage() {
 
       {selectedUser && (
         <div className="users-page__overlay" onClick={() => setSelectedUser(null)}>
-          <div
-            className="users-page__overlay-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="users-page__overlay-close"
-              onClick={() => setSelectedUser(null)}
-            >
-              ✕
-            </button>
+          <div className="users-page__overlay-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="users-page__overlay-close" onClick={() => setSelectedUser(null)}>✕</button>
 
             <div className="users-page__overlay-header">
               <Avatar
-                name={selectedUser.name}
+                name={`${selectedUser.firstName} ${selectedUser.lastName}`}
                 size={72}
-                color={selectedUser.type === "minder" ? C.blue : C.orange}
+                color={selectedUser.role === "minder" ? C.blue : C.orange}
               />
               <div className="users-page__overlay-header-text">
-                <h2 className="users-page__overlay-name">{selectedUser.name}</h2>
+                <h2 className="users-page__overlay-name">{selectedUser.firstName} {selectedUser.lastName}</h2>
                 <p className="users-page__overlay-email">{selectedUser.email}</p>
                 <div className="users-page__overlay-badges">
-                  <StatusBadge status={selectedUser.status} />
-                  {selectedUser.verification && (
-                    <StatusBadge status={selectedUser.verification} />
-                  )}
+                  <StatusBadge status={selectedUser.status?.toLowerCase()} />
                 </div>
               </div>
             </div>
@@ -267,22 +384,18 @@ export default function UsersPage() {
               <div className="users-page__overlay-section">
                 <h3 className="users-page__overlay-section-title">Profile Details</h3>
                 <div className="users-page__overlay-list">
-                  <div className="users-page__overlay-row">
-                    <span>ID</span>
-                    <strong>{selectedUser.id}</strong>
-                  </div>
-                  <div className="users-page__overlay-row">
-                    <span>Type</span>
-                    <strong>{selectedUser.type === "minder" ? "Pet Minder" : "Pet Owner"}</strong>
-                  </div>
-                  <div className="users-page__overlay-row">
-                    <span>Location</span>
-                    <strong>{selectedUser.location}</strong>
-                  </div>
-                  <div className="users-page__overlay-row">
-                    <span>Joined</span>
-                    <strong>{selectedUser.joined}</strong>
-                  </div>
+                  {[
+                    ["Role", selectedUser.role === "minder" ? "Pet Minder" : "Pet Owner"],
+                    ["City", selectedUser.city || "—"],
+                    ["Postcode", selectedUser.postcode || "—"],
+                    ["Phone", selectedUser.phoneNumber || "—"],
+                    ["Joined", formatDate(selectedUser.createdAt)],
+                  ].map(([k, v]) => (
+                    <div key={k} className="users-page__overlay-row">
+                      <span>{k}</span>
+                      <strong>{v}</strong>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -292,41 +405,55 @@ export default function UsersPage() {
                   <div className="users-page__overlay-stat">
                     <span className="users-page__overlay-stat-label">Bookings</span>
                     <strong className="users-page__overlay-stat-value">
-                      {selectedUser.bookings}
+                      {selectedUser.recentBookings?.length ?? "—"}
                     </strong>
                   </div>
-
-                  {selectedUser.type === "owner" ? (
+                  {selectedUser.role === "owner" && (
                     <div className="users-page__overlay-stat">
                       <span className="users-page__overlay-stat-label">Pets</span>
                       <strong className="users-page__overlay-stat-value">
-                        {selectedUser.pets}
+                        {selectedUser.pets?.length ?? "—"}
                       </strong>
                     </div>
-                  ) : (
+                  )}
+                  {selectedUser.role === "minder" && (
                     <>
                       <div className="users-page__overlay-stat">
                         <span className="users-page__overlay-stat-label">Services</span>
                         <strong className="users-page__overlay-stat-value">
-                          {selectedUser.services}
+                          {selectedUser.services?.length ?? "—"}
                         </strong>
                       </div>
                       <div className="users-page__overlay-stat">
                         <span className="users-page__overlay-stat-label">Rating</span>
                         <strong className="users-page__overlay-stat-value">
-                          {selectedUser.rating > 0 ? `⭐ ${selectedUser.rating}` : "—"}
+                          {selectedUser.ratingAvg > 0 ? `⭐ ${selectedUser.ratingAvg}` : "—"}
                         </strong>
                       </div>
                     </>
                   )}
                 </div>
+
+                {selectedUser.role === "minder" && selectedUser.verification && (
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ fontSize: 12, color: C.mid, marginBottom: 4 }}>Verification</p>
+                    <StatusBadge status={selectedUser.verification.status?.toLowerCase()} />
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="users-page__overlay-actions">
-              <Btn variant="outline">Message User</Btn>
-              <Btn variant="outline">View Activity</Btn>
-              <Btn variant="danger">Suspend Account</Btn>
+              <Btn
+                variant="danger"
+                onClick={() => {
+                  handleSuspend(selectedUser.userID, selectedUser.status);
+                  setSelectedUser(null);
+                }}
+              >
+                {selectedUser.status === "Suspended" ? "Reactivate Account" : "Suspend Account"}
+              </Btn>
+              <Btn variant="outline" onClick={() => setSelectedUser(null)}>Close</Btn>
             </div>
           </div>
         </div>

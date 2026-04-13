@@ -7,6 +7,7 @@ export const Btn = ({
   onClick,
   small,
   style,
+  disabled = false,
 }) => {
   const buttonStyle = {
     "--btn-font-size": small ? "11px" : "13px",
@@ -44,6 +45,7 @@ export const Btn = ({
       className={`btn btn--${variant} ${small ? "btn--small" : ""}`}
       style={buttonStyle}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
     </button>

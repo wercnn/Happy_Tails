@@ -7,7 +7,7 @@
 -- USER DOMAIN
 -- =============================================================
 
-CREATE TABLE USER (
+CREATE TABLE IF NOT EXISTS USER (
     userID          VARCHAR(36)     NOT NULL,
     username        VARCHAR(100)    UNIQUE,                          -- #12: nullable; login uses email
     passwordHash    VARCHAR(255)    NOT NULL,
@@ -328,10 +328,10 @@ CREATE TABLE BOOKING (
     status              VARCHAR(50)     NOT NULL DEFAULT 'Pending',
     startTime           DATETIME        NOT NULL,
     endTime             DATETIME        NOT NULL,
-    selectedTime        VARCHAR(20),                                -- pet owner's selected time label, e.g. '9:00 AM'
+    selectedTime        VARCHAR(20),   -- pet owner's selected time label, e.g. '9:00 AM'
     totalCost           DECIMAL(10,2)   NOT NULL,
-    ownerNotes          TEXT,
-    cancellationReason  VARCHAR(255),
+    ownerNotes          TEXT,                                       -- #3: owner instructions at booking time
+    cancellationReason  VARCHAR(255),                               -- #4: reason selected on CancelBookingScreen
     createdAt           DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_BOOKING PRIMARY KEY (bookingID),
     CONSTRAINT FK_BOOKING_OWNER FOREIGN KEY (ownerID)
@@ -460,7 +460,6 @@ CREATE TABLE INCIDENT_REPORT (
 -- ALTER TABLE INCIDENT_REPORT
 --   ADD COLUMN caseReference VARCHAR(20) NULL
 --     COMMENT 'Short case reference shown on confirmation screen e.g. #INC-XXXXXXXX';
-
 
 -- #7: MEDIA linked to VISIT_REPORT, MESSAGE, and INCIDENT_REPORT
 CREATE TABLE MEDIA (

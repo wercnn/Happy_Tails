@@ -12,6 +12,29 @@ const {
   getEmployeeId,
 } = require('../lib/helpers');
 
+
+// GET /api/payments (Support) — list all payments with booking and payer context
+register('GET', '/api/payments', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const [rows] = await db.query(`
+    SELECT
+      P.paymentID, P.bookingID, P.serviceCost, P.platformFee, P.amount,
+      P.paymentMethod, P.paidAt, P.paymentStatus, P.escrowStatus,
+      UP.firstName AS payerFirstName, UP.lastName AS payerLastName
+    FROM PAYMENT P
+    JOIN BOOKING B ON B.bookingID = P.bookingID
+    JOIN PET_OWNER PO ON PO.ownerID = B.ownerID
+    JOIN USER_PROFILE UP ON UP.userID = PO.userID
+    ORDER BY P.paidAt DESC
+  `);
+  send(res, 200, rows);
+});
+
 async function getBooking(bookingID) {
   const [[b]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   return b || null;
