@@ -18,6 +18,13 @@ async function getBooking(bookingID) {
   return b || null;
 }
 
+async function getAnySupportEmployeeId() {
+  const [[row]] = await db.query(
+    'SELECT employeeID FROM CUSTOMER_SUPPORT ORDER BY employeeID ASC LIMIT 1'
+  );
+  return row?.employeeID || null;
+}
+
 
 // submit visit reports for ONLY minders
 register('POST', '/api/reports/visit', async (req, res, send) => {
@@ -88,11 +95,14 @@ register('POST', '/api/reports/incident', async (req, res, send) => {
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden: Incorrect sitter' });
 
+  const employeeID = await getAnySupportEmployeeId();
+  if (!employeeID) return send(res, 503, { error: 'No support employee is available to receive the report' });
+
   // INCIDENT_REPORT in schema is support-centric; we store reporterUserID (added in schema patch)
   const incidentID = uuid();
   await db.query(
     'INSERT INTO INCIDENT_REPORT (incidentID, bookingID, employeeID, reporterUserID, incidentType, severityLevel, description) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [incidentID, bookingID, null, req.userId, incidentType, severityLevel, description]
+    [incidentID, bookingID, employeeID, req.userId, incidentType, severityLevel, description]
   );
   const [[row]] = await db.query('SELECT * FROM INCIDENT_REPORT WHERE incidentID = ?', [incidentID]);
   send(res, 201, row);
