@@ -1,4 +1,3 @@
-// server/routes/bookings.js
 const { register } = require('../router');
 const db = require('../db');
 
@@ -18,6 +17,151 @@ async function canAccessBooking(booking, ownerID, sitterID) {
   if (ownerID && booking.ownerID === ownerID) return true;
   if (sitterID && booking.sitterID === sitterID) return true;
   return false;
+}
+
+async function getUserIdForOwner(ownerID) {
+  const [[row]] = await db.query(
+    'SELECT userID FROM PET_OWNER WHERE ownerID = ?',
+    [ownerID]
+  );
+  return row?.userID || null;
+}
+
+async function getUserIdForSitter(sitterID) {
+  const [[row]] = await db.query(
+    'SELECT userID FROM PET_MINDER WHERE sitterID = ?',
+    [sitterID]
+  );
+  return row?.userID || null;
+}
+
+async function getOrCreateDirectConversation(userA, userB) {
+  const [rows] = await db.query(
+    `
+    SELECT DISTINCT C.conversationID
+    FROM CONVERSATION C
+    JOIN MESSAGE M ON M.conversationID = C.conversationID
+    WHERE C.bookingID IS NULL
+      AND (
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+        OR
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+      )
+    LIMIT 1
+    `,
+    [userA, userB, userB, userA]
+  );
+
+  if (rows.length) return rows[0].conversationID;
+
+  const conversationID = uuid();
+  await db.query(
+    'INSERT INTO CONVERSATION (conversationID, bookingID) VALUES (?, NULL)',
+    [conversationID]
+  );
+
+  return conversationID;
+}
+
+function toSafeDate(value) {
+  if (!value) return null;
+  const d = new Date(String(value).replace(' ', 'T'));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatBookingDate(dateStr) {
+  const d = toSafeDate(dateStr);
+  if (!d) return null;
+
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatBookingTime(dateStr) {
+  const d = toSafeDate(dateStr);
+  if (!d) return null;
+
+  return d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function getDisplayTime(booking) {
+  if (booking?.selectedTime && String(booking.selectedTime).trim()) {
+    return String(booking.selectedTime).trim();
+  }
+  return formatBookingTime(booking?.startTime);
+}
+
+function getCreatedMinuteKey(createdAt) {
+  const d = toSafeDate(createdAt);
+  if (!d) return 'no-created-at';
+
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(
+    d.getMinutes()
+  ).padStart(2, '0')}`;
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+async function createGroupedBookingConfirmedMessage(bookings, acceptedByUserID) {
+  if (!Array.isArray(bookings) || bookings.length === 0) return;
+
+  const first = bookings[0];
+
+  const [[serviceRow]] = await db.query(
+    'SELECT name FROM SERVICE_TYPE WHERE serviceTypeID = ?',
+    [first.serviceTypeID]
+  );
+
+  const [[petRow]] = await db.query(
+    'SELECT name FROM PET_PROFILE WHERE petID = ?',
+    [first.petID]
+  );
+
+  const ownerUserID = await getUserIdForOwner(first.ownerID);
+  const sitterUserID = await getUserIdForSitter(first.sitterID);
+
+  if (!ownerUserID || !sitterUserID) return;
+
+  const receiverUserID =
+    String(acceptedByUserID) === String(ownerUserID) ? sitterUserID : ownerUserID;
+
+  const conversationID = await getOrCreateDirectConversation(ownerUserID, sitterUserID);
+
+  const serviceLabel = serviceRow?.name || 'booking';
+  const petLabel = petRow?.name || 'your pet';
+
+  const dateLabels = unique(bookings.map((b) => formatBookingDate(b.startTime)));
+  const timeLabels = unique(bookings.map((b) => getDisplayTime(b)));
+
+  const dateText = dateLabels.length === 1 ? dateLabels[0] : dateLabels.join(', ');
+  const timeText = timeLabels.length === 1 ? timeLabels[0] : timeLabels.join(', ');
+
+  const content =
+    `[[SYSTEM_BOOKING_CONFIRMED]] Booking confirmed for ${serviceLabel} with ${petLabel}` +
+    `${dateText ? ` on ${dateText}` : ''}` +
+    `${timeText ? ` at ${timeText}` : ''}.`;
+
+  const messageID = uuid();
+
+  await db.query(
+    `
+    INSERT INTO MESSAGE
+      (messageID, conversationID, senderUserID, receiverUserID, content, isRead)
+    VALUES (?, ?, ?, ?, ?, FALSE)
+    `,
+    [messageID, conversationID, acceptedByUserID, receiverUserID, content]
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -49,14 +193,12 @@ register('POST', '/api/bookings', async (req, res, send) => {
     );
   }
 
-  // Pet must belong to owner
   const [petRows] = await db.query(
     'SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?',
     [petID, ownerID]
   );
   if (!petRows.length) return send(res, 403, { error: 'Pet does not belong to owner' });
 
-  // Slot must belong to sitter and be unbooked
   const [slotRows] = await db.query(
     `SELECT S.slotID, S.startTime, S.endTime, S.isBooked
      FROM SLOT S
@@ -67,7 +209,6 @@ register('POST', '/api/bookings', async (req, res, send) => {
   if (!slotRows.length) return notFound(send, res, 'Slot not found');
   if (slotRows[0].isBooked) return send(res, 409, { error: 'Slot already booked' });
 
-  // Service price: use minder custom price if available; fallback to base price
   const [[serviceRow]] = await db.query(
     `SELECT
        COALESCE(MS.customPrice, ST.basePrice) AS price
@@ -250,15 +391,65 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
 
   const bookingID = req.params.id;
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
+
   if (String(booking.status).toLowerCase() !== 'pending') {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['accepted', bookingID]);
-  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  send(res, 200, updated);
+  const createdMinuteKey = getCreatedMinuteKey(booking.createdAt);
+
+  const [relatedBookings] = await db.query(
+    `
+    SELECT *
+    FROM BOOKING
+    WHERE ownerID = ?
+      AND sitterID = ?
+      AND petID = ?
+      AND serviceTypeID = ?
+      AND COALESCE(ownerNotes, '') = COALESCE(?, '')
+      AND status = 'pending'
+    ORDER BY startTime ASC
+    `,
+    [
+      booking.ownerID,
+      booking.sitterID,
+      booking.petID,
+      booking.serviceTypeID,
+      booking.ownerNotes || '',
+    ]
+  );
+
+  const groupedBookings = relatedBookings.filter(
+    (b) => getCreatedMinuteKey(b.createdAt) === createdMinuteKey
+  );
+
+  const bookingsToAccept = groupedBookings.length > 0 ? groupedBookings : [booking];
+  const bookingIDsToAccept = bookingsToAccept.map((b) => b.bookingID);
+
+  await db.query(
+    `UPDATE BOOKING SET status = 'accepted' WHERE bookingID IN (${bookingIDsToAccept
+      .map(() => '?')
+      .join(',')})`,
+    bookingIDsToAccept
+  );
+
+  try {
+    await createGroupedBookingConfirmedMessage(bookingsToAccept, req.userId);
+  } catch (err) {
+    console.error('Failed to create grouped booking confirmation chat message:', err);
+  }
+
+  const [updatedRows] = await db.query(
+    `SELECT * FROM BOOKING WHERE bookingID IN (${bookingIDsToAccept
+      .map(() => '?')
+      .join(',')}) ORDER BY startTime ASC`,
+    bookingIDsToAccept
+  );
+
+  send(res, 200, updatedRows);
 });
 
 // ─────────────────────────────────────────────

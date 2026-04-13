@@ -13,12 +13,15 @@ function getAuthHeaders() {
 }
 
 function toDate(dateStr) {
-  return new Date(String(dateStr).replace(" ", "T"));
+  const d = new Date(String(dateStr).replace(" ", "T"));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function formatMessageTime(dateStr) {
-  if (!dateStr) return "";
-  return toDate(dateStr).toLocaleTimeString("en-GB", {
+  const d = toDate(dateStr);
+  if (!d) return "";
+
+  return d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -26,8 +29,10 @@ function formatMessageTime(dateStr) {
 }
 
 function formatChatDate(dateStr) {
-  if (!dateStr) return "";
-  return toDate(dateStr).toLocaleDateString("en-GB", {
+  const d = toDate(dateStr);
+  if (!d) return "";
+
+  return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -38,11 +43,24 @@ function isSameDay(a, b) {
   const d1 = toDate(a);
   const d2 = toDate(b);
 
+  if (!d1 || !d2) return false;
+
   return (
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
+}
+
+function isSystemBookingMessage(content) {
+  return String(content || "").startsWith("[[SYSTEM_BOOKING_CONFIRMED]]");
+}
+
+function getDisplayMessageContent(content) {
+  if (isSystemBookingMessage(content)) {
+    return String(content).replace("[[SYSTEM_BOOKING_CONFIRMED]]", "").trim();
+  }
+  return String(content || "");
 }
 
 function buildChatItems(messages) {
@@ -212,6 +230,19 @@ export default function HappyTailsChat() {
                   }
 
                   const isMine = String(item.senderUserID) === String(currentUserID);
+                  const isSystem = isSystemBookingMessage(item.content);
+
+                  if (isSystem) {
+                    return (
+                      <div key={item.messageID} className="chat-system-row">
+                        <div className="chat-system-bubble">
+                          <p className="chat-system-text">
+                            {getDisplayMessageContent(item.content)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div
@@ -223,7 +254,9 @@ export default function HappyTailsChat() {
                           isMine ? " chat-bubble--mine" : " chat-bubble--theirs"
                         }`}
                       >
-                        <p className="chat-message-text">{item.content}</p>
+                        <p className="chat-message-text">
+                          {getDisplayMessageContent(item.content)}
+                        </p>
                         <span className="chat-message-time">
                           {formatMessageTime(item.timestamp)}
                         </span>
