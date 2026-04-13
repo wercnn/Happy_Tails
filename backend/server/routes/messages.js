@@ -8,6 +8,14 @@ const {
   requireRole,
 } = require('../lib/helpers');
 
+async function insertNotification(recipientUserID, title, body) {
+  await db.query(
+    `INSERT INTO NOTIFICATION (notificationID, recipientID, channel, title, body)
+     VALUES (?, ?, 'in-app', ?, ?)`,
+    [uuid(), recipientUserID, title, body]
+  );
+}
+
 async function getOrCreateDirectConversation(userA, userB) {
   const [rows] = await db.query(
     `
@@ -96,6 +104,19 @@ register('POST', '/api/messages', async (req, res, send) => {
     'SELECT * FROM MESSAGE WHERE messageID = ?',
     [messageID]
   );
+
+  try {
+    const senderName = await getProfileNameByUserID(senderUserID);
+    const preview    = String(content).trim().slice(0, 60);
+    const ellipsis   = String(content).trim().length > 60 ? '…' : '';
+    await insertNotification(
+      otherUserID,
+      'New Message',
+      `${senderName}: ${preview}${ellipsis}`
+    );
+  } catch (notifErr) {
+    console.error('Failed to create message notification:', notifErr.message);
+  }
 
   return send(res, 201, row);
 });

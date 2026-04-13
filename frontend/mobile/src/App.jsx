@@ -32,6 +32,7 @@ import SelectService from './screens/Booking Flow/selectService/SelectService'
 import SelectDates from './screens/Booking Flow/selectDates/SelectDates'
 import AvailabilityCalender from './screens/Booking Flow/availabilityCalendar/AvailabilityCalendar'
 import BookingSummary from './screens/Booking Flow/summary/Summary'
+import MeetAndGreet from './screens/Booking Flow/meetAndGreet/MeetAndGreet'
 import RequestSent from './screens/Booking Flow/requestSent/RequestSent'
 import AddHealth from './screens/Pet Owner - Pets/addHealth/AddHealth'
 import Notifications from './screens/Notifications & Profile/notifications/Notifications'
@@ -79,6 +80,7 @@ function App() {
       <Route path="/selectService" element={<SelectService />} />
       <Route path="/selectDates" element={<SelectDates />} />
       <Route path="/availabilityCalendar" element={<AvailabilityCalender />} />
+      <Route path="/meetAndGreet" element={<MeetAndGreet />} />
       <Route path="/bookingSummary" element={<BookingSummary />} />
       <Route path="/requestSent" element={<RequestSent />} />
       <Route path="/notifications" element={<Notifications />} />

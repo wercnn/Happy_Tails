@@ -230,7 +230,7 @@ export default function HappyTailsCalendar() {
     const selectedSlots = getSlotsForSelectedDates();
     const sortedKeys = [...selectedDateKeys].sort();
 
-    navigate("/bookingSummary", {
+    navigate("/meetAndGreet", {
       state: {
         minder,
         service,
