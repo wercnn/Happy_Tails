@@ -12,6 +12,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ─── Users ───────────────────────────────────────────────────
 INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES
+  ('u-admin-001',  'admin',    'happytails-fixed-salt:89d65491f3da3e867c27348a9f408104f84b1af1179ad9113495122062f1d8213eddb1e227472e6089f7534c6fc0d8495985a609f3375efcc070b61a462e5b20', '07700900000'),
   ('u-owner-001',  'sarah_o',  'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900001'),
   ('u-minder-001', 'james_m',  'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900002'),
   ('u-minder-002', 'olivia_m', 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900004'),
@@ -22,12 +23,27 @@ UPDATE USER
 SET passwordHash = 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b'
 WHERE userID IN ('u-owner-001', 'u-minder-001', 'u-minder-002', 'u-support-001');
 
+UPDATE USER
+SET passwordHash = 'happytails-fixed-salt:89d65491f3da3e867c27348a9f408104f84b1af1179ad9113495122062f1d8213eddb1e227472e6089f7534c6fc0d8495985a609f3375efcc070b61a462e5b20'
+WHERE userID = 'u-admin-001';
+
 -- ─── User Profiles ───────────────────────────────────────────
 INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES
+  ('pr-admin-001',  'u-admin-001',  'Admin',  'User',     NULL,              'London', NULL,     'admin@happytails.com'),
   ('pr-owner-001',  'u-owner-001',  'Sarah',  'Thompson', '12 Maple Street', 'London', 'E1 6RF', 'sarah@example.com'),
   ('pr-minder-001', 'u-minder-001', 'James',  'Carter',   '8 Oak Avenue',    'London', 'E2 7JT', 'james@example.com'),
   ('pr-minder-002', 'u-minder-002', 'Olivia', 'Bennett',  '21 Birch Road',   'London', 'E3 4AB', 'olivia@example.com'),
   ('pr-support-001','u-support-001','Emma',   'Clarke',   NULL,              'London', NULL,     'emma@example.com');
+
+  -- ─── Additional Support Staff ────────────────────────────────
+  INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES
+    ('u-support-002', 'david_s', 'happytails-fixed-salt:b9d4820593b7d18f366c8f50478d3610bdd0f2cd70913c4a928a087892adce30b0ac6518780ba134c0eadefaf88b90579d2a85ef30d99ff58487a975ac01cc8b', '07700900005');
+
+  INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES
+    ('pr-support-002', 'u-support-002', 'David', 'Miller', NULL, 'London', NULL, 'david@example.com');
+
+  INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES
+    ('emp-002', 'u-support-002', 'Support');
 
 -- ─── Role Tables ─────────────────────────────────────────────
 INSERT INTO PET_OWNER (ownerID, userID) VALUES
@@ -42,7 +58,8 @@ INSERT INTO PET_MINDER (sitterID, userID, bio, experienceYears, ratingAvg, overa
    6, 4.90, 4.90, TRUE, 'E3');
 
 INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES
-  ('emp-001', 'u-support-001', 'Support');
+  ('emp-admin', 'u-admin-001',  'Support'),
+  ('emp-001',   'u-support-001','Support');
 
 -- ─── Identity Verification ───────────────────────────────────
 INSERT INTO IDENTITY_VERIFICATION (verificationID, userID, documentURL, status, outcome, submittedAt, resolvedAt) VALUES
@@ -200,3 +217,12 @@ INSERT INTO DISPUTE (disputeID, bookingID, userID, employeeID, disputeType, reas
 --    TRUE,  '2026-04-04 09:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================
+-- SCHEMA MIGRATION — run once against an existing database
+-- =============================================================
+
+-- Add persistent email template storage to PLATFORM_SETTINGS
+ALTER TABLE PLATFORM_SETTINGS
+  ADD COLUMN emailTemplatesJson TEXT NULL
+  COMMENT 'JSON object keyed by template name storing subject and body for each automated email';

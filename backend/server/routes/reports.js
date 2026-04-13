@@ -130,11 +130,22 @@ register('GET', '/api/reports/incidents', async (req, res, send) => {
   const employeeID = await getEmployeeId(db, req.userId);
   if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
 
-  const [rows] = await db.query(
-    `SELECT IR.*, B.ownerID, B.sitterID, B.status AS bookingStatus
-     FROM INCIDENT_REPORT IR
-     JOIN BOOKING B ON B.bookingID = IR.bookingID
-     ORDER BY IR.reportedAt DESC`
-  );
+  const [rows] = await db.query(`
+    SELECT
+      IR.incidentID, IR.bookingID, IR.incidentType, IR.severityLevel,
+      IR.description, IR.reportedAt, IR.status, IR.reporterUserID, IR.employeeID,
+      B.ownerID, B.sitterID, B.status AS bookingStatus, B.petID,
+      OP.firstName AS ownerFirstName, OP.lastName AS ownerLastName,
+      MP.firstName AS minderFirstName, MP.lastName AS minderLastName,
+      PP.name AS petName
+    FROM INCIDENT_REPORT IR
+    JOIN BOOKING B ON B.bookingID = IR.bookingID
+    JOIN PET_OWNER PO ON PO.ownerID = B.ownerID
+    JOIN USER_PROFILE OP ON OP.userID = PO.userID
+    JOIN PET_MINDER PM ON PM.sitterID = B.sitterID
+    JOIN USER_PROFILE MP ON MP.userID = PM.userID
+    JOIN PET_PROFILE PP ON PP.petID = B.petID
+    ORDER BY IR.reportedAt DESC
+  `);
   send(res, 200, rows);
 });

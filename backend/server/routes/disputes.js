@@ -71,10 +71,15 @@ register('GET', '/api/disputes', async (req, res, send) => {
       D.disputeType, D.reason, D.status, D.isRefundRequested,
       D.resolutionNotes, D.severityLevel, D.assignedAt, D.createdAt,
       P.firstName AS raisedByFirstName, P.lastName AS raisedByLastName,
-      B.ownerID, B.sitterID, B.status AS bookingStatus
+      B.ownerID, B.sitterID, B.status AS bookingStatus,
+      PY.paymentID, PY.amount AS paymentAmount,
+      MP.firstName AS minderFirstName, MP.lastName AS minderLastName
     FROM DISPUTE D
     JOIN USER_PROFILE P ON P.userID = D.userID
     JOIN BOOKING B ON B.bookingID = D.bookingID
+    LEFT JOIN PAYMENT PY ON PY.bookingID = D.bookingID
+    LEFT JOIN PET_MINDER PM ON PM.sitterID = B.sitterID
+    LEFT JOIN USER_PROFILE MP ON MP.userID = PM.userID
   `;
   const params = [];
   const conditions = [];

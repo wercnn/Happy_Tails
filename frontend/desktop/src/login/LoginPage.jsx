@@ -9,7 +9,7 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
@@ -19,15 +19,33 @@ export default function LoginPage({ onLogin }) {
     }
 
     setLoading(true);
-
-    setTimeout(() => {
-      if (email === "admin@happytails.com" && password === "admin123") {
-        onLogin({ name: "Support Team", email, role: "Customer Support" });
-      } else {
-        setError("Incorrect email or password. Please try again.");
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Incorrect email or password. Please try again.");
         setLoading(false);
+        return;
       }
-    }, 800);
+      if (data.role !== "support") {
+        setError("Access denied. Admin support accounts only.");
+        setLoading(false);
+        return;
+      }
+      onLogin({
+        userID: data.userID,
+        role: data.role,
+        name: `${data.profile.firstName} ${data.profile.lastName}`,
+        email: data.profile.email,
+      });
+    } catch {
+      setError("Unable to connect to server. Is the backend running?");
+      setLoading(false);
+    }
   }
 
   const containerStyle = {
