@@ -133,8 +133,9 @@ function formatDateFull(dateStr) {
 
 function formatTimeOnly(dateStr) {
   return toDate(dateStr).toLocaleTimeString("en-GB", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -142,8 +143,27 @@ function getOwnerSelectedTimeLabel(booking) {
   return booking?.selectedTime || null;
 }
 
+function formatSelectedTimeLabel(timeLabel) {
+  if (!timeLabel || typeof timeLabel !== "string") return "";
+
+  const [timePart, meridiem] = timeLabel.trim().split(" ");
+  if (!timePart || !meridiem) return timeLabel;
+
+  let [hours, minutes] = timePart.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeLabel;
+
+  if (meridiem.toUpperCase() === "PM" && hours !== 12) hours += 12;
+  if (meridiem.toUpperCase() === "AM" && hours === 12) hours = 0;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
 function getDisplayedBookingTime(group) {
-  if (group?.selectedTime) return group.selectedTime;
+  if (group?.selectedTime) {
+    return formatSelectedTimeLabel(group.selectedTime);
+  }
+
   return formatTimeOnly(group.startTime);
 }
 

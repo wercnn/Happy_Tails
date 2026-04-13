@@ -1,109 +1,222 @@
-// server/routes/messages.js
 const { register } = require('../router');
 const db = require('../db');
 
 const {
   uuid,
   badRequest,
-  notFound,
   requireUser,
   requireRole,
-  getOwnerId,
-  getSitterId,
 } = require('../lib/helpers');
 
-async function getOrCreateConversation(bookingID) {
-  const [[existing]] = await db.query('SELECT conversationID FROM CONVERSATION WHERE bookingID = ?', [bookingID]);
-  if (existing) return existing.conversationID;
+async function getOrCreateDirectConversation(userA, userB) {
+  const [rows] = await db.query(
+    `
+    SELECT DISTINCT C.conversationID
+    FROM CONVERSATION C
+    JOIN MESSAGE M ON M.conversationID = C.conversationID
+    WHERE C.bookingID IS NULL
+      AND (
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+        OR
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+      )
+    LIMIT 1
+    `,
+    [userA, userB, userB, userA]
+  );
+
+  if (rows.length) return rows[0].conversationID;
+
   const conversationID = uuid();
-  await db.query('INSERT INTO CONVERSATION (conversationID, bookingID) VALUES (?, ?)', [conversationID, bookingID]);
+  await db.query(
+    'INSERT INTO CONVERSATION (conversationID, bookingID) VALUES (?, NULL)',
+    [conversationID]
+  );
+
   return conversationID;
 }
 
-async function getBooking(bookingID) {
-  const [[b]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  return b || null;
+async function getProfileNameByUserID(userID) {
+  if (!userID) return 'User';
+
+  const [[row]] = await db.query(
+    'SELECT firstName, lastName FROM USER_PROFILE WHERE userID = ?',
+    [userID]
+  );
+
+  if (!row) return 'User';
+
+  const fullName = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
+  return fullName || 'User';
 }
 
-async function getUserIdForOwner(ownerID) {
-  const [[row]] = await db.query('SELECT userID FROM PET_OWNER WHERE ownerID = ?', [ownerID]);
-  return row?.userID || null;
+async function canMessageDirect(currentUserId, otherUserId) {
+  if (!currentUserId || !otherUserId) return false;
+  if (String(currentUserId) === String(otherUserId)) return false;
+  return true;
 }
 
-async function getUserIdForSitter(sitterID) {
-  const [[row]] = await db.query('SELECT userID FROM PET_MINDER WHERE sitterID = ?', [sitterID]);
-  return row?.userID || null;
-}
-
-
-// send message on a booking
-// POST /api/messages (Owner/Minder) — send a message on booking thread
+// POST /api/messages
+// Direct message only
 register('POST', '/api/messages', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const body = await req.parseBody();
-  // Example: { bookingID: 'bk-001', content: 'Hi, just checking in — everything going well with the visit?' }
-  const { bookingID, content } = body;
-  if (!bookingID || !content) return badRequest(send, res, 'bookingID and content are required');
+  const { otherUserID, content } = body || {};
 
-  const booking = await getBooking(bookingID);
-  if (!booking) return notFound(send, res, 'Booking not found');
+  if (!otherUserID) {
+    return badRequest(send, res, 'otherUserID is required');
+  }
 
-  const role = String(req.userRole || '').toLowerCase();
-  const ownerID = role === 'owner' ? await getOwnerId(db, req.UserID) : null;
-  const sitterID = role === 'minder' ? await getSitterId(db, req.UserID) : null;
+  if (!content || !String(content).trim()) {
+    return badRequest(send, res, 'content is required');
+  }
 
-  if (role === 'owner' && !ownerID) return send(res, 403, { error: 'Owner profile not found' });
-  if (role === 'minder' && !sitterID) return send(res, 403, { error: 'Minder profile not found' });
+  const senderUserID = req.userId;
 
-  const allowed = (ownerID && booking.ownerID === ownerID) || (sitterID && booking.sitterID === sitterID);
-  if (!allowed) return send(res, 403, { error: 'Forbidden' });
+  const allowed = await canMessageDirect(senderUserID, otherUserID);
+  if (!allowed) {
+    return send(res, 403, { error: 'Forbidden' });
+  }
 
-  const conversationID = await getOrCreateConversation(bookingID);
-  const senderUserID = req.UserID; // For testing, will be req.userId in production
-
-  const ownerUserID = await getUserIdForOwner(booking.ownerID);
-  const sitterUserID = await getUserIdForSitter(booking.sitterID);
-  const receiverUserID = senderUserID === ownerUserID ? sitterUserID : ownerUserID;
-  if (!receiverUserID) return send(res, 500, { error: 'Unable to resolve receiver' });
-
+  const conversationID = await getOrCreateDirectConversation(senderUserID, otherUserID);
   const messageID = uuid();
+
   await db.query(
-    'INSERT INTO MESSAGE (messageID, conversationID, senderUserID, receiverUserID, content) VALUES (?, ?, ?, ?, ?)',
-    [messageID, conversationID, senderUserID, receiverUserID, content]
+    `
+    INSERT INTO MESSAGE
+      (messageID, conversationID, senderUserID, receiverUserID, content)
+    VALUES (?, ?, ?, ?, ?)
+    `,
+    [messageID, conversationID, senderUserID, otherUserID, String(content).trim()]
   );
 
-  const [[row]] = await db.query('SELECT * FROM MESSAGE WHERE messageID = ?', [messageID]);
-  send(res, 201, row);
+  const [[row]] = await db.query(
+    'SELECT * FROM MESSAGE WHERE messageID = ?',
+    [messageID]
+  );
+
+  return send(res, 201, row);
 });
 
-
-// GET /api/messages/:booking_id (Owner/Minder) — get the full message thread
-register('GET', '/api/messages/:booking_id', async (req, res, send) => {
+// GET /api/messages/direct/user/:otherUserID
+register('GET', '/api/messages/direct/user/:otherUserID', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
-  const bookingID = req.params.booking_id;
-  const booking = await getBooking(bookingID);
-  if (!booking) return notFound(send, res, 'Booking not found');
+  const currentUserID = req.userId;
+  const otherUserID = req.params.otherUserID;
 
-  const role = String(req.userRole || '').toLowerCase();
-  const ownerID = role === 'owner' ? await getOwnerId(db, req.UserID) : null;
-  const sitterID = role === 'minder' ? await getSitterId(db, req.UserID) : null;
+  const allowed = await canMessageDirect(currentUserID, otherUserID);
+  if (!allowed) {
+    return send(res, 403, { error: 'Forbidden' });
+  }
 
-  if (role === 'owner' && !ownerID) return send(res, 403, { error: 'Owner profile not found' });
-  if (role === 'minder' && !sitterID) return send(res, 403, { error: 'Minder profile not found' });
-
-  const allowed = (ownerID && booking.ownerID === ownerID) || (sitterID && booking.sitterID === sitterID);
-  if (!allowed) return send(res, 403, { error: 'Forbidden' });
-
-  const [[conv]] = await db.query('SELECT conversationID FROM CONVERSATION WHERE bookingID = ?', [bookingID]);
-  if (!conv) return send(res, 200, []);
+  await db.query(
+    `
+    UPDATE MESSAGE M
+    JOIN CONVERSATION C ON C.conversationID = M.conversationID
+    SET M.isRead = TRUE
+    WHERE C.bookingID IS NULL
+      AND M.senderUserID = ?
+      AND M.receiverUserID = ?
+      AND M.isRead = FALSE
+    `,
+    [otherUserID, currentUserID]
+  );
 
   const [rows] = await db.query(
-    'SELECT * FROM MESSAGE WHERE conversationID = ? ORDER BY timestamp ASC',
-    [conv.conversationID]
+    `
+    SELECT M.*
+    FROM MESSAGE M
+    JOIN CONVERSATION C ON C.conversationID = M.conversationID
+    WHERE C.bookingID IS NULL
+      AND (
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+        OR
+        (M.senderUserID = ? AND M.receiverUserID = ?)
+      )
+    ORDER BY M.timestamp ASC, M.messageID ASC
+    `,
+    [currentUserID, otherUserID, otherUserID, currentUserID]
   );
-  send(res, 200, rows);
+
+  return send(res, 200, rows);
+});
+
+// GET /api/messages/conversations
+register('GET', '/api/messages/conversations', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, ['owner', 'minder'])) return;
+
+  const currentUserID = req.userId;
+
+  const [conversationRows] = await db.query(
+    `
+    SELECT
+      C.conversationID,
+      MAX(M.timestamp) AS lastTimestamp
+    FROM CONVERSATION C
+    JOIN MESSAGE M ON M.conversationID = C.conversationID
+    WHERE C.bookingID IS NULL
+      AND (M.senderUserID = ? OR M.receiverUserID = ?)
+    GROUP BY C.conversationID
+    ORDER BY lastTimestamp DESC
+    `,
+    [currentUserID, currentUserID]
+  );
+
+  const results = [];
+
+  for (const conv of conversationRows) {
+    const [[lastMessage]] = await db.query(
+      `
+      SELECT *
+      FROM MESSAGE
+      WHERE conversationID = ?
+      ORDER BY timestamp DESC, messageID DESC
+      LIMIT 1
+      `,
+      [conv.conversationID]
+    );
+
+    if (!lastMessage) continue;
+
+    const otherUserID =
+      String(lastMessage.senderUserID) === String(currentUserID)
+        ? lastMessage.receiverUserID
+        : lastMessage.senderUserID;
+
+    const otherUserName = await getProfileNameByUserID(otherUserID);
+
+    const [[unreadRow]] = await db.query(
+      `
+      SELECT COUNT(*) AS unreadCount
+      FROM MESSAGE
+      WHERE conversationID = ?
+        AND receiverUserID = ?
+        AND isRead = FALSE
+      `,
+      [conv.conversationID, currentUserID]
+    );
+
+    results.push({
+      conversationKey: `direct-${conv.conversationID}`,
+      conversationType: 'direct',
+      conversationID: conv.conversationID,
+      bookingID: null,
+      otherUserID: otherUserID || null,
+      otherUserName: otherUserName || 'User',
+      petName: '',
+      serviceName: '',
+      avatar: '',
+      lastMessage: lastMessage.content || '',
+      timestamp: lastMessage.timestamp,
+      rawTimestamp: lastMessage.timestamp,
+      unreadCount: Number(unreadRow?.unreadCount || 0),
+    });
+  }
+
+  return send(res, 200, results);
 });

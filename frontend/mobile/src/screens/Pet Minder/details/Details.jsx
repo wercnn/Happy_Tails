@@ -129,27 +129,31 @@ export default function HappyTailsRequestDetails() {
   };
 
   const handleAction = async (action) => {
-    if (!primary || bookings.length === 0) return;
+    if (!primary) return;
 
     const endpoint = action === "accept" ? "accept" : "reject";
+    const bookingID = primary.bookingID;
+
+    if (!bookingID) {
+      alert("Missing booking ID.");
+      return;
+    }
 
     try {
       setSubmitting(true);
 
-      for (const booking of bookings) {
-        const res = await fetch(
-          `${API_BASE}/api/bookings/${booking.bookingID}/${endpoint}`,
-          {
-            method: "PATCH",
-            headers: getAuthHeaders(),
-          }
-        );
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          throw new Error(data.error || `Failed to ${action} booking.`);
+      const res = await fetch(
+        `${API_BASE}/api/bookings/${bookingID}/${endpoint}`,
+        {
+          method: "PATCH",
+          headers: getAuthHeaders(),
         }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to ${action} booking.`);
       }
 
       navigate("/mindRequests");

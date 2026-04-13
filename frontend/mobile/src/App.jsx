@@ -42,6 +42,8 @@ import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted
 
 /* Pet Minder and Pet Owner profile screens */
 import Profile from './screens/profile/ProfileSettings'
+import Conversation from './screens/messaging/conversation'
+import Chat from './screens/messaging/chat/Chat'
 
 function App() {
   return (
@@ -83,6 +85,8 @@ function App() {
       <Route path="/mindNotifications" element={<MindNotifications />} />
 
       <Route path="/profile" element={<Profile />} />
+      <Route path="/conversation" element={<Conversation />} />
+      <Route path="/chat" element={<Chat />} />
     </Routes>
   )
 }

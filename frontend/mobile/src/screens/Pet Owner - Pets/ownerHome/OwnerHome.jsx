@@ -38,8 +38,9 @@ function toDate(dateStr) {
 
 function formatTimeOnly(dateStr) {
   return toDate(dateStr).toLocaleTimeString("en-GB", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -51,14 +52,37 @@ function formatDateOnly(dateStr) {
   });
 }
 
-function getCreatedMinuteKey(createdAt) {
+function getCreatedGroupKey(createdAt) {
   if (!createdAt) return "no-created-at";
-  const d = toDate(createdAt);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes()
-  ).padStart(2, "0")}`;
+  return String(createdAt);
+}
+
+function getOwnerSelectedTimeLabel(booking) {
+  return booking?.selectedTime || null;
+}
+
+function formatSelectedTimeLabel(timeLabel) {
+  if (!timeLabel || typeof timeLabel !== "string") return "";
+
+  const [timePart, meridiem] = timeLabel.trim().split(" ");
+  if (!timePart || !meridiem) return timeLabel;
+
+  let [hours, minutes] = timePart.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeLabel;
+
+  if (meridiem.toUpperCase() === "PM" && hours !== 12) hours += 12;
+  if (meridiem.toUpperCase() === "AM" && hours === 12) hours = 0;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function getDisplayedBookingTime(group) {
+  if (group?.selectedTime) {
+    return formatSelectedTimeLabel(group.selectedTime);
+  }
+
+  return formatTimeOnly(group.startTime);
 }
 
 function groupBookings(bookings) {
@@ -72,7 +96,7 @@ function groupBookings(bookings) {
       b.serviceTypeID,
       String(b.status || "").toLowerCase(),
       b.ownerNotes || "",
-      getCreatedMinuteKey(b.createdAt),
+      getCreatedGroupKey(b.createdAt),
     ].join("|");
 
     if (!groups.has(key)) {
@@ -86,31 +110,54 @@ function groupBookings(bookings) {
         startTime: b.startTime,
         endTime: b.endTime,
         createdAt: b.createdAt,
-        totalCost: 0,
+        subtotal: 0,
+        selectedTime: getOwnerSelectedTimeLabel(b),
       });
     }
 
     const group = groups.get(key);
-    group.bookingIDs.push(b.bookingID);
-    group.bookings.push(b);
-    group.totalCost += Number(b.totalCost || 0);
 
-    const currentStart = toDate(group.startTime);
-    const nextStart = toDate(b.startTime);
-    if (nextStart < currentStart) {
-      group.startTime = b.startTime;
-      group.endTime = b.endTime;
-      group.bookingID = b.bookingID;
+    if (!group.bookingIDs.includes(b.bookingID)) {
+      group.bookingIDs.push(b.bookingID);
+      group.bookings.push(b);
+      group.subtotal += Number(b.totalCost || 0);
+
+      if (!group.selectedTime && getOwnerSelectedTimeLabel(b)) {
+        group.selectedTime = getOwnerSelectedTimeLabel(b);
+      }
+
+      const currentStart = toDate(group.startTime);
+      const nextStart = toDate(b.startTime);
+      if (nextStart < currentStart) {
+        group.startTime = b.startTime;
+        group.endTime = b.endTime;
+        group.bookingID = b.bookingID;
+      }
     }
   }
 
   return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      dates: group.bookings
-        .map((b) => b.startTime)
-        .sort((a, b) => toDate(a) - toDate(b)),
-    }))
+    .map((group) => {
+      const uniqueBookings = group.bookings
+        .filter((b, index, arr) => arr.findIndex((x) => x.bookingID === b.bookingID) === index)
+        .sort((a, b) => toDate(a.startTime) - toDate(b.startTime));
+
+      const subtotal = Number(group.subtotal || 0);
+      const platformFee = Number((subtotal * 0.05).toFixed(2));
+      const total = Number((subtotal + platformFee).toFixed(2));
+
+      return {
+        ...group,
+        subtotal,
+        platformFee,
+        total,
+        dates: [
+          ...new Map(
+            uniqueBookings.map((b) => [String(b.startTime).slice(0, 10), b.startTime])
+          ).values(),
+        ],
+      };
+    })
     .sort((a, b) => toDate(b.createdAt || b.startTime) - toDate(a.createdAt || a.startTime));
 }
 
@@ -126,6 +173,13 @@ function getStatusLabel(status) {
   const s = String(status || "").toLowerCase();
   if (s === "accepted") return "confirmed";
   return s;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning 👋";
+  if (h < 18) return "Good afternoon ☀️";
+  return "Good evening 🌙";
 }
 
 export default function HappyTailsHome() {
@@ -168,7 +222,9 @@ export default function HappyTailsHome() {
 
         if (res.ok) {
           const filtered = (Array.isArray(data) ? data : []).filter((b) =>
-            ["pending", "accepted", "rejected"].includes(String(b.status || "").toLowerCase())
+            ["pending", "accepted", "rejected", "completed", "cancelled"].includes(
+              String(b.status || "").toLowerCase()
+            )
           );
           setBookings(filtered);
         }
@@ -237,12 +293,30 @@ export default function HappyTailsHome() {
         <div className="home-screen">
           <header className="home-header">
             <div className="home-greeting-block">
-              <h1 className="home-greeting">Good morning 👋</h1>
-              <p className="home-name">{ownerName}</p>
+              <span className="home-greeting-label">{getGreeting()}</span>
+              <h1 className="home-name">{ownerName}</h1>
+              <span className="home-role-badge">Pet Owner</span>
             </div>
-            <button className="home-bell-btn" onClick={() => navigate("/notifications")}>
-              🔔
-            </button>
+
+            <div className="home-header-right">
+              <button
+                className="home-message-btn"
+                onClick={() => navigate("/conversation")}
+                aria-label="Messages"
+                type="button"
+              >
+                💬
+              </button>
+
+              <button
+                className="home-bell-btn"
+                onClick={() => navigate("/notifications")}
+                aria-label="Notifications"
+                type="button"
+              >
+                🔔
+              </button>
+            </div>
           </header>
 
           <div className="home-scroll">
@@ -343,7 +417,7 @@ export default function HappyTailsHome() {
                         </span>
 
                         <span className="home-booking-time">
-                          {formatTimeOnly(group.startTime)}
+                          {getDisplayedBookingTime(group)}
                         </span>
                       </div>
 
