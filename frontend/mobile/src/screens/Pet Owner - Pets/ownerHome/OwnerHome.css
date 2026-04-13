@@ -424,6 +424,34 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .home-nav-item--active .home-nav-label { color: #f28c28; }
 .home-nav-item--active .home-nav-emoji { filter: none; }
 
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-message-btn,
+.home-bell-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  font-size: 1.35rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.home-message-btn:hover,
+.home-bell-btn:hover {
+  background: rgba(255,255,255,0.38);
+  transform: translateY(-1px);
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }

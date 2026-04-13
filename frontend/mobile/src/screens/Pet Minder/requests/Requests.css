@@ -35,11 +35,14 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 /* ── Header ── */
 .br-header {
   flex-shrink: 0;
-  background: #f28c28;
-  padding: 20px 20px 18px;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
+  padding: 22px 20px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 4px 16px rgba(242, 140, 40, 0.35);
 }
 
 .br-title {
@@ -74,7 +77,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .br-filter-toggle {
   width: 100%;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: #fff;
   color: #1a1a1a;
   padding: 14px 16px;
@@ -85,7 +88,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: background 0.15s, color 0.15s, transform 0.12s, box-shadow 0.15s;
 }
 
@@ -121,19 +124,20 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 .br-section-title {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
+  margin: 0 0 12px;
+  font-size: 1rem;
   font-weight: 800;
   color: #333;
+  text-align: center;
 }
 
 /* ── Filters Panel ── */
 .br-filters-panel {
   margin-top: 10px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -298,13 +302,20 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 /* ── Cards ── */
 .br-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px 16px 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid #f4dcc0;
+  border-radius: 18px;
+  padding: 0;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.br-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.10);
 }
 
 /* Top row */
@@ -312,6 +323,9 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 14px 16px 12px;
+  background: rgba(253, 232, 204, 0.32);
+  border-bottom: 1px solid #f5e6d7;
 }
 
 .br-card-avatar-btn,
@@ -336,14 +350,15 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 .br-card-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: #f28c28;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
+  box-shadow: 0 8px 18px rgba(242, 140, 40, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   flex-shrink: 0;
 }
 
@@ -361,68 +376,78 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   flex-shrink: 0;
   border-radius: 999px;
   padding: 5px 13px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.74rem;
+  font-weight: 800;
   text-align: center;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .br-badge--pending {
   background: #fff4d6;
   color: #b7791f;
+  border: 1px solid #f3d18a;
 }
 
 .br-badge--awaiting {
   background: #ffe9e9;
   color: #b23a3a;
+  border: 1px solid #f4bbbb;
 }
 
 .br-badge--inprogress {
   background: #edf4ff;
   color: #2a5db0;
+  border: 1px solid #cfe0ff;
 }
 
 .br-badge--confirmed {
   background: #e8f8ef;
   color: #177245;
+  border: 1px solid #bee8cf;
 }
 
 /* Detail rows */
 .br-card-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: 4px;
+  gap: 6px;
+  padding: 14px 16px 12px;
 }
 
 .br-detail {
-  font-size: 0.88rem;
-  color: #555;
+  font-size: 0.86rem;
+  color: #666;
   font-weight: 500;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 /* Action buttons */
 .br-card-actions {
   display: flex;
   gap: 10px;
+  padding: 0 16px 16px;
 }
 
 .br-accept-btn,
 .br-decline-btn {
   flex: 1;
   border: none;
-  border-radius: 10px;
-  padding: 13px 10px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  border-radius: 12px;
+  padding: 12px 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
   font-family: inherit;
   cursor: pointer;
-  transition: filter 0.15s, transform 0.12s;
+  transition: filter 0.15s, transform 0.12s, box-shadow 0.12s;
 }
 
 .br-accept-btn {
-  background: #22c55e;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
   color: #fff;
+  box-shadow: 0 8px 18px rgba(242, 140, 40, 0.26);
 }
 
 .br-decline-btn {
@@ -430,10 +455,18 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: #ef4444;
 }
 
-.br-accept-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
-.br-decline-btn:hover { filter: brightness(0.96); transform: translateY(-1px); }
+.br-accept-btn:hover  {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.br-decline-btn:hover {
+  filter: brightness(0.98);
+  transform: translateY(-1px);
+}
 .br-accept-btn:active,
-.br-decline-btn:active { transform: translateY(1px); }
+.br-decline-btn:active {
+  transform: translateY(1px);
+}
 
 /* Empty state */
 .br-empty {
