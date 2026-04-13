@@ -175,6 +175,13 @@ function getStatusLabel(status) {
   return s;
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning 👋";
+  if (h < 18) return "Good afternoon ☀️";
+  return "Good evening 🌙";
+}
+
 export default function HappyTailsHome() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("home");
@@ -286,16 +293,17 @@ export default function HappyTailsHome() {
         <div className="home-screen">
           <header className="home-header">
             <div className="home-greeting-block">
-              <h1 className="home-greeting">Good morning 👋</h1>
-              <p className="home-name">{ownerName}</p>
+              <span className="home-greeting-label">{getGreeting()}</span>
+              <h1 className="home-name">{ownerName}</h1>
+              <span className="home-role-badge">Pet Owner</span>
             </div>
 
-            <div className="home-header-actions">
+            <div className="home-header-right">
               <button
                 className="home-message-btn"
                 onClick={() => navigate("/messages")}
-                type="button"
                 aria-label="Messages"
+                type="button"
               >
                 💬
               </button>
@@ -303,8 +311,8 @@ export default function HappyTailsHome() {
               <button
                 className="home-bell-btn"
                 onClick={() => navigate("/notifications")}
-                type="button"
                 aria-label="Notifications"
+                type="button"
               >
                 🔔
               </button>
