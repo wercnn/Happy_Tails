@@ -25,7 +25,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function PaymentsPage({ user }) {
+export default function PaymentsPage({ user, searchQuery = "" }) {
   const [tab, setTab] = useState("transactions");
   const [payments, setPayments] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -154,6 +154,15 @@ export default function PaymentsPage({ user }) {
     { icon: "📈", label: "Platform Fees", value: fmt(platformFees), valueClass: "payments-page__stat-value--orange" },
   ];
 
+  const visiblePayments = searchQuery
+    ? payments.filter((p) =>
+        [p.paymentID, p.bookingID, p.payerFirstName, p.payerLastName, p.paymentStatus, p.escrowStatus]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      )
+    : payments;
+
   const refunds = disputes.filter((d) => d.isRefundRequested);
   const activeStatuses = ["Open", "Pending"];
 
@@ -212,7 +221,7 @@ export default function PaymentsPage({ user }) {
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
+              {visiblePayments.map((p) => (
                 <tr key={p.paymentID}>
                   <Td><span className="payments-page__id">{p.paymentID.slice(0, 8).toUpperCase()}</span></Td>
                   <Td><span className="payments-page__booking">{p.bookingID.slice(0, 8).toUpperCase()}</span></Td>
@@ -240,7 +249,7 @@ export default function PaymentsPage({ user }) {
                   </Td>
                 </tr>
               ))}
-              {payments.length === 0 && (
+              {visiblePayments.length === 0 && (
                 <tr><Td colSpan={10} style={{ textAlign: "center", color: C.mid }}>No transactions found.</Td></tr>
               )}
             </tbody>

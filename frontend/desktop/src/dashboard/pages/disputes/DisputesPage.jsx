@@ -14,7 +14,7 @@ const authHeaders = {
   "X-User-Role": "support",
 };
 
-export default function DisputesPage() {
+export default function DisputesPage({ searchQuery = "" }) {
   const [disputes, setDisputes] = useState([]);
   const [selected, setSelected] = useState(null);
   const [selectedDispute, setSelectedDispute] = useState(null);
@@ -202,6 +202,15 @@ export default function DisputesPage() {
     ["✅", "Resolved", disputes.filter((d) => d.status === "resolved").length, C.green],
   ];
 
+  const visibleDisputes = searchQuery
+    ? disputes.filter((d) =>
+        [d.id, d.booking, d.raisedBy, d.against, d.type, d.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      )
+    : disputes;
+
   const dispute = selectedDispute || disputes.find((d) => d.id === selected);
 
   return (
@@ -261,7 +270,7 @@ export default function DisputesPage() {
                 </tr>
               </thead>
               <tbody>
-                {disputes.map((d) => (
+                {visibleDisputes.map((d) => (
                   <tr key={d.id} className="disputes-page__row">
                     <Td>
                       <span className="disputes-page__id">{d.id}</span>

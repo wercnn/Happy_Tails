@@ -35,9 +35,13 @@ function formatPaymentStatus(escrow) {
 
 const FILTERS = ["all", "confirmed", "pending", "completed", "cancelled"];
 
-export default function BookingsPage() {
+export default function BookingsPage({ searchQuery = "" }) {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (searchQuery) setSearch(searchQuery);
+  }, [searchQuery]);
   const [bookings, setBookings] = useState(null);   // null = loading
   const [stats, setStats] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);

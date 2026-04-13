@@ -27,7 +27,7 @@ function renderStars(rating) {
   return "⭐".repeat(Math.min(Math.max(Number(rating) || 0, 0), 5));
 }
 
-export default function ReviewsPage() {
+export default function ReviewsPage({ searchQuery = "" }) {
   const [filter, setFilter] = useState("all");
   const [reviews, setReviews] = useState(null);   // null = loading
   const [stats, setStats] = useState(null);
@@ -101,9 +101,20 @@ export default function ReviewsPage() {
     }
   };
 
-  const filtered = (reviews ?? []).filter((r) =>
-    filter === "all" ? true : r.status === filter
-  );
+  const filtered = (reviews ?? []).filter((r) => {
+    const matchFilter = filter === "all" || r.status === filter;
+    const matchSearch = !searchQuery || [
+      r.ownerName,
+      r.minderName,
+      r.comment,
+      r.reviewID,
+      r.status,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    return matchFilter && matchSearch;
+  });
 
   const needsAction = (status) => status === "Flagged" || status === "Pending";
 

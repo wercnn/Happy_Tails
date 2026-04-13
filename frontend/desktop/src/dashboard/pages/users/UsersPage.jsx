@@ -18,7 +18,7 @@ function authHeaders(user) {
   };
 }
 
-export default function UsersPage({ user }) {
+export default function UsersPage({ user, searchQuery = "" }) {
   const [tab, setTab] = useState("owners");
   const [owners, setOwners] = useState([]);
   const [minders, setMinders] = useState([]);
@@ -27,6 +27,11 @@ export default function UsersPage({ user }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+
+  // Sync global search query into local search state
+  useEffect(() => {
+    if (searchQuery) setSearch(searchQuery);
+  }, [searchQuery]);
 
   const tabs = [
     ["owners", "Pet Owners"],

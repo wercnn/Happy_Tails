@@ -25,7 +25,7 @@ function formatType(type) {
   return type?.replace(/([A-Z])/g, " $1").trim() || "—";
 }
 
-export default function IncidentsPage({ user }) {
+export default function IncidentsPage({ user, searchQuery = "" }) {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -106,6 +106,25 @@ export default function IncidentsPage({ user }) {
     ["✅", "Resolved", String(resolvedCount), C.green],
   ];
 
+  const visibleIncidents = searchQuery
+    ? incidents.filter((i) =>
+        [
+          i.incidentID,
+          i.incidentType,
+          i.ownerFirstName,
+          i.ownerLastName,
+          i.minderFirstName,
+          i.minderLastName,
+          i.petName,
+          i.status,
+          i.description,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      )
+    : incidents;
+
   const inc = selected;
 
   return (
@@ -160,7 +179,7 @@ export default function IncidentsPage({ user }) {
                 </tr>
               </thead>
               <tbody>
-                {incidents.map((i) => (
+                {visibleIncidents.map((i) => (
                   <tr key={i.incidentID} className="incidents-page__row">
                     <Td><span className="incidents-page__id">{i.incidentID.slice(0, 8).toUpperCase()}</span></Td>
                     <Td style={{ fontSize: 12 }}>{formatType(i.incidentType)}</Td>
@@ -175,8 +194,10 @@ export default function IncidentsPage({ user }) {
                     </Td>
                   </tr>
                 ))}
-                {incidents.length === 0 && (
-                  <tr><Td colSpan={9} style={{ textAlign: "center", color: C.mid }}>No incidents found.</Td></tr>
+                {visibleIncidents.length === 0 && (
+                  <tr><Td colSpan={9} style={{ textAlign: "center", color: C.mid }}>
+                    {searchQuery ? `No incidents match "${searchQuery}".` : "No incidents found."}
+                  </Td></tr>
                 )}
               </tbody>
             </table>

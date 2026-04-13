@@ -76,7 +76,7 @@ function exportCSV(data, from, to) {
   URL.revokeObjectURL(url);
 }
 
-export default function ReportsPage() {
+export default function ReportsPage({ searchQuery = "" }) {
   const defaults = getDefaultRange();
 
   const [dateFrom, setDateFrom] = useState(defaults.from);
@@ -126,6 +126,21 @@ export default function ReportsPage() {
   const maxBookings = Math.max(...monthlyBookings.map((d) => d.count),   1);
   const maxRevenue  = Math.max(...monthlyRevenue.map((d)  => d.revenue), 1);
   const rangeLabel  = formatRangeLabel(dateFrom, dateTo);
+
+  const visibleMinders = searchQuery
+    ? topMinders.filter((m) =>
+        [m.name, m.city, m.service]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      )
+    : topMinders;
+
+  const visibleServices = searchQuery
+    ? serviceBreakdown.filter((s) =>
+        s.service?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : serviceBreakdown;
 
   return (
     <div className="reports-page">
@@ -281,10 +296,10 @@ export default function ReportsPage() {
 
             {loading ? (
               <div style={{ fontSize: 13, color: "#6b7280" }}>Loading...</div>
-            ) : serviceBreakdown.length === 0 ? (
+            ) : visibleServices.length === 0 ? (
               <div style={{ fontSize: 13, color: "#6b7280" }}>No data for this period.</div>
             ) : (
-              serviceBreakdown.map((s, i) => (
+              visibleServices.map((s, i) => (
                 <div key={s.service} className="reports-page__service-item">
                   <div className="reports-page__service-head">
                     <span className="reports-page__service-name">{s.service}</span>
@@ -318,10 +333,10 @@ export default function ReportsPage() {
 
             {loading ? (
               <div style={{ fontSize: 13, color: "#6b7280" }}>Loading...</div>
-            ) : topMinders.length === 0 ? (
+            ) : visibleMinders.length === 0 ? (
               <div style={{ fontSize: 13, color: "#6b7280" }}>No data for this period.</div>
             ) : (
-              topMinders.map((m, i) => (
+              visibleMinders.map((m, i) => (
                 <div
                   key={`${m.name}-${i}`}
                   className={`reports-page__minder-row ${
