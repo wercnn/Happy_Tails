@@ -216,7 +216,34 @@ register('DELETE', '/api/pets/:id', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const petID = req.params.id;
-  const [result] = await db.query('DELETE FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
-  if (!result.affectedRows) return notFound(send, res, 'Pet not found');
-  send(res, 200, { ok: true });
+
+  const [petRows] = await db.query('SELECT petID FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+  if (!petRows.length) return notFound(send, res, 'Pet not found');
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [bookingRows] = await connection.query('SELECT bookingID FROM BOOKING WHERE petID = ?', [petID]);
+    const bookingIDs = bookingRows.map((row) => row.bookingID);
+
+    if (bookingIDs.length) {
+      const placeholders = bookingIDs.map(() => '?').join(',');
+
+      await connection.query(`DELETE FROM DISPUTE WHERE bookingID IN (${placeholders})`, bookingIDs);
+      await connection.query(`DELETE FROM INCIDENT_REPORT WHERE bookingID IN (${placeholders})`, bookingIDs);
+      await connection.query(`DELETE FROM BOOKING WHERE bookingID IN (${placeholders})`, bookingIDs);
+    }
+
+    await connection.query('DELETE FROM PET_PROFILE WHERE petID = ? AND ownerID = ?', [petID, ownerID]);
+
+    await connection.commit();
+    send(res, 200, { ok: true });
+  } catch (err) {
+    await connection.rollback();
+    console.error(`Error on DELETE /api/pets/${petID}:`, err.message);
+    send(res, 500, { error: 'Failed to delete pet' });
+  } finally {
+    connection.release();
+  }
 });
