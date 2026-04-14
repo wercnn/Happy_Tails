@@ -403,6 +403,35 @@ register('PATCH', '/api/admin/bookings/:id/cancel', async (req, res, send) => {
   send(res, 200, updated);
 });
 
+// PATCH /api/admin/bookings/:id/status (Support) — manually override a booking's status
+register('PATCH', '/api/admin/bookings/:id/status', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'support')) return;
+
+  const employeeID = await getEmployeeId(db, req.userId);
+  if (!employeeID) return send(res, 403, { error: 'Support profile not found' });
+
+  const bookingID = req.params.id;
+  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  if (!booking) return notFound(send, res, 'Booking not found');
+
+  const body = await req.parseBody();
+  const newStatus = body?.status;
+
+  const VALID_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
+  if (!newStatus || !VALID_STATUSES.includes(newStatus.toLowerCase())) {
+    return send(res, 400, { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+  }
+
+  await db.query(
+    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
+    [newStatus.toLowerCase(), bookingID]
+  );
+
+  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  send(res, 200, updated);
+});
+
 // PATCH /api/admin/bookings/:id/intervene (Support) — log a support intervention as an incident report
 register('PATCH', '/api/admin/bookings/:id/intervene', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;

@@ -48,6 +48,12 @@ export default function BookingsPage({ searchQuery = "" }) {
   const [actionLoading, setActionLoading] = useState(null); // bookingID currently being actioned
   const [error, setError] = useState("");
 
+  const [interveneBooking, setInterveneBooking] = useState(null);
+  const [interveneAction, setInterveneAction] = useState(null); // 'cancel' | 'change-status'
+  const [interveneStatus, setInterveneStatus] = useState("confirmed");
+  const [interveneLoading, setInterveneLoading] = useState(false);
+  const [interveneError, setInterveneError] = useState("");
+
   const fetchBookings = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/bookings/all`, { headers: API_HEADERS });
@@ -96,21 +102,57 @@ export default function BookingsPage({ searchQuery = "" }) {
     }
   };
 
-  const handleIntervene = async (bookingID) => {
-    setActionLoading(bookingID);
-    setError("");
+  const openIntervene = (booking) => {
+    setInterveneBooking(booking);
+    setInterveneAction(null);
+    setInterveneStatus("confirmed");
+    setInterveneError("");
+  };
+
+  const closeIntervene = () => {
+    setInterveneBooking(null);
+    setInterveneAction(null);
+    setInterveneError("");
+  };
+
+  const handleInterveneSubmit = async () => {
+    if (!interveneAction) {
+      setInterveneError("Please select an action.");
+      return;
+    }
+    setInterveneLoading(true);
+    setInterveneError("");
     try {
-      const res = await fetch(`${API_BASE}/api/admin/bookings/${bookingID}/intervene`, {
-        method: "PATCH",
-        headers: API_HEADERS,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to log intervention");
-      await fetchBookings();
+      if (interveneAction === "cancel") {
+        const res = await fetch(
+          `${API_BASE}/api/admin/bookings/${interveneBooking.bookingID}/cancel`,
+          {
+            method: "PATCH",
+            headers: API_HEADERS,
+            body: JSON.stringify({ cancellationReason: "Cancelled by support intervention" }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to cancel booking");
+      } else if (interveneAction === "change-status") {
+        const res = await fetch(
+          `${API_BASE}/api/admin/bookings/${interveneBooking.bookingID}/status`,
+          {
+            method: "PATCH",
+            headers: API_HEADERS,
+            body: JSON.stringify({ status: interveneStatus }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to update status");
+      }
+      if (selectedBooking?.bookingID === interveneBooking.bookingID) setSelectedBooking(null);
+      closeIntervene();
+      await Promise.all([fetchBookings(), fetchStats()]);
     } catch (err) {
-      setError(err.message);
+      setInterveneError(err.message);
     } finally {
-      setActionLoading(null);
+      setInterveneLoading(false);
     }
   };
 
@@ -237,10 +279,9 @@ export default function BookingsPage({ searchQuery = "" }) {
                         <Btn
                           variant="outline"
                           small
-                          disabled={isActioning}
-                          onClick={() => handleIntervene(b.bookingID)}
+                          onClick={() => openIntervene(b)}
                         >
-                          {isActioning ? "..." : "Intervene"}
+                          Intervene
                         </Btn>
                         {canCancel && (
                           <Btn
@@ -261,6 +302,117 @@ export default function BookingsPage({ searchQuery = "" }) {
           </table>
         )}
       </Card>
+
+      {interveneBooking && (
+        <div className="bookings-page__overlay" onClick={closeIntervene}>
+          <div
+            className="bookings-page__overlay-card bookings-page__intervene-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="bookings-page__overlay-close"
+              onClick={closeIntervene}
+            >
+              ✕
+            </button>
+
+            <div className="bookings-page__intervene-header">
+              <p className="bookings-page__overlay-id">
+                #{interveneBooking.bookingID.slice(0, 6).toUpperCase()}
+              </p>
+              <h2 className="bookings-page__intervene-title">Intervene on Booking</h2>
+              <p className="bookings-page__intervene-subtitle">
+                {interveneBooking.serviceName} &middot; {interveneBooking.ownerName} → {interveneBooking.minderName}
+              </p>
+              <div style={{ marginTop: 10 }}>
+                <StatusBadge status={interveneBooking.status?.toLowerCase()} />
+              </div>
+            </div>
+
+            <p className="bookings-page__intervene-section-label">Select an action</p>
+
+            <div className="bookings-page__intervene-options">
+              {(() => {
+                const isCancelDisabled = ["completed", "cancelled"].includes(
+                  interveneBooking.status?.toLowerCase()
+                );
+                return (
+                  <>
+                    <button
+                      type="button"
+                      className={`bookings-page__intervene-option${interveneAction === "cancel" ? " bookings-page__intervene-option--selected" : ""}${isCancelDisabled ? " bookings-page__intervene-option--disabled" : ""}`}
+                      onClick={() => !isCancelDisabled && setInterveneAction("cancel")}
+                      disabled={isCancelDisabled}
+                    >
+                      <span className="bookings-page__intervene-option-icon">❌</span>
+                      <div>
+                        <p className="bookings-page__intervene-option-title">Cancel Booking</p>
+                        <p className="bookings-page__intervene-option-desc">
+                          Immediately cancel this booking and free the slot.
+                          {isCancelDisabled && " (Not available for this status)"}
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`bookings-page__intervene-option${interveneAction === "change-status" ? " bookings-page__intervene-option--selected" : ""}`}
+                      onClick={() => setInterveneAction("change-status")}
+                    >
+                      <span className="bookings-page__intervene-option-icon">🔄</span>
+                      <div>
+                        <p className="bookings-page__intervene-option-title">Change Status</p>
+                        <p className="bookings-page__intervene-option-desc">
+                          Manually override the booking status to any value.
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+
+            {interveneAction === "change-status" && (
+              <div className="bookings-page__intervene-status-row">
+                <label
+                  className="bookings-page__intervene-status-label"
+                  htmlFor="intervene-status-select"
+                >
+                  New Status
+                </label>
+                <select
+                  id="intervene-status-select"
+                  className="bookings-page__intervene-status-select"
+                  value={interveneStatus}
+                  onChange={(e) => setInterveneStatus(e.target.value)}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            )}
+
+            {interveneError && (
+              <p className="bookings-page__intervene-error">{interveneError}</p>
+            )}
+
+            <div className="bookings-page__intervene-footer">
+              <Btn variant="outline" onClick={closeIntervene} disabled={interveneLoading}>
+                Close
+              </Btn>
+              <Btn
+                variant="danger"
+                onClick={handleInterveneSubmit}
+                disabled={!interveneAction || interveneLoading}
+              >
+                {interveneLoading ? "Applying..." : "Apply Action"}
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedBooking && (
         <div className="bookings-page__overlay" onClick={() => setSelectedBooking(null)}>
