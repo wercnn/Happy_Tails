@@ -29,6 +29,11 @@ export default function HappyTailsMinderProfile() {
   const [isLoading, setIsLoading] = useState(Boolean(initialSitterID));
   const [error, setError] = useState("");
 
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(Boolean(initialSitterID));
+  const [reviewsError, setReviewsError] = useState("");
+
+  // Fetch full minder profile
   useEffect(() => {
     if (!initialSitterID) {
       setIsLoading(false);
@@ -67,6 +72,52 @@ export default function HappyTailsMinderProfile() {
     loadMinder();
   }, [initialSitterID]);
 
+  // Fetch reviews independently
+  useEffect(() => {
+    if (!initialSitterID) {
+      setReviewsLoading(false);
+      return;
+    }
+
+    const loadReviews = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/api/reviews/${initialSitterID}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setReviewsError(data.error || "Failed to load reviews.");
+          return;
+        }
+
+        // Support either a raw array response or wrapped payloads.
+        const normalizedReviews = Array.isArray(data)
+          ? data
+          : Array.isArray(data.reviews)
+          ? data.reviews
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
+
+        setReviews(normalizedReviews);
+      } catch (err) {
+        console.error("Failed to load reviews:", err);
+        setReviewsError("Could not load reviews.");
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    loadReviews();
+  }, [initialSitterID]);
+
   if (!initialSitterID && !isLoading) {
     return (
       <div className="mobile-stage">
@@ -95,7 +146,6 @@ export default function HappyTailsMinderProfile() {
   }
 
   const displayMinder = fullMinder || minderFromState || {};
-  const sitterID = displayMinder.sitterID || displayMinder.id || null;
 
   const minderName =
     displayMinder.name ||
@@ -107,10 +157,6 @@ export default function HappyTailsMinderProfile() {
     : displayMinder.city || displayMinder.postcode || "Location unavailable";
 
   const rating = Number(displayMinder.ratingAvg || 0).toFixed(1);
-  const reviews = displayMinder.reviews || [];
-  const reviewCount = Array.isArray(reviews)
-    ? reviews.length
-    : Number(displayMinder.reviews || 0);
 
   const services =
     Array.isArray(displayMinder.services) && displayMinder.services.length > 0
@@ -128,7 +174,7 @@ export default function HappyTailsMinderProfile() {
     services_tags: tags,
     stats: [
       { emoji: "⭐", value: rating ? rating : "N/A", label: "Rating" },
-      { emoji: "📋", value: String(reviewCount), label: "Reviews" },
+      { emoji: "📋", value: String(reviews.length), label: "Reviews" },
       {
         emoji: "🏅",
         value: `${displayMinder.experienceYears || 0} yrs`,
@@ -146,14 +192,6 @@ export default function HappyTailsMinderProfile() {
           : "Price unavailable",
       unit: service.customPrice != null || service.basePrice != null ? "/hr" : "",
     })),
-    reviews: Array.isArray(reviews)
-      ? reviews.map((review) => ({
-          id: review.reviewID || review.id,
-          reviewer: review.reviewerName || "Happy Tails User",
-          stars: Number(review.rating || 0),
-          text: review.comment || "No written review provided.",
-        }))
-      : [],
   };
 
   const handleMessageClick = () => {
@@ -253,14 +291,22 @@ export default function HappyTailsMinderProfile() {
               <section className="mp-section">
                 <h2 className="mp-section-title">Reviews</h2>
                 <div className="mp-review-list">
-                  {profile.reviews.length > 0 ? (
-                    profile.reviews.map((r) => (
-                      <div key={r.id} className="mp-review-card">
+                  {reviewsLoading ? (
+                    <p className="mp-review-text">Loading reviews...</p>
+                  ) : reviewsError ? (
+                    <p className="mp-review-text">{reviewsError}</p>
+                  ) : reviews.length > 0 ? (
+                    reviews.map((r) => (
+                      <div key={r.reviewID} className="mp-review-card">
                         <div className="mp-review-top">
-                          <span className="mp-reviewer">{r.reviewer}</span>
-                          <Stars count={r.stars} />
+                          <span className="mp-reviewer">
+                            {r.reviewerName || "Happy Tails User"}
+                          </span>
+                          <Stars count={r.rating} />
                         </div>
-                        <p className="mp-review-text">{r.text}</p>
+                        <p className="mp-review-text">
+                          {r.comment || "No written review provided."}
+                        </p>
                       </div>
                     ))
                   ) : (

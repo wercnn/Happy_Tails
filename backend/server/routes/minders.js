@@ -474,9 +474,11 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
 
   const [reviews] = await db.query(
     `SELECT
-       R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
+       R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt,
+       CONCAT(P.firstName, ' ', P.lastName) AS reviewerName
      FROM REVIEW R
-     JOIN BOOKING B ON B.bookingID = R.bookingID
+     JOIN BOOKING B  ON B.bookingID  = R.bookingID
+     JOIN USER_PROFILE P ON P.userID = R.reviewerUserID
      WHERE B.sitterID = ?
      ORDER BY R.createdAt DESC`,
     [sitterID]

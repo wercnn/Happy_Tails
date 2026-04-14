@@ -273,6 +273,14 @@ export default function HappyTailsBookingHistory() {
   const [dateFilter, setDateFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewedBookingIDs, setReviewedBookingIDs] = useState(new Set());
+
   const activeFilterCount = [
     serviceFilter !== "all",
     statusFilter !== "all",
@@ -283,6 +291,65 @@ export default function HappyTailsBookingHistory() {
     setServiceFilter("all");
     setStatusFilter("all");
     setDateFilter("all");
+  };
+
+  const openReview = (group) => {
+    setReviewTarget(group);
+    setReviewRating(0);
+    setReviewHover(0);
+    setReviewComment("");
+    setReviewError("");
+  };
+
+  const closeReview = () => {
+    setReviewTarget(null);
+    setReviewRating(0);
+    setReviewHover(0);
+    setReviewComment("");
+    setReviewError("");
+  };
+
+  const fetchMyReviews = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/reviews/mine`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setReviewedBookingIDs(new Set(data.map((r) => r.bookingID)));
+      }
+    } catch {
+      // non-critical — silently ignore
+    }
+  }, []);
+
+  const handleReviewSubmit = async () => {
+    if (reviewRating === 0 || !reviewTarget) return;
+    setReviewSubmitting(true);
+    setReviewError("");
+
+    try {
+      const res = await fetch(`${API_BASE}/api/reviews`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          bookingID: reviewTarget.bookingID,
+          rating: reviewRating,
+          comment: reviewComment.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to submit review");
+
+      setReviewedBookingIDs((prev) => new Set([...prev, reviewTarget.bookingID]));
+      closeReview();
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const fetchBookings = useCallback(async () => {
@@ -312,7 +379,8 @@ export default function HappyTailsBookingHistory() {
 
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    fetchMyReviews();
+  }, [fetchBookings, fetchMyReviews]);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -419,6 +487,26 @@ export default function HappyTailsBookingHistory() {
                   >
                     Raise Dispute
                   </button>
+
+                  {group.status === "completed" && (
+                    reviewedBookingIDs.has(group.bookingID) ? (
+                      <button
+                        className="bh-card-btn bh-card-btn--reviewed"
+                        type="button"
+                        disabled
+                      >
+                        ⭐ Reviewed
+                      </button>
+                    ) : (
+                      <button
+                        className="bh-card-btn bh-card-btn--review"
+                        onClick={() => openReview(group)}
+                        type="button"
+                      >
+                        ⭐ Leave a Review
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             );
@@ -527,6 +615,71 @@ export default function HappyTailsBookingHistory() {
               </button>
             ))}
           </nav>
+
+          {reviewTarget && (
+            <div className="bh-review-overlay" onClick={closeReview}>
+              <div className="bh-review-sheet" onClick={(e) => e.stopPropagation()}>
+                <div className="bh-review-handle" />
+
+                <h2 className="bh-review-title">Leave a Review</h2>
+                <p className="bh-review-subtitle">
+                  {SERVICE_NAMES[reviewTarget.serviceTypeID] || "Service"}
+                </p>
+
+                <div className="bh-review-stars">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`bh-review-star${star <= (reviewHover || reviewRating) ? " bh-review-star--filled" : ""}`}
+                      onClick={() => setReviewRating(star)}
+                      onMouseEnter={() => setReviewHover(star)}
+                      onMouseLeave={() => setReviewHover(0)}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                {reviewRating > 0 && (
+                  <p className="bh-review-rating-label">
+                    {["", "Poor", "Fair", "Good", "Great", "Excellent"][reviewRating]}
+                  </p>
+                )}
+
+                <textarea
+                  className="bh-review-textarea"
+                  placeholder="Share your experience with this minder... (optional)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  rows={4}
+                />
+
+                {reviewError && (
+                  <p className="bh-review-error">{reviewError}</p>
+                )}
+
+                <div className="bh-review-actions">
+                  <button
+                    className="bh-review-btn bh-review-btn--cancel"
+                    onClick={closeReview}
+                    type="button"
+                    disabled={reviewSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="bh-review-btn bh-review-btn--submit"
+                    onClick={handleReviewSubmit}
+                    type="button"
+                    disabled={reviewRating === 0 || reviewSubmitting}
+                  >
+                    {reviewSubmitting ? "Submitting…" : "Submit Review"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

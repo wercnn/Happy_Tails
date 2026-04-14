@@ -18,10 +18,9 @@ async function getBooking(bookingID) {
   return b || null;
 }
 
-async function isValidSitter(userID) {
-  const [[sitter]] = await db.query('SELECT * FROM BOOKING WHERE sitterID = ?', [userID]);
-  if (!sitter) return false;
-  return true;
+async function isValidSitter(sitterID) {
+  const [[sitter]] = await db.query('SELECT sitterID FROM PET_MINDER WHERE sitterID = ?', [sitterID]);
+  return !!sitter;
 }
 
 // submit review for completed booking
@@ -33,9 +32,13 @@ register('POST', '/api/reviews', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // Example: { bookingID: 'bk-001', rating: 5, comment: 'James was absolutely wonderful with Buddy! Highly recommend.' }
   const { bookingID, rating, comment } = body;
   if (!bookingID || rating == null) return badRequest(send, res, 'bookingID and rating are required');
+
+  const parsedRating = Number(rating);
+  if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+    return badRequest(send, res, 'rating must be an integer between 1 and 5');
+  }
 
   const booking = await getBooking(bookingID);
   if (!booking) return notFound(send, res, 'Booking not found');
@@ -44,11 +47,28 @@ register('POST', '/api/reviews', async (req, res, send) => {
     return send(res, 409, { error: 'Reviews can only be submitted for completed bookings' });
   }
 
+  const [[existing]] = await db.query('SELECT reviewID FROM REVIEW WHERE bookingID = ?', [bookingID]);
+  if (existing) return send(res, 409, { error: 'You have already reviewed this booking' });
+
   const reviewID = uuid();
   await db.query(
     'INSERT INTO REVIEW (reviewID, bookingID, reviewerUserID, rating, comment) VALUES (?, ?, ?, ?, ?)',
-    [reviewID, bookingID, req.userId, rating, comment]
+    [reviewID, bookingID, req.userId, parsedRating, comment || null]
   );
+
+  // Recalculate and update the minder's average rating
+  await db.query(
+    `UPDATE PET_MINDER
+     SET ratingAvg = (
+       SELECT AVG(R.rating)
+       FROM REVIEW R
+       JOIN BOOKING B ON B.bookingID = R.bookingID
+       WHERE B.sitterID = ?
+     )
+     WHERE sitterID = ?`,
+    [booking.sitterID, booking.sitterID]
+  );
+
   const [[row]] = await db.query('SELECT * FROM REVIEW WHERE reviewID = ?', [reviewID]);
   send(res, 201, row);
 });
@@ -74,6 +94,21 @@ register('GET', '/api/reviews/flagged', async (req, res, send) => {
   send(res, 200, rows);
 });
 
+// get all reviews submitted by the currently logged-in owner
+register('GET', '/api/reviews/mine', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'owner')) return;
+
+  const [rows] = await db.query(
+    `SELECT reviewID, bookingID, rating, comment, createdAt
+     FROM REVIEW
+     WHERE reviewerUserID = ?
+     ORDER BY createdAt DESC`,
+    [req.userId]
+  );
+  send(res, 200, rows);
+});
+
 // get reviews for a minder... any bookings in the query
 register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
   const sitterID = req.params.minder_id;
@@ -83,9 +118,11 @@ register('GET', '/api/reviews/:minder_id', async (req, res, send) => {
   if (!validSitter) return notFound(send, res, 'Minder not found');
 
   const [rows] = await db.query(
-    `SELECT R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt
+    `SELECT R.reviewID, R.bookingID, R.reviewerUserID, R.rating, R.comment, R.createdAt,
+            CONCAT(P.firstName, ' ', P.lastName) AS reviewerName
      FROM REVIEW R
      JOIN BOOKING B ON B.bookingID = R.bookingID
+     LEFT JOIN USER_PROFILE P ON P.userID = R.reviewerUserID
      WHERE B.sitterID = ?
      ORDER BY R.createdAt DESC`,
     [sitterID]
