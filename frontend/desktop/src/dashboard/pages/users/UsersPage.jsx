@@ -23,6 +23,7 @@ export default function UsersPage({ user, searchQuery = "" }) {
   const [owners, setOwners] = useState([]);
   const [minders, setMinders] = useState([]);
   const [pending, setPending] = useState([]);
+  const [deletionRequests, setDeletionRequests] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,12 +38,14 @@ export default function UsersPage({ user, searchQuery = "" }) {
     ["owners", "Pet Owners"],
     ["minders", "Pet Minders"],
     ["pending", "Pending Verification"],
+    ["deletions", "Deletion Requests"],
   ];
 
   useEffect(() => {
     if (tab === "owners") fetchOwners();
     else if (tab === "minders") fetchMinders();
     else if (tab === "pending") fetchPending();
+    else if (tab === "deletions") fetchDeletionRequests();
   }, [tab]);
 
   async function fetchOwners() {
@@ -85,6 +88,21 @@ export default function UsersPage({ user, searchQuery = "" }) {
       setPending(data);
     } catch (e) {
       setError(e.message || "Failed to load pending verifications");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchDeletionRequests() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/deletion-requests`, { headers: authHeaders(user) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDeletionRequests(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || "Failed to load deletion requests");
     } finally {
       setLoading(false);
     }
@@ -140,6 +158,57 @@ export default function UsersPage({ user, searchQuery = "" }) {
       if (selectedUser?.userID === userID) setSelectedUser({ ...selectedUser, status: newStatus });
     } catch (e) {
       alert(e.message || "Failed to activate user");
+    }
+  }
+
+  async function handleDelete(userID) {
+    const ok = window.confirm("Permanently delete this account? This cannot be undone.");
+    if (!ok) return;
+    try {
+      const res = await fetch(`${API}/users/${userID}`, {
+        method: "DELETE",
+        headers: authHeaders(user),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete account");
+      const remove = (list) => list.filter((u) => u.userID !== userID);
+      setOwners(remove);
+      setMinders(remove);
+      if (selectedUser?.userID === userID) setSelectedUser(null);
+    } catch (e) {
+      alert(e.message || "Failed to delete account");
+    }
+  }
+
+  async function approveDeletion(requestID) {
+    const ok = window.confirm("Approve deletion request and permanently delete this account?");
+    if (!ok) return;
+    try {
+      const res = await fetch(`${API}/deletion-requests/${requestID}/approve`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to approve deletion");
+      setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
+    } catch (e) {
+      alert(e.message || "Failed to approve deletion");
+    }
+  }
+
+  async function rejectDeletion(requestID) {
+    const ok = window.confirm("Reject this deletion request and restore account access?");
+    if (!ok) return;
+    try {
+      const res = await fetch(`${API}/deletion-requests/${requestID}/reject`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to reject deletion");
+      setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
+    } catch (e) {
+      alert(e.message || "Failed to reject deletion");
     }
   }
 
@@ -263,6 +332,13 @@ export default function UsersPage({ user, searchQuery = "" }) {
                       <Btn
                         variant="danger"
                         small
+                        onClick={() => handleDelete(u.userID)}
+                      >
+                        Delete
+                      </Btn>
+                      <Btn
+                        variant="danger"
+                        small
                         onClick={() => handleSuspend(u.userID, u.status)}
                       >
                         {u.status === "Suspended" ? "Reactivate" : "Suspend"}
@@ -318,6 +394,13 @@ export default function UsersPage({ user, searchQuery = "" }) {
                           Activate
                         </Btn>
                       )}
+                      <Btn
+                        variant="danger"
+                        small
+                        onClick={() => handleDelete(m.userID)}
+                      >
+                        Delete
+                      </Btn>
                       <Btn
                         variant="danger"
                         small
@@ -397,6 +480,50 @@ export default function UsersPage({ user, searchQuery = "" }) {
             </table>
           </Card>
         </div>
+      )}
+
+      {!loading && tab === "deletions" && (
+        <Card>
+          <table className="users-page__table">
+            <thead>
+              <tr>
+                <Th>User</Th>
+                <Th>Requested</Th>
+                <Th>Reason</Th>
+                <Th>Account Status</Th>
+                <Th>Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {deletionRequests.map((r) => (
+                <tr key={r.requestID}>
+                  <Td>
+                    <div className="users-page__person">
+                      <Avatar name={`${r.firstName} ${r.lastName}`} size={34} color={C.red} />
+                      <div className="users-page__person-meta">
+                        <div className="users-page__person-name">{r.firstName} {r.lastName}</div>
+                        <div className="users-page__person-email">{r.email}</div>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td>{formatDate(r.createdAt)}</Td>
+                  <Td>{r.reason || "—"}</Td>
+                  <Td><StatusBadge status={String(r.userStatus || "").toLowerCase()} /></Td>
+                  <Td>
+                    <div className="users-page__actions">
+                      <Btn variant="danger" small onClick={() => approveDeletion(r.requestID)}>Approve & Delete</Btn>
+                      <Btn variant="outline" small onClick={() => rejectDeletion(r.requestID)}>Reject</Btn>
+                      <Btn variant="outline" small onClick={() => handleViewUser(r.userID)}>View</Btn>
+                    </div>
+                  </Td>
+                </tr>
+              ))}
+              {deletionRequests.length === 0 && (
+                <tr><Td colSpan={5} style={{ textAlign: "center", color: C.mid }}>No deletion requests.</Td></tr>
+              )}
+            </tbody>
+          </table>
+        </Card>
       )}
 
       {selectedUser && (
@@ -494,6 +621,15 @@ export default function UsersPage({ user, searchQuery = "" }) {
                   Activate Account
                 </Btn>
               )}
+              <Btn
+                variant="danger"
+                onClick={() => {
+                  handleDelete(selectedUser.userID);
+                  setSelectedUser(null);
+                }}
+              >
+                Delete Account
+              </Btn>
               <Btn
                 variant="danger"
                 onClick={() => {

@@ -174,6 +174,32 @@ function PaymentPanel({ onBack }) {
 // ── Privacy & Security ────────────────────────────────────────────────────────
 
 function PrivacyPanel({ onBack }) {
+  const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteErr, setDeleteErr] = useState("");
+
+  const requestDeletion = async () => {
+    try {
+      setDeleting(true);
+      setDeleteErr("");
+      const res = await fetch(`${API_BASE}/api/users/me/request-deletion`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason: "User requested from settings (prototype)." }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to request deletion.");
+
+      localStorage.setItem("userStatus", "Suspended");
+      localStorage.setItem("deletionRequested", "true");
+      navigate("/accountBlocked");
+    } catch (e) {
+      setDeleteErr(e.message || "Could not request deletion.");
+      setDeleting(false);
+    }
+  };
+
   const items = [
     { label: "Change Password",           sub: "Last changed 3 months ago",        badge: null,  danger: false },
     { label: "Two-Factor Authentication", sub: "Adds an extra layer of security",   badge: "On",  danger: false },
@@ -190,6 +216,9 @@ function PrivacyPanel({ onBack }) {
             key={item.label}
             type="button"
             className={`prof-list-row prof-list-row--btn${item.danger ? " prof-list-row--danger" : ""}`}
+            onClick={() => {
+              if (item.label === "Delete Account") setShowDeleteConfirm(true);
+            }}
           >
             <div className="prof-list-row-text">
               <span className="prof-list-row-label">{item.label}</span>
@@ -202,6 +231,50 @@ function PrivacyPanel({ onBack }) {
           </button>
         ))}
       </div>
+
+      {showDeleteConfirm && (
+        <div
+          className="prof-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (deleting) return;
+            setShowDeleteConfirm(false);
+            setDeleteErr("");
+          }}
+        >
+          <div className="prof-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="prof-modal-title">Request account deletion?</h2>
+            <p className="prof-modal-text">
+              This will temporarily suspend your account until Customer Support reviews the request.
+            </p>
+
+            {deleteErr && <p className="prof-modal-error">⚠ {deleteErr}</p>}
+
+            <div className="prof-modal-actions">
+              <button
+                className="prof-modal-btn prof-modal-btn--secondary"
+                type="button"
+                onClick={() => {
+                  if (deleting) return;
+                  setShowDeleteConfirm(false);
+                  setDeleteErr("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="prof-modal-btn prof-modal-btn--danger"
+                type="button"
+                onClick={requestDeletion}
+                disabled={deleting}
+              >
+                {deleting ? "Requesting…" : "Request deletion"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PanelShell>
   );
 }

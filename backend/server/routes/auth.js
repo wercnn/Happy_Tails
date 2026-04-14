@@ -118,12 +118,28 @@ register('POST', '/api/auth/login', async (req, res, send) => {
 
   const role = await inferRoleByUserId(user.userID);
 
+  // Optional: check if user has a pending deletion request.
+  let deletionRequested = false;
+  try {
+    const [rows2] = await db.query(
+      `SELECT 1 AS ok
+       FROM ACCOUNT_DELETION_REQUEST
+       WHERE userID = ? AND status = 'requested'
+       LIMIT 1`,
+      [user.userID]
+    );
+    deletionRequested = rows2.length > 0;
+  } catch (_) {
+    deletionRequested = false;
+  }
+
   send(res, 200, {
     userID: user.userID,
     username: user.username,
     phoneNumber: user.phoneNumber,
     createdAt: user.createdAt,
     status: user.status,
+    deletionRequested,
     profile: {
       profileID: user.profileID,
       firstName: user.firstName,
