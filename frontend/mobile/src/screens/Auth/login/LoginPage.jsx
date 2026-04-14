@@ -86,101 +86,106 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="login-screen">
-      <section className="login-brand-area">
-        <h1 className="login-brand-text">Happy Tails</h1>
-      </section>
+    <div className="login-stage">
+      <div className="login-frame">
+        <main className="login-screen">
+          <section className="login-brand-area">
+            <h1 className="login-brand-text">Happy Tails</h1>
+          </section>
 
-      <section className="login-form-panel">
-        <h2 className="login-welcome">Welcome Back!</h2>
+          <section className="login-form-panel">
+            <h2 className="login-welcome">Welcome Back!</h2>
 
-        <div className="login-field">
-          <label className="login-label" htmlFor="identifier">
-            Email or Username
-          </label>
-          <input
-            id="identifier"
-            className={`login-input ${errors.identifier ? "login-input--error" : ""}`}
-            type="text"
-            value={identifier}
-            onChange={(e) => {
-              setIdentifier(e.target.value);
-              setErrors((prev) => ({
-                ...prev,
-                identifier: "",
-                submit: "",
-              }));
-            }}
-            onKeyDown={handleKeyDown}
-            autoComplete="username"
-          />
-          {errors.identifier && errors.identifier.trim() && (
-            <p className="login-error-text">{errors.identifier}</p>
-          )}
-        </div>
+            <div className="login-field">
+              <label className="login-label" htmlFor="identifier">
+                Email or Username
+              </label>
+              <input
+                id="identifier"
+                className={`login-input ${errors.identifier ? "login-input--error" : ""}`}
+                type="text"
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  setErrors((prev) => ({
+                    ...prev,
+                    identifier: "",
+                    submit: "",
+                  }));
+                }}
+                onKeyDown={handleKeyDown}
+                autoComplete="username"
+              />
+              {errors.identifier && errors.identifier.trim() && (
+                <p className="login-error-text">{errors.identifier}</p>
+              )}
+            </div>
 
-        <div className="login-field">
-          <label className="login-label" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            className={`login-input ${errors.password ? "login-input--error" : ""}`}
-            type="password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setErrors((prev) => ({
-                ...prev,
-                password: "",
-                submit: "",
-              }));
-            }}
-            onKeyDown={handleKeyDown}
-            autoComplete="current-password"
-          />
-          {errors.password && errors.password.trim() && (
-            <p className="login-error-text">{errors.password}</p>
-          )}
-        </div>
+            <div className="login-field">
+              <label className="login-label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className={`login-input ${errors.password ? "login-input--error" : ""}`}
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErrors((prev) => ({
+                    ...prev,
+                    password: "",
+                    submit: "",
+                  }));
+                }}
+                onKeyDown={handleKeyDown}
+                autoComplete="current-password"
+              />
+              {errors.password && errors.password.trim() && (
+                <p className="login-error-text">{errors.password}</p>
+              )}
+            </div>
 
-        <button
-          className="login-forgot"
-          onClick={() => alert("Navigate to Forgot Password")}
-          type="button"
-        >
-          Forgot Password?
-        </button>
+            <button
+              className="login-forgot"
+              onClick={() => alert("Navigate to Forgot Password")}
+              type="button"
+            >
+              Forgot Password?
+            </button>
 
-        {errors.submit && (
-          <p className="login-error-text--submit">{errors.submit}</p>
-        )}
+            {errors.submit && (
+              <p className="login-error-text--submit">{errors.submit}</p>
+            )}
 
-        <div className="login-submit-row">
-          <button
-            className="login-submit-button"
-            onClick={handleSubmit}
-            type="button"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "LOGGING IN..." : "LOG IN"}
-          </button>
-        </div>
+            <div className="login-submit-row">
+              <button
+                className="login-submit-button"
+                onClick={handleSubmit}
+                type="button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "LOGGING IN..." : "LOG IN"}
+              </button>
+            </div>
 
-        <div className="login-divider">
-          <span className="login-divider-line" />
-          <span className="login-divider-text">New to Happy Tails?</span>
-          <span className="login-divider-line" />
-        </div>
+            <div className="login-divider">
+              <span className="login-divider-line" />
+              <span className="login-divider-text">New to Happy Tails?</span>
+              <span className="login-divider-line" />
+            </div>
 
-        <button
-          className="login-create-button"
-          onClick={() => navigate("/register")}
-          type="button"
-        >
-          CREATE YOUR HAPPY TAIL ACCOUNT
-        </button>
-      </section>
-    </main>
+            <button
+              className="login-create-button"
+              onClick={() => navigate("/register")}
+              type="button"
+            >
+              CREATE YOUR HAPPY TAIL ACCOUNT
+            </button>
+          </section>
+        </main>
+      </div>
+    </div>
   );
+
 }

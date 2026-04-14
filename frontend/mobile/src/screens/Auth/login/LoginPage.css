@@ -1,37 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+
+/* ── Stage & Frame ── */
+.login-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #f5f5f5;
 }
 
-html,
-body,
-#root {
-  margin: 0;
-  min-height: 100%;
-  width: 100%;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #fff;
+.login-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #f28c28;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Screen ── */
-
 .login-screen {
-  min-height: 100svh;
+  height: 100%;
   width: 100%;
   background: #f28c28;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding-top: max(24px, env(safe-area-inset-top));
-  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-top: 24px;
+  padding-bottom: 18px;
 }
 
-/* ── Brand ── */
+.login-screen::-webkit-scrollbar { display: none; }
 
+/* ── Brand ── */
 .login-brand-area {
   flex: 1;
   display: flex;
@@ -44,21 +54,17 @@ body {
   margin: 0;
   color: #fff;
   font-family: 'Pacifico', cursive;
-  font-size: 64px;
+  font-size: 52px;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.4;
   letter-spacing: 0.04rem;
-  writing-mode: horizontal-tb;
-  text-orientation: mixed;
   white-space: nowrap;
-  display: inline-block;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   user-select: none;
   text-align: center;
 }
 
 /* ── Form Panel ── */
-
 .login-form-panel {
   padding: 0 20px 18px;
   display: flex;
@@ -66,32 +72,31 @@ body {
 }
 
 .login-welcome {
-  margin: 0 0 22px;
+  margin: 0 0 20px;
   color: #fff;
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 /* ── Fields ── */
-
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 5px;
+  margin-bottom: 14px;
 }
 
 .login-label {
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .login-input {
   width: 100%;
-  padding: 14px 12px;
+  padding: 13px 12px;
   border: none;
   border-radius: 6px;
   background: #fff;
@@ -123,43 +128,37 @@ body {
   line-height: 1.3;
 }
 
-
 /* ── Forgot Password ── */
-
 .login-forgot {
   align-self: flex-start;
   background: none;
   border: none;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   font-family: inherit;
   text-decoration: underline;
   cursor: pointer;
-  padding: 4px 0;
-  margin-bottom: 20px;
+  padding: 2px 0;
+  margin-bottom: 16px;
   transition: opacity 0.15s ease;
 }
 
-.login-forgot:hover {
-  opacity: 0.8;
-}
+.login-forgot:hover { opacity: 0.8; }
 
 .login-error-text--submit {
-  margin: 2px 0 0;
+  margin: 0 0 10px;
   color: #d93025;
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.3;
-  transform: translateY(-16px);
 }
 
 /* ── Submit ── */
-
 .login-submit-row {
   display: flex;
   justify-content: center;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .login-submit-button {
@@ -184,12 +183,11 @@ body {
 }
 
 /* ── Divider ── */
-
 .login-divider {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .login-divider-line {
@@ -206,10 +204,9 @@ body {
 }
 
 /* ── Create Account ── */
-
 .login-create-button {
   width: 100%;
-  background: transparent;
+  background: #fff;
   color: #f28c28;
   border: 2.5px solid #fff;
   border-radius: 6px;
@@ -219,7 +216,6 @@ body {
   font-family: inherit;
   letter-spacing: 0.06em;
   cursor: pointer;
-  background: #fff;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
@@ -231,13 +227,17 @@ body {
 }
 
 /* ── Responsive ── */
-
 @media (max-width: 430px) {
-  .login-form-panel {
-    padding: 0 16px 16px;
+  .login-stage { padding: 0; }
+
+  .login-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
-  .login-brand-text {
-    font-size: 3.2rem;
-  }
+  .login-form-panel { padding: 0 16px 16px; }
+  .login-brand-text { font-size: 3.2rem; }
 }
