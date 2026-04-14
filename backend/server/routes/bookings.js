@@ -125,17 +125,6 @@ function getDisplayTime(booking) {
   return formatBookingTime(booking?.startTime);
 }
 
-function getCreatedMinuteKey(createdAt) {
-  const d = toSafeDate(createdAt);
-  if (!d) return 'no-created-at';
-
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-    d.getDate()
-  ).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(
-    d.getMinutes()
-  ).padStart(2, '0')}`;
-}
-
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
@@ -221,6 +210,7 @@ register('POST', '/api/bookings', async (req, res, send) => {
     location,
     ownerNotes,
     selectedTime,
+    bookingGroupID,
   } = body;
 
   if (!sitterID || !petID || !slotID || !serviceTypeID || !location?.postcode || !location?.country) {
@@ -289,16 +279,18 @@ register('POST', '/api/bookings', async (req, res, send) => {
   );
 
   const bookingID = uuid();
+  const resolvedBookingGroupID = bookingGroupID || bookingID;
   const startTime = slotRows[0].startTime;
   const endTime = slotRows[0].endTime;
   const totalCost = Number(serviceRow.price);
 
   await db.query(
     `INSERT INTO BOOKING
-      (bookingID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, status, startTime, endTime, selectedTime, totalCost, ownerNotes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (bookingID, bookingGroupID, ownerID, sitterID, petID, slotID, serviceTypeID, locationID, status, startTime, endTime, selectedTime, totalCost, ownerNotes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       bookingID,
+      resolvedBookingGroupID,
       ownerID,
       sitterID,
       petID,
@@ -452,7 +444,7 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
 
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/accept
-// Accept only the selected booking.
+// Accept all pending bookings in the same booking group.
 // ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -471,39 +463,66 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  const [conflicts] = await db.query(
+  const groupID = booking.bookingGroupID || booking.bookingID;
+
+  const [bookingsToAccept] = await db.query(
     `
-    SELECT bookingID
+    SELECT *
     FROM BOOKING
     WHERE sitterID = ?
-      AND status = 'accepted'
-      AND bookingID <> ?
-      AND NOT (endTime <= ? OR startTime >= ?)
-    LIMIT 1
+      AND bookingGroupID = ?
+      AND status = 'pending'
+    ORDER BY startTime ASC
     `,
-    [sitterID, bookingID, booking.startTime, booking.endTime]
+    [sitterID, groupID]
   );
 
-  if (conflicts.length) {
-    return send(res, 409, { error: 'Booking overlaps an existing confirmed booking' });
+  if (!bookingsToAccept.length) {
+    return send(res, 409, { error: 'No pending bookings found in this group' });
   }
 
-  const [slotResult] = await db.query(
-    'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
-    [booking.slotID]
-  );
+  const bookingIDsToAccept = bookingsToAccept.map((b) => b.bookingID);
 
-  if (!slotResult.affectedRows) {
-    return send(res, 409, { error: 'Slot already booked' });
+  for (const b of bookingsToAccept) {
+    const placeholders = bookingIDsToAccept.map(() => '?').join(',');
+    const [conflicts] = await db.query(
+      `
+      SELECT bookingID
+      FROM BOOKING
+      WHERE sitterID = ?
+        AND status = 'accepted'
+        AND bookingID NOT IN (${placeholders})
+        AND NOT (endTime <= ? OR startTime >= ?)
+      LIMIT 1
+      `,
+      [sitterID, ...bookingIDsToAccept, b.startTime, b.endTime]
+    );
+
+    if (conflicts.length) {
+      return send(res, 409, { error: 'Booking overlaps an existing confirmed booking' });
+    }
+  }
+
+  for (const b of bookingsToAccept) {
+    const [slotResult] = await db.query(
+      'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
+      [b.slotID]
+    );
+
+    if (!slotResult.affectedRows) {
+      return send(res, 409, { error: 'Slot already booked' });
+    }
   }
 
   await db.query(
-    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
-    ['accepted', bookingID]
+    `UPDATE BOOKING
+     SET status = 'accepted'
+     WHERE bookingID IN (${bookingIDsToAccept.map(() => '?').join(',')})`,
+    bookingIDsToAccept
   );
 
   try {
-    await createGroupedBookingConfirmedMessage([booking], req.userId);
+    await createGroupedBookingConfirmedMessage(bookingsToAccept, req.userId);
   } catch (err) {
     console.error('Failed to create booking confirmation chat message:', err);
   }
@@ -525,17 +544,19 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     console.error('Failed to create acceptance notification:', notifErr.message);
   }
 
-  const [[updated]] = await db.query(
-    'SELECT * FROM BOOKING WHERE bookingID = ?',
-    [bookingID]
+  const [updatedRows] = await db.query(
+    `SELECT * FROM BOOKING
+     WHERE bookingID IN (${bookingIDsToAccept.map(() => '?').join(',')})
+     ORDER BY startTime ASC`,
+    bookingIDsToAccept
   );
 
-  send(res, 200, updated);
+  send(res, 200, updatedRows);
 });
 
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/reject
-// Reject only the selected booking.
+// Reject all pending bookings in the same booking group.
 // ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -553,17 +574,41 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  await db.query(
-    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
-    ['rejected', bookingID]
+  const groupID = booking.bookingGroupID || booking.bookingID;
+
+  const [bookingsToReject] = await db.query(
+    `
+    SELECT *
+    FROM BOOKING
+    WHERE sitterID = ?
+      AND bookingGroupID = ?
+      AND status = 'pending'
+    ORDER BY startTime ASC
+    `,
+    [sitterID, groupID]
   );
 
-  const [acceptedUsingSlot] = await db.query(
-    `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
-    [booking.slotID]
+  if (!bookingsToReject.length) {
+    return send(res, 409, { error: 'No pending bookings found in this group' });
+  }
+
+  const bookingIDsToReject = bookingsToReject.map((b) => b.bookingID);
+
+  await db.query(
+    `UPDATE BOOKING
+     SET status = 'rejected'
+     WHERE bookingID IN (${bookingIDsToReject.map(() => '?').join(',')})`,
+    bookingIDsToReject
   );
-  if (!acceptedUsingSlot.length) {
-    await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+
+  for (const b of bookingsToReject) {
+    const [acceptedUsingSlot] = await db.query(
+      `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
+      [b.slotID]
+    );
+    if (!acceptedUsingSlot.length) {
+      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
+    }
   }
 
   try {
@@ -581,11 +626,14 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     console.error('Failed to create rejection notification:', notifErr.message);
   }
 
-  const [[updated]] = await db.query(
-    'SELECT * FROM BOOKING WHERE bookingID = ?',
-    [bookingID]
+  const [updatedRows] = await db.query(
+    `SELECT * FROM BOOKING
+     WHERE bookingID IN (${bookingIDsToReject.map(() => '?').join(',')})
+     ORDER BY startTime ASC`,
+    bookingIDsToReject
   );
-  send(res, 200, updated);
+
+  send(res, 200, updatedRows);
 });
 
 // ─────────────────────────────────────────────

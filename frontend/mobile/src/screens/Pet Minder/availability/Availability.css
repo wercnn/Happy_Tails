@@ -159,9 +159,10 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   width: 100%;
 }
 
-.av-select {
+.av-select-btn {
   width: 100%;
-  padding: 13px 36px 13px 14px;
+  min-height: 48px;
+  padding: 13px 40px 13px 14px;
   border: 1.8px solid #c8c8c8;
   border-radius: 10px;
   background: #fff;
@@ -169,13 +170,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-size: 0.93rem;
   font-weight: 600;
   font-family: inherit;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
-.av-select:focus {
+
+.av-select-btn:hover {
+  border-color: #f28c28;
+}
+
+.av-select-btn:focus-visible {
+  outline: none;
   border-color: #f28c28;
   box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.15);
 }
@@ -188,6 +193,52 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-size: 0.75rem;
   color: #555;
   pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.av-select-arrow--open {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.av-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 15;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1.5px solid #e7e7e7;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.av-dropdown-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.av-dropdown-item:hover {
+  background: #fff4e8;
+  color: #e07b10;
+}
+
+.av-dropdown-item--active {
+  background: #f28c28;
+  color: #fff;
 }
 
 /* ── Calendar Grid ── */

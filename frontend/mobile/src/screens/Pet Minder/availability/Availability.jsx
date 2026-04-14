@@ -7,11 +7,11 @@ const API_BASE = "http://localhost:3000";
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 const TIMES = [
-  "6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM",
-  "9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
-  "12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM",
-  "3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM",
-  "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM",
+  "06:00","06:30","07:00","07:30","08:00","08:30",
+  "09:00","09:30","10:00","10:30","11:00","11:30",
+  "12:00","12:30","13:00","13:30","14:00","14:30",
+  "15:00","15:30","16:00","16:30","17:00","17:30",
+  "18:00","18:30","19:00","19:30","20:00",
 ];
 
 const NAV = [
@@ -42,11 +42,7 @@ function getAuthHeaders() {
 }
 
 function buildDatetime(date, timeLabel) {
-  const [timePart, meridiem] = timeLabel.split(" ");
-  let [hours, minutes] = timePart.split(":").map(Number);
-
-  if (meridiem === "PM" && hours !== 12) hours += 12;
-  if (meridiem === "AM" && hours === 12) hours = 0;
+  const [hours, minutes] = String(timeLabel).split(":").map(Number);
 
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -56,12 +52,7 @@ function buildDatetime(date, timeLabel) {
 }
 
 function timeToMinutes(timeLabel) {
-  const [timePart, meridiem] = timeLabel.split(" ");
-  let [hours, minutes] = timePart.split(":").map(Number);
-
-  if (meridiem === "PM" && hours !== 12) hours += 12;
-  if (meridiem === "AM" && hours === 12) hours = 0;
-
+  const [hours, minutes] = String(timeLabel).split(":").map(Number);
   return hours * 60 + minutes;
 }
 
@@ -77,9 +68,10 @@ function formatCardDate(isoStr) {
 
 function formatTimeOnly(isoStr) {
   const d = new Date(isoStr.replace(" ", "T"));
-  return d.toLocaleTimeString([], {
+  return d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -107,8 +99,11 @@ export default function HappyTailsAvailability() {
 
   const [selectedDays, setSelectedDays] = useState(new Set());
   const [deselectedExistingDays, setDeselectedExistingDays] = useState(new Set());
-  const [startTime, setStartTime] = useState("7:00 AM");
-  const [endTime, setEndTime] = useState("5:00 PM");
+
+  const [startTime, setStartTime] = useState("07:00");
+  const [endTime, setEndTime] = useState("17:00");
+  const [startTimeOpen, setStartTimeOpen] = useState(false);
+  const [endTimeOpen, setEndTimeOpen] = useState(false);
 
   const [existingSlots, setExistingSlots] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -152,10 +147,27 @@ export default function HappyTailsAvailability() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  useEffect(() => {
+    const unbookedSlots = existingSlots.filter((s) => !s?.isBooked);
+    if (!unbookedSlots.length) return;
+
+    const sorted = [...unbookedSlots].sort(
+      (a, b) =>
+        new Date(a.startTime.replace(" ", "T")) - new Date(b.startTime.replace(" ", "T"))
+    );
+
+    const detectedStart = formatTimeOnly(sorted[0].startTime);
+    const detectedEnd = formatTimeOnly(sorted[0].endTime);
+
+    if (detectedStart) setStartTime(detectedStart);
+    if (detectedEnd) setEndTime(detectedEnd);
+  }, [existingSlots]);
+
   const existingDaysInMonth = useMemo(() => {
     const set = new Set();
 
     existingSlots.forEach((s) => {
+      if (s?.isBooked) return;
       const d = new Date(s.startTime.replace(" ", "T"));
       if (d.getFullYear() === year && d.getMonth() === month) {
         set.add(d.getDate());
@@ -181,6 +193,7 @@ export default function HappyTailsAvailability() {
 
   const slotsInViewedMonth = useMemo(() => {
     return existingSlots.filter((s) => {
+      if (s?.isBooked) return false;
       const d = new Date(s.startTime.replace(" ", "T"));
       return d.getFullYear() === year && d.getMonth() === month;
     });
@@ -243,38 +256,44 @@ export default function HappyTailsAvailability() {
     const hasNew = selectedDays.size > 0;
     const hasDeselected = deselectedExistingDays.size > 0;
 
-    const remainingExistingDays = [...existingDaysInMonth].filter(
-      (day) => !deselectedExistingDays.has(day)
+    const allUnbookedExistingDays = existingSlots
+      .filter((s) => !s?.isBooked)
+      .map((s) => {
+        const d = new Date(s.startTime.replace(" ", "T"));
+        return {
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          day: d.getDate(),
+        };
+      });
+
+    const uniqueAllUnbookedDays = [
+      ...new Map(
+        allUnbookedExistingDays.map((d) => [`${d.year}-${d.month}-${d.day}`, d])
+      ).values(),
+    ];
+
+    const remainingAllDays = uniqueAllUnbookedDays.filter(
+      (d) => !(d.year === year && d.month === month && deselectedExistingDays.has(d.day))
     );
 
-    const viewedMonthExistingSlots = existingSlots.filter((s) => {
-      const d = new Date(s.startTime.replace(" ", "T"));
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
+    const currentUnbookedSlots = existingSlots.filter((s) => !s?.isBooked);
 
-    const existingMonthStartTime =
-      viewedMonthExistingSlots.length > 0
-        ? formatTimeOnly(viewedMonthExistingSlots[0].startTime)
-        : null;
+    const currentGlobalStartTime =
+      currentUnbookedSlots.length > 0 ? formatTimeOnly(currentUnbookedSlots[0].startTime) : null;
+    const currentGlobalEndTime =
+      currentUnbookedSlots.length > 0 ? formatTimeOnly(currentUnbookedSlots[0].endTime) : null;
 
-    const existingMonthEndTime =
-      viewedMonthExistingSlots.length > 0
-        ? formatTimeOnly(viewedMonthExistingSlots[0].endTime)
-        : null;
+    const timeChangedGlobally =
+      currentUnbookedSlots.length > 0 &&
+      (startTime !== currentGlobalStartTime || endTime !== currentGlobalEndTime);
 
-    const timeChangedForExistingMonth =
-      viewedMonthExistingSlots.length > 0 &&
-      (startTime !== existingMonthStartTime || endTime !== existingMonthEndTime);
-
-    const shouldReplaceMonth =
-      remainingExistingDays.length > 0 && (hasDeselected || timeChangedForExistingMonth);
-
-    if (!hasNew && !hasDeselected && !timeChangedForExistingMonth) {
+    if (!hasNew && !hasDeselected && !timeChangedGlobally) {
       setSaveError("No changes were made.");
       return;
     }
 
-    if ((hasNew || shouldReplaceMonth) && timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+    if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
       setSaveError("End time must be after start time.");
       return;
     }
@@ -282,75 +301,26 @@ export default function HappyTailsAvailability() {
     setSaving(true);
 
     try {
-      // Rebuild this month's slots when:
-      // - existing saved days were removed, or
-      // - only the time changed for existing saved days
-      if (shouldReplaceMonth) {
-        const otherMonthSlots = existingSlots.filter((s) => {
-          const d = new Date(s.startTime.replace(" ", "T"));
-          return !(d.getFullYear() === year && d.getMonth() === month);
-        });
+      const bookedSlots = existingSlots.filter((s) => !!s.isBooked);
 
-        const rebuiltMonthSlots = remainingExistingDays.map((day) => ({
-          startTime: buildDatetime(new Date(year, month, day), startTime),
-          endTime: buildDatetime(new Date(year, month, day), endTime),
+      if (hasDeselected || timeChangedGlobally) {
+        const rebuiltAllUnbookedSlots = remainingAllDays.map((d) => ({
+          startTime: buildDatetime(new Date(d.year, d.month, d.day), startTime),
+          endTime: buildDatetime(new Date(d.year, d.month, d.day), endTime),
         }));
-
-        const allSlotsPayload = [
-          ...otherMonthSlots.map((s) => ({
-            startTime: s.startTime,
-            endTime: s.endTime,
-          })),
-          ...rebuiltMonthSlots,
-        ];
 
         const res = await fetch(`${API_BASE}/api/calendar`, {
           method: "PUT",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            slots: allSlotsPayload,
+            slots: rebuiltAllUnbookedSlots,
           }),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to update availability.");
 
-        setExistingSlots(data.slots);
-        setDeselectedExistingDays(new Set());
-      } else if (hasDeselected) {
-        // fallback, though normally covered by shouldReplaceMonth
-        const toDelete = existingSlots.filter((s) => {
-          const d = new Date(s.startTime.replace(" ", "T"));
-          return (
-            d.getFullYear() === year &&
-            d.getMonth() === month &&
-            deselectedExistingDays.has(d.getDate())
-          );
-        });
-
-        for (const s of toDelete) {
-          const res = await fetch(`${API_BASE}/api/calendar/${s.slotID}`, {
-            method: "DELETE",
-            headers: getAuthHeaders(),
-          });
-
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.error || `Failed to delete slot (${res.status})`);
-          }
-        }
-
-        setExistingSlots((prev) =>
-          prev.filter((s) => {
-            const d = new Date(s.startTime.replace(" ", "T"));
-            return !(
-              d.getFullYear() === year &&
-              d.getMonth() === month &&
-              deselectedExistingDays.has(d.getDate())
-            );
-          })
-        );
-
+        setExistingSlots([...(data.slots || []), ...bookedSlots]);
         setDeselectedExistingDays(new Set());
       }
 
@@ -519,38 +489,72 @@ export default function HappyTailsAvailability() {
                   <div className="av-time-col">
                     <label className="av-time-label">Start Time</label>
                     <div className="av-select-wrap">
-                      <select
-                        className="av-select"
-                        value={startTime}
-                        onChange={(e) => {
-                          setStartTime(e.target.value);
-                          setSaveError("");
+                      <button
+                        type="button"
+                        className="av-select-btn"
+                        onClick={() => {
+                          setStartTimeOpen((prev) => !prev);
+                          setEndTimeOpen(false);
                         }}
                       >
-                        {TIMES.map((t) => (
-                          <option key={t}>{t}</option>
-                        ))}
-                      </select>
-                      <span className="av-select-arrow">▼</span>
+                        <span>{startTime}</span>
+                        <span className={`av-select-arrow${startTimeOpen ? " av-select-arrow--open" : ""}`}>▼</span>
+                      </button>
+
+                      {startTimeOpen && (
+                        <div className="av-dropdown">
+                          {TIMES.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`av-dropdown-item${startTime === t ? " av-dropdown-item--active" : ""}`}
+                              onClick={() => {
+                                setStartTime(t);
+                                setStartTimeOpen(false);
+                                setSaveError("");
+                              }}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="av-time-col">
                     <label className="av-time-label">End Time</label>
                     <div className="av-select-wrap">
-                      <select
-                        className="av-select"
-                        value={endTime}
-                        onChange={(e) => {
-                          setEndTime(e.target.value);
-                          setSaveError("");
+                      <button
+                        type="button"
+                        className="av-select-btn"
+                        onClick={() => {
+                          setEndTimeOpen((prev) => !prev);
+                          setStartTimeOpen(false);
                         }}
                       >
-                        {TIMES.map((t) => (
-                          <option key={t}>{t}</option>
-                        ))}
-                      </select>
-                      <span className="av-select-arrow">▼</span>
+                        <span>{endTime}</span>
+                        <span className={`av-select-arrow${endTimeOpen ? " av-select-arrow--open" : ""}`}>▼</span>
+                      </button>
+
+                      {endTimeOpen && (
+                        <div className="av-dropdown">
+                          {TIMES.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`av-dropdown-item${endTime === t ? " av-dropdown-item--active" : ""}`}
+                              onClick={() => {
+                                setEndTime(t);
+                                setEndTimeOpen(false);
+                                setSaveError("");
+                              }}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -575,7 +579,7 @@ export default function HappyTailsAvailability() {
                     <div className="av-availability-row">
                       <span className="av-availability-label">Time</span>
                       <span className="av-availability-value">
-                        {currentAvailabilityCardData.startTime} - {currentAvailabilityCardData.endTime}
+                        {startTime} - {endTime}
                       </span>
                     </div>
                   </div>
