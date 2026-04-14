@@ -356,6 +356,10 @@ register('GET', '/api/bookings', async (req, res, send) => {
       `SELECT
         B.*,
         P.name AS petName,
+        P.species AS petSpecies,
+        P.breed AS petBreed,
+        P.age AS petAge,
+        P.routines AS petRoutines,
         ST.name AS serviceName,
         UP.firstName AS ownerFirstName,
         UP.lastName AS ownerLastName,
@@ -380,9 +384,25 @@ register('GET', '/api/bookings', async (req, res, send) => {
       [sitterID]
     );
 
+    for (const row of rows) {
+      const [docs] = await db.query(
+        `SELECT
+          docID AS id,
+          fileName AS name,
+          fileURL AS url,
+          description,
+          uploadedAt
+        FROM MEDICAL_DOCUMENT
+        WHERE petID = ?
+        ORDER BY uploadedAt DESC`,
+        [row.petID]
+      );
+
+      row.medicalDocuments = docs;
+    }
+
     return send(res, 200, rows);
   }
-
   return send(res, 403, { error: 'Forbidden' });
 });
 
