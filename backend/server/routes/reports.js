@@ -25,6 +25,26 @@ async function getAnySupportEmployeeId() {
   return row?.employeeID || null;
 }
 
+async function getUserIdForOwner(ownerID) {
+  const [[row]] = await db.query(
+    'SELECT userID FROM PET_OWNER WHERE ownerID = ?',
+    [ownerID]
+  );
+  return row?.userID || null;
+}
+
+async function insertNotification(recipientUserID, title, body) {
+  await db.query(
+    `INSERT INTO NOTIFICATION (notificationID, recipientID, channel, title, body)
+     VALUES (?, ?, 'in-app', ?, ?)`,
+    [uuid(), recipientUserID, title, body]
+  );
+}
+
+function isProbablyDataUrl(value) {
+  return typeof value === 'string' && value.startsWith('data:image/');
+}
+
 
 // submit visit reports for ONLY minders
 register('POST', '/api/reports/visit', async (req, res, send) => {
@@ -49,6 +69,68 @@ register('POST', '/api/reports/visit', async (req, res, send) => {
     [reportID, bookingID, taskChecklist, behaviouralNotes, completedAt]
   );
   const [[row]] = await db.query('SELECT * FROM VISIT_REPORT WHERE reportID = ?', [reportID]);
+
+  // Notify the owner that a report was submitted.
+  try {
+    const ownerUserID = await getUserIdForOwner(booking.ownerID);
+    if (ownerUserID) {
+      await insertNotification(
+        ownerUserID,
+        'Visit report submitted',
+        'Your minder submitted a visit report for your booking. Open the booking to view details.'
+      );
+    }
+  } catch (e) {}
+
+  send(res, 201, row);
+});
+
+// Upload proof-of-life photo for an active/accepted booking (prototype).
+// Creates a VISIT_REPORT stub if needed and links the MEDIA to it.
+register('POST', '/api/reports/visit/:booking_id/proof', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const bookingID = req.params.booking_id;
+  const booking = await getBooking(bookingID);
+  if (!booking) return notFound(send, res, 'Booking not found');
+  if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Incorrect sitter' });
+
+  const status = String(booking.status || '').toLowerCase();
+  if (!['accepted', 'active'].includes(status)) {
+    return send(res, 409, { error: 'Proof uploads are only allowed for active/accepted bookings' });
+  }
+
+  const body = await req.parseBody();
+  const { photoDataUrl } = body;
+  if (!photoDataUrl || !isProbablyDataUrl(photoDataUrl)) {
+    return badRequest(send, res, 'photoDataUrl (data:image/*) is required');
+  }
+
+  // Find latest report or create stub.
+  const [[latest]] = await db.query(
+    'SELECT reportID FROM VISIT_REPORT WHERE bookingID = ? ORDER BY timestamp DESC LIMIT 1',
+    [bookingID]
+  );
+
+  const reportID = latest?.reportID || uuid();
+  if (!latest?.reportID) {
+    await db.query(
+      'INSERT INTO VISIT_REPORT (reportID, bookingID, taskChecklist, behaviouralNotes, completedAt) VALUES (?, ?, NULL, NULL, NULL)',
+      [reportID, bookingID]
+    );
+  }
+
+  const mediaID = uuid();
+  await db.query(
+    'INSERT INTO MEDIA (mediaID, reportID, fileURL, mediaType) VALUES (?, ?, ?, ?)',
+    [mediaID, reportID, String(photoDataUrl), 'image']
+  );
+
+  const [[row]] = await db.query('SELECT * FROM MEDIA WHERE mediaID = ?', [mediaID]);
   send(res, 201, row);
 });
 

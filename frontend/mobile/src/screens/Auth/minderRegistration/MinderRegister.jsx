@@ -27,17 +27,21 @@ export default function HappyTailsMinderRegister() {
 
   const [photo, setPhoto] = useState(null);
   const [idDoc, setIdDoc] = useState(null);
+  const [hasMedicalQualification, setHasMedicalQualification] = useState(false);
+  const [medicalDoc, setMedicalDoc] = useState(null);
   const [services, setServices] = useState([]);
   const [pets, setPets] = useState([]);
   const [days, setDays] = useState([]);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
   const [draggingId, setDraggingId] = useState(false);
+  const [draggingMedical, setDraggingMedical] = useState(false);
   const [uploadStatus, setUploadStatus] = useState({ uploading: false, message: "" });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const photoInputRef = useRef(null);
   const idInputRef = useRef(null);
+  const medicalInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,6 +68,10 @@ export default function HappyTailsMinderRegister() {
     }
     if (kind === "id" && !(isImage || isPdf)) {
       setUploadStatus({ uploading: false, message: "ID must be an image or PDF." });
+      return;
+    }
+    if (kind === "medical" && !(isImage || isPdf)) {
+      setUploadStatus({ uploading: false, message: "Medical qualification must be an image or PDF." });
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
@@ -154,6 +162,7 @@ export default function HappyTailsMinderRegister() {
       city: form.city.trim(),
       postcode: form.postcode.trim().toUpperCase(),
       role: "minder",
+      medicationQualified: hasMedicalQualification && !!medicalDoc ? 1 : 0,
     };
 
     try {
@@ -425,6 +434,73 @@ export default function HappyTailsMinderRegister() {
                     onChange={(e) => handleFile(e.target.files[0], setIdDoc, "id")}
                   />
                 </div>
+              </div>
+
+              <div className="mreg-chip-section">
+                <label className="mreg-chip-label">Medical Qualification</label>
+                <p className="mreg-drop-sub" style={{ marginBottom: 10 }}>
+                  Are you trained to administer medication?
+                </p>
+                <div className="mreg-chips">
+                  <button
+                    type="button"
+                    className={`mreg-chip${hasMedicalQualification ? " mreg-chip--active" : ""}`}
+                    onClick={() => setHasMedicalQualification(true)}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    className={`mreg-chip${!hasMedicalQualification ? " mreg-chip--active" : ""}`}
+                    onClick={() => {
+                      setHasMedicalQualification(false);
+                      setMedicalDoc(null);
+                    }}
+                  >
+                    No
+                  </button>
+                </div>
+
+                {hasMedicalQualification && (
+                  <div
+                    className={`mreg-dropzone${draggingMedical ? " mreg-dropzone--active" : ""}`}
+                    style={{ marginTop: 12 }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDraggingMedical(true);
+                    }}
+                    onDragLeave={() => setDraggingMedical(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDraggingMedical(false);
+                      handleFile(e.dataTransfer.files[0], setMedicalDoc, "medical");
+                    }}
+                    onClick={() => medicalInputRef.current?.click()}
+                  >
+                    <div className="mreg-upload-icon">↑</div>
+                    {medicalDoc ? (
+                      <p className="mreg-drop-text">{medicalDoc}</p>
+                    ) : (
+                      <>
+                        <p className="mreg-drop-text"><strong>Upload medical qualification</strong></p>
+                        <p className="mreg-drop-sub">Certificate · PDF or image</p>
+                      </>
+                    )}
+                    <input
+                      ref={medicalInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      style={{ display: "none" }}
+                      onChange={(e) => handleFile(e.target.files[0], setMedicalDoc, "medical")}
+                    />
+                  </div>
+                )}
+
+                {hasMedicalQualification && !medicalDoc && (
+                  <p className="mreg-drop-sub" style={{ marginTop: 8 }}>
+                    Upload a document to be marked as medication qualified.
+                  </p>
+                )}
               </div>
 
               {uploadStatus.message && (

@@ -19,7 +19,7 @@ export default function HappyTailsOTP() {
     const digitsOnly = String(rawPhone).replace(/\D/g, "");
     if (digitsOnly.length < 4) return "+44 ****";
     const last2 = digitsOnly.slice(-2);
-    const prefix = digitsOnly.slice(0, 2);
+    const prefix = digitsOnly.slice(1, 2);
     return `+44 ${prefix} ** **${last2}`;
   }, [rawPhone]);
 
