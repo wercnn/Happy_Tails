@@ -207,6 +207,7 @@ export default function HappyTailsRequestDetails() {
   }, [stateGroup, stateBookings, stateBooking]);
 
   const [submitting, setSubmitting] = useState(false);
+  const [isRoutinesOpen, setIsRoutinesOpen] = useState(false);
 
   const primary = bookings[0] || null;
   const uniqueDates = getUniqueDates(bookings);
@@ -215,7 +216,6 @@ export default function HappyTailsRequestDetails() {
   const petName = getPetName(primary);
   const serviceName = getServiceName(primary);
   const statusLabel = getStatusLabel(primary?.status);
-  const canReportIncident = ["accepted", "active"].includes(String(primary?.status || "").toLowerCase());
   const startTimeLabel = primary?.startTime ? formatTime(primary.startTime) : "Not provided";
   const endTimeLabel = primary?.endTime ? formatTime(primary.endTime) : "Not provided";
   const locationText = getLocationText(primary);
@@ -351,7 +351,28 @@ export default function HappyTailsRequestDetails() {
 
                 <div className="rd-row rd-row--top">
                   <span className="rd-label">Routines / Notes</span>
-                  <span className="rd-value">{petProfile.routines}</span>
+
+                  <div className="rd-value rd-routines-wrap">
+                    <button
+                      type="button"
+                      className="rd-dropdown-toggle rd-dropdown-toggle--plain"
+                      onClick={() => setIsRoutinesOpen((prev) => !prev)}
+                      aria-expanded={isRoutinesOpen}
+                    >
+                      <span
+                        className={`rd-dropdown-arrow ${isRoutinesOpen ? "rd-dropdown-arrow--open" : ""}`}
+                        aria-hidden="true"
+                      >
+                        ▼
+                      </span>
+                    </button>
+
+                    {isRoutinesOpen && (
+                      <div className="rd-dropdown-content rd-dropdown-content--plain">
+                        <p className="rd-routines-text">{petProfile.routines}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rd-row rd-row--top">
@@ -400,7 +421,7 @@ export default function HappyTailsRequestDetails() {
                   <span className="rd-label">Owner</span>
                   <span className="rd-value">{ownerName}</span>
                 </div>
-                
+
                 <div className="rd-row rd-row--top">
                   <span className="rd-label">Dates</span>
                   <div className="rd-value rd-value--stack">
@@ -509,17 +530,15 @@ export default function HappyTailsRequestDetails() {
             </div>
           </div>
 
-          {canReportIncident && (
-            <div className="rd-report-section">
-              <button
-                className="rd-report-btn"
-                onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
-                type="button"
-              >
-                ⚠ Report an Incident
-              </button>
-            </div>
-          )}
+          <div className="rd-report-section">
+            <button
+              className="rd-report-btn"
+              onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+              type="button"
+            >
+              ⚠ Report an Incident
+            </button>
+          </div>
 
           <div className="rd-footer">
             <button
