@@ -391,8 +391,7 @@ export default function HappyTailsRequestDetails() {
                           {(doc.url || doc.fileURL) ? (
                             <a
                               href={doc.url || doc.fileURL}
-                              target="_blank"
-                              rel="noreferrer"
+                              download={doc.name || doc.fileName || "medical-document.pdf"}
                               className="rd-link-btn"
                             >
                               View
