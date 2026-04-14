@@ -202,7 +202,7 @@ CREATE TABLE HEALTH_EVENT (
 CREATE TABLE MEDICAL_DOCUMENT (
     docID       VARCHAR(36)     NOT NULL,
     petID       VARCHAR(36)     NOT NULL,
-    fileURL     VARCHAR(500)    NOT NULL,
+    fileURL     LONGTEXT        NOT NULL,
     fileName    VARCHAR(255)    NOT NULL,
     description TEXT,
     uploadedAt  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,

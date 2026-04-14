@@ -39,7 +39,7 @@ export default function HappyTailsCreatePet() {
         notes: editingPet.routines || editingPet.notes || "",
       });
 
-      setPhoto(editingPet.photo || null);
+      setPhoto(editingPet.photoURL || editingPet.photo || null);
       setMedicalDocuments(
         Array.isArray(editingPet.medicalDocuments) ? editingPet.medicalDocuments : []
       );
@@ -74,9 +74,25 @@ export default function HappyTailsCreatePet() {
       reader.readAsDataURL(file);
     });
 
+  const isPdfFile = (file) => {
+    if (!file) return false;
+    const fileName = String(file.name || "").toLowerCase();
+    return file.type === "application/pdf" || fileName.endsWith(".pdf");
+  };
+
   const handleMedicalDocuments = async (files) => {
     const pickedFiles = Array.from(files || []);
     if (pickedFiles.length === 0) return;
+
+    const invalidFiles = pickedFiles.filter((file) => !isPdfFile(file));
+    if (invalidFiles.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        medicalDocuments: "Only PDF medical documents are allowed.",
+        submit: "",
+      }));
+      return;
+    }
 
     const remainingSlots = MAX_MEDICAL_DOCS - medicalDocuments.length;
 
@@ -111,7 +127,6 @@ export default function HappyTailsCreatePet() {
           return {
             id: `${file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             name: file.name,
-            type: file.type || "application/octet-stream",
             size: file.size || 0,
             uploadedAt: new Date().toISOString(),
             url: fileUrl,
@@ -379,7 +394,7 @@ export default function HappyTailsCreatePet() {
                 <input
                   ref={medicalDocRef}
                   type="file"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  accept=".pdf,application/pdf"
                   multiple
                   style={{ display: "none" }}
                   onChange={(e) => {
@@ -398,7 +413,9 @@ export default function HappyTailsCreatePet() {
                       <div key={doc.id} className="cpet-doc-item">
                         <div className="cpet-doc-info">
                           <span className="cpet-doc-name">{doc.name}</span>
-                          <span className="cpet-doc-meta">{formatFileSize(doc.size)}</span>
+                          {doc.size ? (
+                            <span className="cpet-doc-meta">{formatFileSize(doc.size)}</span>
+                          ) : null}
                         </div>
 
                         <div className="cpet-doc-actions">
