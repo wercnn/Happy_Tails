@@ -46,6 +46,7 @@ import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted
 import Payment from './screens/Booking Flow/payment/Payment'
 import PaymentSuccess from './screens/Booking Flow/payment/paymentSuccess/paymentSuccess'
 import BookingDetail from './screens/Booking Flow/history/bookingDetail/bookingDetail'
+import OwnerSummary from './screens/Booking Flow/bookingSummary/BookingSummary'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -99,6 +100,7 @@ function App() {
       <Route path="/payment" element={<Payment />} />
       <Route path="/paymentSuccess" element={<PaymentSuccess />} />
       <Route path="/ownerBookingDetails" element={<BookingDetail />} />
+      <Route path="/ownerSummary" element={<OwnerSummary />} />
 
       <Route path="/profile" element={<Profile />} />
       <Route path="/conversation" element={<Conversation />} />
