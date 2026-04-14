@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Details.css";
 
@@ -163,6 +163,10 @@ function getPetProfileFromSources(primary, stateGroup, stateBooking) {
         : primary?.age !== undefined && primary?.age !== null && String(primary.age).trim() !== ""
         ? String(primary.age)
         : "Not provided",
+    requiresMedication:
+      toBoolean(pet?.requiresMedication) ||
+      toBoolean(primary?.petRequiresMedication) ||
+      false,
     routines:
       pet?.routines ||
       pet?.notes ||
@@ -208,6 +212,11 @@ export default function HappyTailsRequestDetails() {
 
   const [submitting, setSubmitting] = useState(false);
   const [isRoutinesOpen, setIsRoutinesOpen] = useState(false);
+  const [medicationQualified, setMedicationQualified] = useState(false);
+  const [checklist, setChecklist] = useState([]);
+  const [medChecklist, setMedChecklist] = useState([]);
+  const [proofUploading, setProofUploading] = useState(false);
+  const proofInputRef = useRef(null);
 
   const primary = bookings[0] || null;
   const uniqueDates = getUniqueDates(bookings);
@@ -216,6 +225,7 @@ export default function HappyTailsRequestDetails() {
   const petName = getPetName(primary);
   const serviceName = getServiceName(primary);
   const statusLabel = getStatusLabel(primary?.status);
+  const isActiveBooking = ["accepted", "active"].includes(String(primary?.status || "").toLowerCase());
   const startTimeLabel = primary?.startTime ? formatTime(primary.startTime) : "Not provided";
   const endTimeLabel = primary?.endTime ? formatTime(primary.endTime) : "Not provided";
   const locationText = getLocationText(primary);
@@ -230,9 +240,133 @@ export default function HappyTailsRequestDetails() {
     () => getPetProfileFromSources(primary, stateGroup, stateBooking),
     [primary, stateGroup, stateBooking]
   );
+  const petRequiresMedication = !!petProfile.requiresMedication;
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/minders/me`, { headers: getAuthHeaders() })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((me) => {
+        if (me && me.medicationQualified !== undefined) {
+          setMedicationQualified(!!me.medicationQualified);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!primary) return;
+    const st = String(primary.serviceTypeID || "").toLowerCase();
+    const baseTasks =
+      st.includes("walk")
+        ? ["Walk", "Fresh water", "Feed"]
+        : st.includes("board") || st.includes("daycare")
+          ? ["Feed", "Fresh water", "Play / enrichment", "Clean up"]
+          : ["Feed", "Fresh water", "Check-in"];
+
+    const tasks = [
+      ...baseTasks.map((label, idx) => ({
+        id: `t-${idx}-${label}`,
+        label,
+        completed: false,
+        disabled: false,
+        reason: "",
+      })),
+    ];
+
+    setChecklist(tasks);
+
+    // Separate medication checklist (gated by petRequiresMedication + medicationQualified)
+    const medDisabledReason = !petRequiresMedication
+      ? "Pet does not require medication."
+      : medicationQualified
+        ? ""
+        : "Not qualified to administer medication.";
+
+    const medTasks = [
+      {
+        id: "med-prepare",
+        label: "Prepare medication (check label + dosage)",
+        completed: false,
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
+      },
+      {
+        id: "med-administer",
+        label: "Administer medication",
+        completed: false,
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
+      },
+      {
+        id: "med-record",
+        label: "Record time given",
+        completed: false,
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
+      },
+      {
+        id: "med-monitor",
+        label: "Monitor for side effects (10–15 mins)",
+        completed: false,
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
+      },
+    ];
+    setMedChecklist(medTasks);
+  }, [primary, medicationQualified, petRequiresMedication]);
+
+  const toggleTask = (id) => {
+    setChecklist((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
+
+  const toggleMedTask = (id) => {
+    setMedChecklist((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
+
+  const toDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read photo."));
+      reader.readAsDataURL(file);
+    });
+
+  const uploadProof = async (file) => {
+    if (!primary?.bookingID) return;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert("Photo too large (max 8MB).");
+      return;
+    }
+
+    setProofUploading(true);
+    try {
+      const dataUrl = await toDataUrl(file);
+      const res = await fetch(`${API_BASE}/api/reports/visit/${primary.bookingID}/proof`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ photoDataUrl: dataUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to upload proof.");
+      alert("Proof uploaded (prototype).");
+    } catch (e) {
+      alert(e.message || "Could not upload proof.");
+    } finally {
+      setProofUploading(false);
+    }
   };
 
   const handleAction = async (action) => {
@@ -526,18 +660,125 @@ export default function HappyTailsRequestDetails() {
                   </div>
                 </div>
               </section>
+
+              {isActiveBooking && (
+                <section className="rd-card">
+                  <h3 className="rd-card-title">Care checklist</h3>
+                  <div className="rd-checklist">
+                    {checklist.map((t) => (
+                      <label
+                        key={t.id}
+                        className={`rd-task${t.disabled ? " rd-task--disabled" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={t.completed}
+                          disabled={t.disabled}
+                          onChange={() => toggleTask(t.id)}
+                        />
+                        <span className="rd-task-label">{t.label}</span>
+                        {t.disabled && t.reason && (
+                          <span className="rd-task-reason">{t.reason}</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="rd-divider" />
+
+                  <h3 className="rd-card-title" style={{ marginTop: 2 }}>
+                    Medication checklist
+                  </h3>
+                  <p className="rd-med-note" style={{ marginBottom: 10 }}>
+                    <strong>Pet requires medication:</strong> {petRequiresMedication ? "Yes" : "No"}
+                    {"  "}·{"  "}
+                    <strong>You are medically qualified:</strong> {medicationQualified ? "Yes" : "No"}
+                  </p>
+                  {!petRequiresMedication && (
+                    <p className="rd-med-note">
+                      This pet does not require medication. These tasks are disabled.
+                    </p>
+                  )}
+                  {petRequiresMedication && !medicationQualified && (
+                    <p className="rd-med-note">
+                      Not qualified to administer medication. These tasks are disabled.
+                    </p>
+                  )}
+                  <div className="rd-checklist">
+                    {medChecklist.map((t) => (
+                      <label
+                        key={t.id}
+                        className={`rd-task${t.disabled ? " rd-task--disabled" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={t.completed}
+                          disabled={t.disabled}
+                          onChange={() => toggleMedTask(t.id)}
+                        />
+                        <span className="rd-task-label">{t.label}</span>
+                        {t.disabled && t.reason && (
+                          <span className="rd-task-reason">{t.reason}</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="rd-active-actions">
+                    <button
+                      className="rd-secondary-btn"
+                      type="button"
+                      disabled={proofUploading}
+                      onClick={() => proofInputRef.current?.click()}
+                    >
+                      {proofUploading ? "Uploading…" : "Upload Proof"}
+                    </button>
+                    <button
+                      className="rd-primary-btn"
+                      type="button"
+                      onClick={() =>
+                        navigate("/visitReport", {
+                          state: {
+                            booking: primary,
+                            checklist,
+                            medChecklist,
+                            petRequiresMedication,
+                            medicationQualified,
+                          },
+                        })
+                      }
+                    >
+                      Submit Visit Report
+                    </button>
+                  </div>
+
+                  <input
+                    ref={proofInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      uploadProof(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </section>
+              )}
             </div>
           </div>
 
-          <div className="rd-report-section">
-            <button
-              className="rd-report-btn"
-              onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
-              type="button"
-            >
-              ⚠ Report an Incident
-            </button>
-          </div>
+          {["accepted", "active"].includes(String(primary?.status || "").toLowerCase()) && (
+            <div className="rd-report-section">
+              <button
+                className="rd-report-btn"
+                onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+                type="button"
+              >
+                ⚠ Report an Incident
+              </button>
+            </div>
+          )}
 
           <div className="rd-footer">
             <button

@@ -30,7 +30,7 @@ register('POST', '/api/auth/register', async (req, res, send) => {
   const body = await req.parseBody();
   // Example: { email: 'newuser@example.com', password: 'test1234', firstName: 'New', lastName: 'User', 
   // phoneNumber: '07700900099', username: null, role: 'owner', address: '1 Test Street', city: 'London', postcode: 'E1 6RF' }
-  const { email, password, firstName, lastName, phoneNumber, username, role, address, city, postcode } = body;
+  const { email, password, firstName, lastName, phoneNumber, username, role, address, city, postcode, medicationQualified } = body;
 
   if (!email || !password || !firstName || !lastName) {
     return badRequest(send, res, 'email, password, firstName, lastName are required');
@@ -58,7 +58,10 @@ register('POST', '/api/auth/register', async (req, res, send) => {
   );
 
   if (normalizedRole === 'minder') {
-    await db.query('INSERT INTO PET_MINDER (sitterID, userID) VALUES (?, ?)', [uuid(), userID]);
+    await db.query(
+      'INSERT INTO PET_MINDER (sitterID, userID, medicationQualified) VALUES (?, ?, ?)',
+      [uuid(), userID, medicationQualified ? 1 : 0]
+    );
   } else if (normalizedRole === 'support') {
     await db.query('INSERT INTO CUSTOMER_SUPPORT (employeeID, userID, role) VALUES (?, ?, ?)', [
       uuid(),

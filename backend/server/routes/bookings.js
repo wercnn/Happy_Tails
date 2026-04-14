@@ -374,6 +374,7 @@ register('GET', '/api/bookings', async (req, res, send) => {
         P.breed AS petBreed,
         P.age AS petAge,
         P.routines AS petRoutines,
+        COALESCE(HD.requiresMedication, FALSE) AS petRequiresMedication,
         ST.name AS serviceName,
         UP.firstName AS ownerFirstName,
         UP.lastName AS ownerLastName,
@@ -385,6 +386,8 @@ register('GET', '/api/bookings', async (req, res, send) => {
       FROM BOOKING B
       JOIN PET_PROFILE P
         ON P.petID = B.petID
+      LEFT JOIN HEALTH_DATA HD
+        ON HD.petID = P.petID
       JOIN SERVICE_TYPE ST
         ON ST.serviceTypeID = B.serviceTypeID
       JOIN PET_OWNER O
