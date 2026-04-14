@@ -9,6 +9,7 @@ import OwnerRegistration from './screens/Auth/ownerRegistration/OwnerRegister'
 import MinderRegistration from './screens/Auth/minderRegistration/MinderRegister'
 import OTP from './screens/Auth/otp/OTP'
 import Identity from './screens/Auth/identity/identity'
+import PendingApproval from './screens/Auth/pendingApproval/PendingApproval'
 
 /* Pet Minder screens */
 import MindDash from './screens/Pet Minder/dashboard/Dashboard'
@@ -57,6 +58,7 @@ function App() {
       <Route path="/minderReg" element={<MinderRegistration />} />
       <Route path="/otp" element={<OTP />} />
       <Route path="/identity" element={<Identity />} />
+      <Route path="/pendingApproval" element={<PendingApproval />} />
 
       <Route path="/mindDash" element={<MindDash />} />
       <Route path="/mindService" element={<MindService />} />

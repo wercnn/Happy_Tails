@@ -40,6 +40,7 @@ register('POST', '/api/auth/register', async (req, res, send) => {
   const profileID = uuid();
   const passwordHash = await hashPassword(String(password));
   const normalizedRole = normalizeRole(role) || 'owner';
+  const initialStatus = normalizedRole === 'support' ? 'Active' : 'Inactive';
 
   // Ensure unique email
   const [existing] = await db.query('SELECT profileID FROM USER_PROFILE WHERE email = ?', [email]);
@@ -48,8 +49,8 @@ register('POST', '/api/auth/register', async (req, res, send) => {
   }
 
   await db.query(
-    'INSERT INTO USER (userID, username, passwordHash, phoneNumber) VALUES (?, ?, ?, ?)',
-    [userID, username, passwordHash, phoneNumber]
+    'INSERT INTO USER (userID, username, passwordHash, phoneNumber, status) VALUES (?, ?, ?, ?, ?)',
+    [userID, username, passwordHash, phoneNumber, initialStatus]
   );
   await db.query(
     'INSERT INTO USER_PROFILE (profileID, userID, firstName, lastName, address, city, postcode, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -75,6 +76,8 @@ register('POST', '/api/auth/register', async (req, res, send) => {
     email,
     firstName,
     lastName,
+    status: initialStatus,
+    phoneNumber,
   });
 });
 
@@ -94,6 +97,7 @@ register('POST', '/api/auth/login', async (req, res, send) => {
 
   const [rows] = await db.query(
     `SELECT U.userID, U.username, U.passwordHash, U.phoneNumber, U.createdAt,
+            U.status,
             P.profileID, P.firstName, P.lastName, P.email
      FROM USER U
      JOIN USER_PROFILE P ON P.userID = U.userID
@@ -119,6 +123,7 @@ register('POST', '/api/auth/login', async (req, res, send) => {
     username: user.username,
     phoneNumber: user.phoneNumber,
     createdAt: user.createdAt,
+    status: user.status,
     profile: {
       profileID: user.profileID,
       firstName: user.firstName,

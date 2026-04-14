@@ -19,6 +19,7 @@ export default function HappyTailsRegister() {
   });
 
   const [photo, setPhoto] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState({ uploading: false, message: "" });
   const [dragging, setDragging] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,9 +37,33 @@ export default function HappyTailsRegister() {
     }));
   };
 
-  const handleFile = (file) => {
-    if (file && file.type.startsWith("image/")) {
-      setPhoto(URL.createObjectURL(file));
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read image file."));
+      reader.readAsDataURL(file);
+    });
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadStatus({ uploading: false, message: "Please select an image file." });
+      return;
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      setUploadStatus({ uploading: false, message: "Image too large (max 6MB)." });
+      return;
+    }
+
+    setUploadStatus({ uploading: true, message: "Uploading (prototype)…" });
+    try {
+      // More reliable than object URLs across some environments.
+      const dataUrl = await fileToDataUrl(file);
+      setPhoto(dataUrl);
+      setUploadStatus({ uploading: false, message: "Upload successful (prototype)." });
+    } catch (e) {
+      setUploadStatus({ uploading: false, message: e.message || "Upload failed." });
     }
   };
 
@@ -146,6 +171,8 @@ export default function HappyTailsRegister() {
       localStorage.setItem("username", data.username || form.username.trim());
       localStorage.setItem("firstName", data.firstName || form.firstName.trim());
       localStorage.setItem("lastName", data.lastName || form.lastName.trim());
+      localStorage.setItem("userStatus", data.status || "Inactive");
+      localStorage.setItem("phoneNumber", data.phoneNumber || form.phone.trim());
 
       navigate("/otp", {
         state: {
@@ -154,6 +181,7 @@ export default function HappyTailsRegister() {
           email: data.email,
           firstName: data.firstName,
           role: data.role,
+          phoneNumber: data.phoneNumber || form.phone.trim(),
         },
       });
     } catch (error) {
@@ -181,7 +209,7 @@ export default function HappyTailsRegister() {
   ];
 
   return (
-    <div className="mobile-stage owner-reg-stage">
+    <div className="mobile-stage">
       <div className="mobile-frame">
         <div className="reg-screen">
           <header className="reg-header">
@@ -232,6 +260,7 @@ export default function HappyTailsRegister() {
                   }}
                   onDragLeave={() => setDragging(false)}
                   onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   {photo ? (
                     <img src={photo} alt="Preview" className="reg-photo-preview" />
@@ -256,9 +285,19 @@ export default function HappyTailsRegister() {
                     type="file"
                     accept="image/*"
                     style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      handleFile(file);
+                      // Allow re-selecting the same file to trigger onChange.
+                      e.target.value = "";
+                    }}
                   />
                 </div>
+                {uploadStatus.message && (
+                  <p className="reg-drop-sub" style={{ marginTop: 8 }}>
+                    {uploadStatus.message}
+                  </p>
+                )}
               </div>
 
               {errors.submit && (
