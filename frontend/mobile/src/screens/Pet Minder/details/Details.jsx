@@ -163,6 +163,10 @@ function getPetProfileFromSources(primary, stateGroup, stateBooking) {
         : primary?.age !== undefined && primary?.age !== null && String(primary.age).trim() !== ""
         ? String(primary.age)
         : "Not provided",
+    requiresMedication:
+      toBoolean(pet?.requiresMedication) ||
+      toBoolean(primary?.petRequiresMedication) ||
+      false,
     routines:
       pet?.routines ||
       pet?.notes ||
@@ -236,6 +240,7 @@ export default function HappyTailsRequestDetails() {
     () => getPetProfileFromSources(primary, stateGroup, stateBooking),
     [primary, stateGroup, stateBooking]
   );
+  const petRequiresMedication = !!petProfile.requiresMedication;
 
   const handleBack = () => {
     navigate(-1);
@@ -274,39 +279,45 @@ export default function HappyTailsRequestDetails() {
 
     setChecklist(tasks);
 
-    // Separate medication checklist (gated by medicationQualified)
+    // Separate medication checklist (gated by petRequiresMedication + medicationQualified)
+    const medDisabledReason = !petRequiresMedication
+      ? "Pet does not require medication."
+      : medicationQualified
+        ? ""
+        : "Not qualified to administer medication.";
+
     const medTasks = [
       {
         id: "med-prepare",
         label: "Prepare medication (check label + dosage)",
         completed: false,
-        disabled: !medicationQualified,
-        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
       },
       {
         id: "med-administer",
         label: "Administer medication",
         completed: false,
-        disabled: !medicationQualified,
-        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
       },
       {
         id: "med-record",
         label: "Record time given",
         completed: false,
-        disabled: !medicationQualified,
-        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
       },
       {
         id: "med-monitor",
         label: "Monitor for side effects (10–15 mins)",
         completed: false,
-        disabled: !medicationQualified,
-        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+        disabled: !petRequiresMedication || !medicationQualified,
+        reason: medDisabledReason,
       },
     ];
     setMedChecklist(medTasks);
-  }, [primary, medicationQualified]);
+  }, [primary, medicationQualified, petRequiresMedication]);
 
   const toggleTask = (id) => {
     setChecklist((prev) =>
@@ -678,7 +689,17 @@ export default function HappyTailsRequestDetails() {
                   <h3 className="rd-card-title" style={{ marginTop: 2 }}>
                     Medication checklist
                   </h3>
-                  {!medicationQualified && (
+                  <p className="rd-med-note" style={{ marginBottom: 10 }}>
+                    <strong>Pet requires medication:</strong> {petRequiresMedication ? "Yes" : "No"}
+                    {"  "}·{"  "}
+                    <strong>You are medically qualified:</strong> {medicationQualified ? "Yes" : "No"}
+                  </p>
+                  {!petRequiresMedication && (
+                    <p className="rd-med-note">
+                      This pet does not require medication. These tasks are disabled.
+                    </p>
+                  )}
+                  {petRequiresMedication && !medicationQualified && (
                     <p className="rd-med-note">
                       Not qualified to administer medication. These tasks are disabled.
                     </p>
@@ -717,7 +738,13 @@ export default function HappyTailsRequestDetails() {
                       type="button"
                       onClick={() =>
                         navigate("/visitReport", {
-                          state: { booking: primary, checklist, medChecklist },
+                          state: {
+                            booking: primary,
+                            checklist,
+                            medChecklist,
+                            petRequiresMedication,
+                            medicationQualified,
+                          },
                         })
                       }
                     >

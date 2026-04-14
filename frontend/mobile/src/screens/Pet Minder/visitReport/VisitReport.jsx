@@ -19,6 +19,8 @@ export default function VisitReport() {
   const booking = location.state?.booking || null;
   const initialChecklist = location.state?.checklist || [];
   const initialMedChecklist = location.state?.medChecklist || [];
+  const petRequiresMedication = !!location.state?.petRequiresMedication;
+  const medicationQualified = !!location.state?.medicationQualified;
 
   const [checklist, setChecklist] = useState(
     Array.isArray(initialChecklist)
@@ -161,6 +163,11 @@ export default function VisitReport() {
                 <h2 className="vr-card-title">Medication checklist</h2>
                 <p className="vr-sub">
                   {medCompletedCount}/{medChecklist.length} completed
+                </p>
+                <p className="vr-sub" style={{ marginTop: -6 }}>
+                  <strong>Pet requires medication:</strong> {petRequiresMedication ? "Yes" : "No"}
+                  {"  "}·{"  "}
+                  <strong>You are medically qualified:</strong> {medicationQualified ? "Yes" : "No"}
                 </p>
 
                 <div className="vr-checklist">
