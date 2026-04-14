@@ -265,6 +265,114 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .cpet-save:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .cpet-save:active { transform: translateY(1px); filter: brightness(0.96); }
 
+/* ── Medical Documents ── */
+.cpet-doc-upload-btn {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.8px dashed #ee8b28;
+  border-radius: 8px;
+  background: #fff8f1;
+  color: #ee8b28;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+
+.cpet-doc-upload-btn:hover {
+  background: #fef3e8;
+}
+
+.cpet-doc-upload-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.cpet-doc-limit {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: #777;
+  text-align: right;
+}
+
+.cpet-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.cpet-doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid #ececec;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.cpet-doc-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cpet-doc-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #333;
+  word-break: break-word;
+}
+
+.cpet-doc-meta {
+  font-size: 0.76rem;
+  color: #888;
+}
+
+.cpet-doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cpet-doc-link {
+  color: #ee8b28;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cpet-doc-link:hover {
+  text-decoration: underline;
+}
+
+.cpet-doc-remove {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cpet-doc-remove:hover {
+  text-decoration: underline;
+}
+
+.cpet-doc-empty {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: #888;
+  text-align: center;
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
