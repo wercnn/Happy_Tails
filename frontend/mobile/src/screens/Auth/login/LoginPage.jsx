@@ -61,8 +61,14 @@ export default function LoginPage() {
       localStorage.setItem("lastName", data.profile?.lastName || "");
       localStorage.setItem("userStatus", data.status || "Inactive");
       localStorage.setItem("phoneNumber", data.phoneNumber || "");
+      localStorage.setItem("deletionRequested", data.deletionRequested ? "true" : "false");
 
       const status = String(data.status || "").toLowerCase();
+      if (data.role !== "support" && (status === "suspended" || data.deletionRequested)) {
+        navigate("/accountBlocked");
+        return;
+      }
+
       if (status !== "active" && data.role !== "support") {
         navigate("/pendingApproval");
         return;
