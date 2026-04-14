@@ -39,7 +39,10 @@ async function getMinderName(sitterID) {
 }
 
 async function getServiceName(serviceTypeID) {
-  const [[row]] = await db.query('SELECT name FROM SERVICE_TYPE WHERE serviceTypeID = ?', [serviceTypeID]);
+  const [[row]] = await db.query(
+    'SELECT name FROM SERVICE_TYPE WHERE serviceTypeID = ?',
+    [serviceTypeID]
+  );
   return row?.name || serviceTypeID;
 }
 
@@ -244,7 +247,6 @@ register('POST', '/api/bookings', async (req, res, send) => {
   if (!slotRows.length) return notFound(send, res, 'Slot not found');
   if (slotRows[0].isBooked) return send(res, 409, { error: 'Slot already booked' });
 
-  // Prevent double-booking against already accepted bookings (even if slot overlaps).
   const [overlapRows] = await db.query(
     `
     SELECT bookingID
@@ -316,8 +318,6 @@ register('POST', '/api/bookings', async (req, res, send) => {
   send(res, 201, booking);
 });
 
-
-
 // ─────────────────────────────────────────────
 // GET /api/bookings → list own bookings
 // ─────────────────────────────────────────────
@@ -374,7 +374,6 @@ register('GET', '/api/bookings', async (req, res, send) => {
         P.breed AS petBreed,
         P.age AS petAge,
         P.routines AS petRoutines,
-        COALESCE(HD.requiresMedication, FALSE) AS petRequiresMedication,
         ST.name AS serviceName,
         UP.firstName AS ownerFirstName,
         UP.lastName AS ownerLastName,
@@ -386,8 +385,6 @@ register('GET', '/api/bookings', async (req, res, send) => {
       FROM BOOKING B
       JOIN PET_PROFILE P
         ON P.petID = B.petID
-      LEFT JOIN HEALTH_DATA HD
-        ON HD.petID = P.petID
       JOIN SERVICE_TYPE ST
         ON ST.serviceTypeID = B.serviceTypeID
       JOIN PET_OWNER O
@@ -423,7 +420,6 @@ register('GET', '/api/bookings', async (req, res, send) => {
   return send(res, 403, { error: 'Forbidden' });
 });
 
-
 // ─────────────────────────────────────────────
 // GET /api/bookings/:id
 // ─────────────────────────────────────────────
@@ -454,7 +450,10 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
   return send(res, 403, { error: 'Forbidden' });
 });
 
-
+// ─────────────────────────────────────────────
+// PATCH /api/bookings/:id/accept
+// Accept only the selected booking.
+// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -534,9 +533,9 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   send(res, 200, updated);
 });
 
-
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/reject
+// Reject only the selected booking.
 // ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -547,64 +546,30 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
 
   const bookingID = req.params.id;
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
-  if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
-
-  // Reject the whole grouped request (same grouping logic as accept).
-  const createdMinuteKey = getCreatedMinuteKey(booking.createdAt);
-
-  const [relatedBookings] = await db.query(
-    `
-    SELECT *
-    FROM BOOKING
-    WHERE ownerID = ?
-      AND sitterID = ?
-      AND petID = ?
-      AND serviceTypeID = ?
-      AND COALESCE(ownerNotes, '') = COALESCE(?, '')
-      AND status = 'pending'
-    ORDER BY startTime ASC
-    `,
-    [
-      booking.ownerID,
-      booking.sitterID,
-      booking.petID,
-      booking.serviceTypeID,
-      booking.ownerNotes || '',
-    ]
-  );
-
-  const groupedBookings = relatedBookings.filter(
-    (b) => getCreatedMinuteKey(b.createdAt) === createdMinuteKey
-  );
-
-  const bookingsToReject = groupedBookings.length > 0 ? groupedBookings : [booking];
-  const bookingIDsToReject = bookingsToReject.map((b) => b.bookingID);
+  if (String(booking.status).toLowerCase() !== 'pending') {
+    return send(res, 409, { error: 'Booking not pending' });
+  }
 
   await db.query(
-    `UPDATE BOOKING SET status = 'rejected' WHERE bookingID IN (${bookingIDsToReject
-      .map(() => '?')
-      .join(',')})`,
-    bookingIDsToReject
+    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
+    ['rejected', bookingID]
   );
 
-  // Ensure slots are not left booked from older flows.
-  // Only clear if a slot is not used by any accepted booking.
-  for (const b of bookingsToReject) {
-    const [acceptedUsingSlot] = await db.query(
-      `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
-      [b.slotID]
-    );
-    if (!acceptedUsingSlot.length) {
-      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
-    }
+  const [acceptedUsingSlot] = await db.query(
+    `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
+    [booking.slotID]
+  );
+  if (!acceptedUsingSlot.length) {
+    await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
   }
 
   try {
     const ownerUserID = await getUserIdForOwner(booking.ownerID);
     const serviceName = await getServiceName(booking.serviceTypeID);
-    const startDate   = formatBookingDate(booking.startTime) || '';
+    const startDate = formatBookingDate(booking.startTime) || '';
     if (ownerUserID) {
       await insertNotification(
         ownerUserID,
@@ -616,15 +581,12 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     console.error('Failed to create rejection notification:', notifErr.message);
   }
 
-  const [updatedRows] = await db.query(
-    `SELECT * FROM BOOKING WHERE bookingID IN (${bookingIDsToReject
-      .map(() => '?')
-      .join(',')}) ORDER BY startTime ASC`,
-    bookingIDsToReject
+  const [[updated]] = await db.query(
+    'SELECT * FROM BOOKING WHERE bookingID = ?',
+    [bookingID]
   );
-  send(res, 200, updatedRows);
+  send(res, 200, updated);
 });
-
 
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/cancel
@@ -642,18 +604,19 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
 
   const body = await req.parseBody();
-  // Example: { cancellationReason: 'Change of plans.' }
   const reason = body?.cancellationReason;
 
   const status = String(booking.status).toLowerCase();
-  if (['completed', 'cancelled'].includes(status)) return send(res, 409, { error: 'Booking cannot be cancelled' });
+  if (['completed', 'cancelled'].includes(status)) {
+    return send(res, 409, { error: 'Booking cannot be cancelled' });
+  }
 
   await db.query('UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?', [
     'cancelled',
     reason,
     bookingID,
   ]);
-  // Free slot for accepted bookings, and also clean up legacy "book on pending" data safely.
+
   if (status === 'accepted' || status === 'pending') {
     const [acceptedUsingSlot] = await db.query(
       `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
@@ -667,7 +630,6 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);
 });
-
 
 // ─────────────────────────────────────────────
 // POST /api/bookings/:id/meet-and-greet
@@ -708,7 +670,6 @@ register('POST', '/api/bookings/:id/meet-and-greet', async (req, res, send) => {
   send(res, 201, row);
 });
 
-
 // ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/complete
 // Minder marks a booking as completed. Notifies the owner and prompts a review.
@@ -733,8 +694,8 @@ register('PATCH', '/api/bookings/:id/complete', async (req, res, send) => {
   try {
     const ownerUserID = await getUserIdForOwner(booking.ownerID);
     const serviceName = await getServiceName(booking.serviceTypeID);
-    const minderName  = await getMinderName(sitterID);
-    const startDate   = formatBookingDate(booking.startTime) || '';
+    const minderName = await getMinderName(sitterID);
+    const startDate = formatBookingDate(booking.startTime) || '';
     if (ownerUserID) {
       await insertNotification(
         ownerUserID,

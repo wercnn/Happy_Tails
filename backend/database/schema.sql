@@ -319,6 +319,7 @@ CREATE TABLE BLOCKED_DATE (
 
 CREATE TABLE BOOKING (
     bookingID           VARCHAR(36)     NOT NULL,
+    bookingGroupID      VARCHAR(36)     NOT NULL,                   -- groups dates created in one booking action
     ownerID             VARCHAR(36)     NOT NULL,
     sitterID            VARCHAR(36)     NOT NULL,
     petID               VARCHAR(36)     NOT NULL,
@@ -330,8 +331,8 @@ CREATE TABLE BOOKING (
     endTime             DATETIME        NOT NULL,
     selectedTime        VARCHAR(20),   -- pet owner's selected time label, e.g. '9:00 AM'
     totalCost           DECIMAL(10,2)   NOT NULL,
-    ownerNotes          TEXT,                                       -- #3: owner instructions at booking time
-    cancellationReason  VARCHAR(255),                               -- #4: reason selected on CancelBookingScreen
+    ownerNotes          TEXT,
+    cancellationReason  VARCHAR(255),
     createdAt           DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_BOOKING PRIMARY KEY (bookingID),
     CONSTRAINT FK_BOOKING_OWNER FOREIGN KEY (ownerID)
