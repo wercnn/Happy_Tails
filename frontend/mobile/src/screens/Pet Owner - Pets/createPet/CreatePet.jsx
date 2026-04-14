@@ -30,20 +30,52 @@ export default function HappyTailsCreatePet() {
   const medicalDocRef = useRef(null);
 
   useEffect(() => {
-    if (editingPet) {
-      setForm({
-        name: editingPet.name || "",
-        species: editingPet.species || "Dog",
-        breed: editingPet.breed || "",
-        age: editingPet.age != null ? String(editingPet.age) : "",
-        notes: editingPet.routines || editingPet.notes || "",
-      });
+    if (!editingPet) return;
 
-      setPhoto(editingPet.photoURL || editingPet.photo || null);
-      setMedicalDocuments(
-        Array.isArray(editingPet.medicalDocuments) ? editingPet.medicalDocuments : []
-      );
-    }
+    const loadPetDetails = async () => {
+      try {
+        const petId = editingPet.petID || editingPet.id;
+
+        const res = await fetch(`http://localhost:3000/api/pets/${petId}`, {
+          headers: {
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const petData = res.ok ? await res.json() : editingPet;
+
+        setForm({
+          name: petData.name || "",
+          species: petData.species || "Dog",
+          breed: petData.breed || "",
+          age: petData.age != null ? String(petData.age) : "",
+          notes: petData.routines || petData.notes || "",
+        });
+
+        setPhoto(petData.photoURL || petData.photo || null);
+        setMedicalDocuments(
+          Array.isArray(petData.medicalDocuments) ? petData.medicalDocuments : []
+        );
+      } catch (error) {
+        console.error("Failed to load pet details:", error);
+
+        setForm({
+          name: editingPet.name || "",
+          species: editingPet.species || "Dog",
+          breed: editingPet.breed || "",
+          age: editingPet.age != null ? String(editingPet.age) : "",
+          notes: editingPet.routines || editingPet.notes || "",
+        });
+
+        setPhoto(editingPet.photoURL || editingPet.photo || null);
+        setMedicalDocuments(
+          Array.isArray(editingPet.medicalDocuments) ? editingPet.medicalDocuments : []
+        );
+      }
+    };
+
+    loadPetDetails();
   }, [editingPet]);
 
   const handleChange = (e) => {

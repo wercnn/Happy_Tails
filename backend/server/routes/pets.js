@@ -11,6 +11,20 @@ const {
   getOwnerId,
 } = require('../lib/helpers');
 
+const toMysqlDateTime = (value) => {
+  if (!value) {
+    return new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 const mapMedicalDocument = (row) => ({
   id: row.docID,
   name: row.fileName,
@@ -43,18 +57,6 @@ register('POST', '/api/pets', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // Example:
-  // {
-  //   name: 'Buddy',
-  //   species: 'Dog',
-  //   breed: 'Golden Retriever',
-  //   age: 3,
-  //   weight: 28.5,
-  //   neutered: true,
-  //   routines: 'Morning walk at 8am. Dinner at 6pm.',
-  //   photoURL: '...',
-  //   medicalDocuments: [{ name: 'vax.pdf', url: '...', uploadedAt: '...' }]
-  // }
   const {
     name,
     species,
@@ -101,7 +103,7 @@ register('POST', '/api/pets', async (req, res, send) => {
           doc.url,
           doc.name,
           doc.description || null,
-          doc.uploadedAt || new Date(),
+          toMysqlDateTime(doc.uploadedAt),
         ]
       );
     }
@@ -259,7 +261,7 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
           doc.url,
           doc.name,
           doc.description || null,
-          doc.uploadedAt || new Date(),
+          toMysqlDateTime(doc.uploadedAt),
         ]
       );
     }
