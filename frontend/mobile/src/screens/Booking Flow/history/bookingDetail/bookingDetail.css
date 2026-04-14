@@ -295,6 +295,118 @@ body {
   color: #666;
 }
 
+.ovd-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ovd-flag-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e6e6e6;
+  border-radius: 999px;
+  background: #fff;
+  color: #d97706;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.ovd-flag-btn:hover {
+  background: #fff7ed;
+  transform: translateY(-1px);
+}
+
+.ovd-cancel-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 12px;
+  background: #bd1717;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ovd-cancel-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.ovd-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 20px;
+}
+
+.ovd-modal {
+  width: 100%;
+  max-width: 320px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+}
+
+.ovd-modal-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.ovd-modal-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #555;
+  text-align: center;
+}
+
+.ovd-modal-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+}
+
+.ovd-modal-btn {
+  flex: 1;
+  border-radius: 12px;
+  padding: 13px 10px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ovd-modal-btn--secondary {
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #444;
+}
+
+.ovd-modal-btn--danger {
+  border: none;
+  background: #7f1d1d;
+  color: #fff;
+}
+
+.ovd-modal-btn:hover {
+  transform: translateY(-1px);
+}
+
 @media (max-width: 430px) {
   .mobile-stage {
     padding: 0;

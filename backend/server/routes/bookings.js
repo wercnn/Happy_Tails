@@ -326,6 +326,10 @@ register('GET', '/api/bookings', async (req, res, send) => {
       `SELECT
          B.*,
          P.name AS petName,
+         P.species AS petSpecies,
+         P.breed AS petBreed,
+         P.age AS petAge,
+         P.routines AS petRoutines,
          ST.name AS serviceName,
          MP.firstName AS minderFirstName,
          MP.lastName AS minderLastName,
@@ -410,20 +414,86 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
   const role = String(req.userRole || '').toLowerCase();
   const bookingID = req.params.id;
 
-  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  if (!booking) return notFound(send, res, 'Booking not found');
-
   if (role === 'owner') {
     const ownerID = await getOwnerId(db, req.userId);
     if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
-    if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
+
+    const [[booking]] = await db.query(
+      `SELECT
+         B.*,
+         P.name AS petName,
+         P.species AS petSpecies,
+         P.breed AS petBreed,
+         P.age AS petAge,
+         P.routines AS petRoutines,
+         ST.name AS serviceName,
+         MP.firstName AS minderFirstName,
+         MP.lastName AS minderLastName,
+         L.postcode,
+         L.street,
+         L.city,
+         L.county,
+         L.country
+       FROM BOOKING B
+       JOIN PET_PROFILE P ON P.petID = B.petID
+       JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+       JOIN PET_MINDER M ON M.sitterID = B.sitterID
+       JOIN USER_PROFILE MP ON MP.userID = M.userID
+       LEFT JOIN LOCATION L ON L.locationID = B.locationID
+       WHERE B.bookingID = ? AND B.ownerID = ?`,
+      [bookingID, ownerID]
+    );
+
+    if (!booking) return notFound(send, res, 'Booking not found');
     return send(res, 200, booking);
   }
 
   if (role === 'minder') {
     const sitterID = await getSitterId(db, req.userId);
     if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
-    if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
+
+    const [[booking]] = await db.query(
+      `SELECT
+         B.*,
+         P.name AS petName,
+         P.species AS petSpecies,
+         P.breed AS petBreed,
+         P.age AS petAge,
+         P.routines AS petRoutines,
+         ST.name AS serviceName,
+         UP.firstName AS ownerFirstName,
+         UP.lastName AS ownerLastName,
+         L.postcode,
+         L.street,
+         L.city,
+         L.county,
+         L.country
+       FROM BOOKING B
+       JOIN PET_PROFILE P ON P.petID = B.petID
+       JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+       JOIN PET_OWNER O ON O.ownerID = B.ownerID
+       JOIN USER_PROFILE UP ON UP.userID = O.userID
+       LEFT JOIN LOCATION L ON L.locationID = B.locationID
+       WHERE B.bookingID = ? AND B.sitterID = ?`,
+      [bookingID, sitterID]
+    );
+
+    if (!booking) return notFound(send, res, 'Booking not found');
+
+    const [docs] = await db.query(
+      `SELECT
+        docID AS id,
+        fileName AS name,
+        fileURL AS url,
+        description,
+        uploadedAt
+      FROM MEDICAL_DOCUMENT
+      WHERE petID = ?
+      ORDER BY uploadedAt DESC`,
+      [booking.petID]
+    );
+
+    booking.medicalDocuments = docs;
     return send(res, 200, booking);
   }
 

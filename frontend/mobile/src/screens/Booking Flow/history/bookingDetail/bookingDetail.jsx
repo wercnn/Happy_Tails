@@ -1,6 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./bookingDetail.css";
+
+const API_BASE = "http://localhost:3000";
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
 
 function toDate(dateStr) {
   return new Date(String(dateStr).replace(" ", "T"));
@@ -109,12 +119,24 @@ function getDisplayedTime(booking) {
   return booking?.startTime ? formatTime(booking.startTime) : "Not provided";
 }
 
+function getPetNotes(item) {
+  return (
+    item?.petRoutines ||
+    item?.routines ||
+    item?.petNotes ||
+    "No pet notes provided"
+  );
+}
+
 export default function HappyTailsOwnerViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const stateBookings = location.state?.bookings;
   const stateBooking = location.state?.booking;
+
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const bookings = useMemo(() => {
     if (Array.isArray(stateBookings) && stateBookings.length > 0) {
@@ -127,7 +149,6 @@ export default function HappyTailsOwnerViewDetails() {
   }, [stateBookings, stateBooking]);
 
   const primary = bookings[0] || null;
-
   const uniqueDates = useMemo(() => getUniqueDates(bookings), [bookings]);
 
   if (!primary) {
@@ -162,11 +183,41 @@ export default function HappyTailsOwnerViewDetails() {
   const minderName = getMinderName(primary);
   const statusLabel = getStatusLabel(primary?.status);
   const locationText = getLocationText(primary);
-  const notes = primary?.ownerNotes || "No notes provided";
+  const notes = getPetNotes(primary);
 
   const subtotal = bookings.reduce((sum, b) => sum + Number(b.totalCost || 0), 0);
   const platformFee = Number((subtotal * 0.05).toFixed(2));
   const total = Number((subtotal + platformFee).toFixed(2));
+
+  const statusLower = String(primary?.status || "").toLowerCase();
+  const canCancel = !["cancelled", "completed", "rejected"].includes(statusLower);
+
+  const handleCancelBooking = async () => {
+    try {
+      setIsCancelling(true);
+
+      const res = await fetch(`${API_BASE}/api/bookings/${primary.bookingID}/cancel`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          cancellationReason: "Cancelled by pet owner",
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to cancel booking.");
+      }
+
+      setShowCancelPopup(false);
+      navigate("/ownerBooking");
+    } catch (err) {
+      alert(err.message || "Could not cancel booking.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   return (
     <div className="mobile-stage">
@@ -192,9 +243,25 @@ export default function HappyTailsOwnerViewDetails() {
                     <h2 className="ovd-hero-title">{serviceName}</h2>
                   </div>
 
-                  <span className={`ovd-status ovd-status--${String(primary.status || "").toLowerCase()}`}>
-                    {statusLabel}
-                  </span>
+                  <div className="ovd-hero-actions">
+                    <button
+                      className="ovd-flag-btn"
+                      type="button"
+                      onClick={() =>
+                        navigate("/raiseDispute", {
+                          state: { booking: primary, bookings, grouped: bookings.length > 1 },
+                        })
+                      }
+                      aria-label="Raise dispute"
+                      title="Raise dispute"
+                    >
+                      ⚑
+                    </button>
+
+                    <span className={`ovd-status ovd-status--${statusLower}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="ovd-hero-meta">
@@ -248,7 +315,7 @@ export default function HappyTailsOwnerViewDetails() {
               </section>
 
               <section className="ovd-card">
-                <h3 className="ovd-card-title">Notes</h3>
+                <h3 className="ovd-card-title">Pet Notes</h3>
                 <p className="ovd-notes">{notes}</p>
               </section>
 
@@ -266,7 +333,7 @@ export default function HappyTailsOwnerViewDetails() {
                 </div>
 
                 <div className="ovd-row">
-                  <span className="ovd-label">Platform fee</span>
+                  <span className="ovd-label">Platform fee (5%)</span>
                   <span className="ovd-value">£{platformFee.toFixed(2)}</span>
                 </div>
 
@@ -284,22 +351,20 @@ export default function HappyTailsOwnerViewDetails() {
                   <span className="ovd-value ovd-value--total">£{total.toFixed(2)}</span>
                 </div>
               </section>
+
+              {canCancel && (
+                <button
+                  className="ovd-cancel-btn"
+                  type="button"
+                  onClick={() => setShowCancelPopup(true)}
+                >
+                  Cancel Booking
+                </button>
+              )}
             </div>
           </div>
 
           <div className="ovd-footer">
-            <button
-              className="ovd-secondary-btn"
-              type="button"
-              onClick={() =>
-                navigate("/raiseDispute", {
-                  state: { booking: primary, bookings, grouped: bookings.length > 1 },
-                })
-              }
-            >
-              Raise Dispute
-            </button>
-
             <button
               className="ovd-primary-btn"
               type="button"
@@ -308,6 +373,40 @@ export default function HappyTailsOwnerViewDetails() {
               Back to Bookings
             </button>
           </div>
+
+          {showCancelPopup && (
+            <div className="ovd-modal-overlay" onClick={() => setShowCancelPopup(false)}>
+              <div
+                className="ovd-modal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="ovd-modal-title">Cancel booking?</h3>
+                <p className="ovd-modal-text">
+                  Are you sure you want to cancel this booking?
+                </p>
+
+                <div className="ovd-modal-actions">
+                  <button
+                    className="ovd-modal-btn ovd-modal-btn--secondary"
+                    type="button"
+                    onClick={() => setShowCancelPopup(false)}
+                    disabled={isCancelling}
+                  >
+                    No
+                  </button>
+
+                  <button
+                    className="ovd-modal-btn ovd-modal-btn--danger"
+                    type="button"
+                    onClick={handleCancelBooking}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
