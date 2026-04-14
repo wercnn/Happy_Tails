@@ -392,7 +392,7 @@ export default function HappyTailsCreatePet() {
                   {medicalDocuments.length}/{MAX_MEDICAL_DOCS} documents uploaded
                 </p>
 
-                {medicalDocuments.length > 0 ? (
+                {medicalDocuments.length > 0 && (
                   <div className="cpet-doc-list">
                     {medicalDocuments.map((doc) => (
                       <div key={doc.id} className="cpet-doc-item">
@@ -424,8 +424,6 @@ export default function HappyTailsCreatePet() {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="cpet-doc-empty">No medical documents uploaded yet.</p>
                 )}
 
                 {errors.medicalDocuments && (
