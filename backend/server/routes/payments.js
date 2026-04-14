@@ -46,7 +46,7 @@ async function getPayment(paymentID) {
 }
 
 
-// POST /api/payments (Owner) — record payment, move booking to active
+// POST /api/payments (Owner) — record payment, keep booking in pending flow
 register('POST', '/api/payments', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -55,9 +55,11 @@ register('POST', '/api/payments', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const body = await req.parseBody();
-  // Example: { bookingID: 'bk-002', paymentMethod: 'card', platformFeeRate: 0.05 }
+  // Example: { bookingID: 'bk-002', paymentMethod: 'card ending 4242', platformFeeRate: 0.05 }
   const { bookingID, paymentMethod, platformFeeRate } = body;
-  if (!bookingID || !paymentMethod) return badRequest(send, res, 'bookingID and paymentMethod are required');
+  if (!bookingID || !paymentMethod) {
+    return badRequest(send, res, 'bookingID and paymentMethod are required');
+  }
 
   const booking = await getBooking(bookingID);
   if (!booking) return notFound(send, res, 'Booking not found');
@@ -68,8 +70,18 @@ register('POST', '/api/payments', async (req, res, send) => {
     return send(res, 409, { error: 'Booking is not payable in its current state' });
   }
 
+  const existingPaymentCheck = await db.query(
+    'SELECT paymentID FROM PAYMENT WHERE bookingID = ? LIMIT 1',
+    [bookingID]
+  );
+  const [existingPayments] = existingPaymentCheck;
+  if (existingPayments.length) {
+    return send(res, 409, { error: 'Payment already exists for this booking' });
+  }
+
+  const feeRate = Number(platformFeeRate ?? 0.05);
   const serviceCost = Number(booking.totalCost);
-  const platformFee = Math.round(serviceCost * Number(platformFeeRate) * 100) / 100;
+  const platformFee = Math.round(serviceCost * feeRate * 100) / 100;
   const amount = Math.round((serviceCost + platformFee) * 100) / 100;
 
   const paymentID = uuid();
@@ -79,7 +91,12 @@ register('POST', '/api/payments', async (req, res, send) => {
     [paymentID, bookingID, serviceCost, platformFee, amount, paymentMethod, 'Paid', 'Holding']
   );
 
-  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['active', bookingID]);
+  // Keep the booking in the standard owner → minder acceptance flow.
+  // Do not move it to "active" here, because the rest of the app still expects "pending"/"accepted".
+  await db.query(
+    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
+    ['pending', bookingID]
+  );
 
   const payment = await getPayment(paymentID);
   send(res, 201, payment);
