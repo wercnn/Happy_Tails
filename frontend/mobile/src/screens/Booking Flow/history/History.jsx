@@ -467,7 +467,7 @@ export default function HappyTailsBookingHistory() {
                   <button
                     className="bh-card-btn bh-card-btn--details"
                     onClick={() =>
-                      navigate("/ownerBooking", {
+                      navigate("/ownerBookingDetails", {
                         state: { booking: group.bookings[0], bookings: group.bookings, grouped: true },
                       })
                     }
