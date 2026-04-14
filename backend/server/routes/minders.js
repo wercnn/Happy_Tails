@@ -32,7 +32,7 @@ register('GET', '/api/minders', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
 
-  const { postcode, medication, serviceTypeID } = req.query;
+  const { postcode, medication, serviceTypeID, location } = req.query;
 
   let query = `
     SELECT
@@ -55,6 +55,14 @@ register('GET', '/api/minders', async (req, res, send) => {
   if (postcode) {
     conditions.push('m.serviceAreaPostcode = ?');
     params.push(postcode);
+  }
+
+  if (location) {
+    conditions.push(
+      '(LOWER(p.city) LIKE LOWER(?) OR LOWER(p.postcode) LIKE LOWER(?) OR LOWER(m.serviceAreaPostcode) LIKE LOWER(?))'
+    );
+    const pattern = `%${String(location).trim()}%`;
+    params.push(pattern, pattern, pattern);
   }
 
   if (medication === 'true') {

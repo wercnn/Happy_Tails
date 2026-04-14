@@ -4,13 +4,22 @@ import "./Filters.css";
 
 const SERVICE_TYPES = ["All", "Dog Walking", "Boarding", "Pet Sitting", "Day Care"];
 const PET_TYPES = ["All", "Dogs", "Cats", "Rabbits", "Birds"];
-const AVAILABILITY = ["Any", "Today", "This Week", "Weekends Only"];
-const SORT_OPTIONS = ["Nearest First", "Highest Rated", "Lowest Price", "Most Reviews"];
+const AVAILABILITY = ["Any", "Today", "This Week", "This Weekend"];
+const SORT_OPTIONS = [
+  "Nearest First",
+  "Highest Rated",
+  "Price: Low to High",
+  "Price: High to Low",
+  "Most Reviews",
+];
 
 const DEFAULT_FILTERS = {
   services: ["All"],
   pets: ["All"],
   availability: ["Any"],
+  location: "",
+  startDate: "",
+  endDate: "",
   maxPrice: 25,
   sortBy: "Nearest First",
 };
@@ -19,11 +28,14 @@ export default function HappyTailsFilters() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const incomingFilters = location.state?.filters || DEFAULT_FILTERS;
+  const incomingFilters = { ...DEFAULT_FILTERS, ...(location.state?.filters || {}) };
 
   const [services, setServices] = useState(incomingFilters.services);
   const [pets, setPets] = useState(incomingFilters.pets);
   const [availability, setAvailability] = useState(incomingFilters.availability);
+  const [locationText, setLocationText] = useState(incomingFilters.location || "");
+  const [startDate, setStartDate] = useState(incomingFilters.startDate || "");
+  const [endDate, setEndDate] = useState(incomingFilters.endDate || "");
   const [maxPrice, setMaxPrice] = useState(incomingFilters.maxPrice);
   const [sortBy, setSortBy] = useState(incomingFilters.sortBy);
   const [sortOpen, setSortOpen] = useState(false);
@@ -51,6 +63,9 @@ export default function HappyTailsFilters() {
           services,
           pets,
           availability,
+          location: locationText.trim(),
+          startDate,
+          endDate,
           maxPrice,
           sortBy,
         },
@@ -59,12 +74,28 @@ export default function HappyTailsFilters() {
   };
 
   const clearAll = () => {
-    setServices(["All"]);
-    setPets(["All"]);
-    setAvailability(["Any"]);
-    setMaxPrice(25);
-    setSortBy("Nearest First");
+    const defaults = {
+      ...DEFAULT_FILTERS,
+      services: [...DEFAULT_FILTERS.services],
+      pets: [...DEFAULT_FILTERS.pets],
+      availability: [...DEFAULT_FILTERS.availability],
+    };
+
+    setServices(defaults.services);
+    setPets(defaults.pets);
+    setAvailability(defaults.availability);
+    setLocationText(defaults.location);
+    setStartDate(defaults.startDate);
+    setEndDate(defaults.endDate);
+    setMaxPrice(defaults.maxPrice);
+    setSortBy(defaults.sortBy);
     setSortOpen(false);
+
+    navigate("/ownerSearch", {
+      state: {
+        filters: defaults,
+      },
+    });
   };
 
   return (
@@ -119,6 +150,48 @@ export default function HappyTailsFilters() {
                       {a}
                     </button>
                   ))}
+                </div>
+              </section>
+
+              <section className="flt-section">
+                <label className="flt-section-label">Location (city or postcode)</label>
+                <input
+                  className="flt-text-input"
+                  type="text"
+                  placeholder="e.g. Stratford or E15"
+                  value={locationText}
+                  onChange={(e) => setLocationText(e.target.value)}
+                />
+              </section>
+
+              <section className="flt-section">
+                <label className="flt-section-label">Custom Date Range</label>
+                <div className="flt-date-row">
+                  <div className="flt-date-col">
+                    <span className="flt-date-label">Start date</span>
+                    <input
+                      className="flt-date-input"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        const nextStart = e.target.value;
+                        setStartDate(nextStart);
+                        if (endDate && nextStart && nextStart > endDate) {
+                          setEndDate(nextStart);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flt-date-col">
+                    <span className="flt-date-label">End date</span>
+                    <input
+                      className="flt-date-input"
+                      type="date"
+                      min={startDate || undefined}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               </section>
 

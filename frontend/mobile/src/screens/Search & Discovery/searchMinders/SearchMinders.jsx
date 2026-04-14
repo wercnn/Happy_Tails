@@ -14,9 +14,65 @@ const DEFAULT_FILTERS = {
   services: ["All"],
   pets: ["All"],
   availability: ["Any"],
+  location: "",
+  startDate: "",
+  endDate: "",
   maxPrice: 25,
   sortBy: "Nearest First",
 };
+
+function getPresetRange(option) {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  if (option === "Today") {
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (option === "This Week") {
+    const end = new Date(start);
+    const day = end.getDay();
+    const daysUntilSunday = (7 - day) % 7;
+    end.setDate(end.getDate() + daysUntilSunday);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (option === "This Weekend") {
+    const saturday = new Date(start);
+    const day = saturday.getDay();
+    const daysUntilSaturday = (6 - day + 7) % 7;
+    saturday.setDate(saturday.getDate() + daysUntilSaturday);
+
+    const sundayEnd = new Date(saturday);
+    sundayEnd.setDate(sundayEnd.getDate() + 1);
+    sundayEnd.setHours(23, 59, 59, 999);
+
+    return { start: saturday, end: sundayEnd };
+  }
+
+  return null;
+}
+
+function hasOverlap(slots, rangeStart, rangeEnd) {
+  if (!Array.isArray(slots) || slots.length === 0 || !rangeStart || !rangeEnd) {
+    return false;
+  }
+
+  return slots.some((slot) => {
+    const slotStart = new Date(slot.startTime);
+    const slotEnd = new Date(slot.endTime);
+
+    if (Number.isNaN(slotStart.getTime()) || Number.isNaN(slotEnd.getTime())) {
+      return false;
+    }
+
+    return slotStart <= rangeEnd && slotEnd >= rangeStart;
+  });
+}
 
 export default function HappyTailsFindMinder() {
   const navigate = useNavigate();
@@ -31,7 +87,7 @@ export default function HappyTailsFindMinder() {
 
   useEffect(() => {
     if (location.state?.filters) {
-      setAppliedFilters(location.state.filters);
+      setAppliedFilters({ ...DEFAULT_FILTERS, ...location.state.filters });
     }
   }, [location.state]);
 
@@ -47,7 +103,14 @@ export default function HappyTailsFindMinder() {
           "x-user-role": localStorage.getItem("userRole") || "",
         };
 
-        const res = await fetch("http://localhost:3000/api/minders", {
+        const params = new URLSearchParams();
+        if (appliedFilters.location?.trim()) {
+          params.set("location", appliedFilters.location.trim());
+        }
+
+        const url = `http://localhost:3000/api/minders${params.toString() ? `?${params.toString()}` : ""}`;
+
+        const res = await fetch(url, {
           method: "GET",
           headers,
         });
@@ -110,6 +173,7 @@ export default function HappyTailsFindMinder() {
                     : "No services listed",
                 serviceList: activeServices.map((s) => s.name),
                 petTypes: detailData.petTypes || [],
+                slots: detailData.slots || [],
                 availability: (detailData.slots || []).length > 0 ? ["Available"] : [],
                 price: startingPrice,
                 rate: startingPrice > 0 ? `From £${startingPrice}/hr` : "Price unavailable",
@@ -126,6 +190,8 @@ export default function HappyTailsFindMinder() {
                 services: "Services not available",
                 serviceList: [],
                 petTypes: [],
+                slots: [],
+                slots: [],
                 availability: [],
                 price: 0,
                 rate: "Price unavailable",
@@ -148,7 +214,7 @@ export default function HappyTailsFindMinder() {
     };
 
     loadMinders();
-  }, []);
+  }, [appliedFilters.location]);
 
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -176,6 +242,25 @@ export default function HappyTailsFindMinder() {
   };
 
   const filtered = useMemo(() => {
+    const locationNeedle = (appliedFilters.location || "").trim().toLowerCase();
+
+    const customStart = appliedFilters.startDate
+      ? new Date(`${appliedFilters.startDate}T00:00:00`)
+      : appliedFilters.endDate
+      ? new Date(`${appliedFilters.endDate}T00:00:00`)
+      : null;
+    const customEnd = appliedFilters.endDate
+      ? new Date(`${appliedFilters.endDate}T23:59:59`)
+      : appliedFilters.startDate
+      ? new Date(`${appliedFilters.startDate}T23:59:59`)
+      : null;
+
+    const hasCustomRange =
+      customStart &&
+      customEnd &&
+      !Number.isNaN(customStart.getTime()) &&
+      !Number.isNaN(customEnd.getTime());
+
     let result = minders.filter((m) => {
       const matchesQuery =
         query.trim() === "" ||
@@ -183,6 +268,12 @@ export default function HappyTailsFindMinder() {
         (m.services || "").toLowerCase().includes(query.toLowerCase()) ||
         (m.city || "").toLowerCase().includes(query.toLowerCase()) ||
         (m.postcode || "").toLowerCase().includes(query.toLowerCase());
+
+      const matchesLocation =
+        locationNeedle === "" ||
+        (m.city || "").toLowerCase().includes(locationNeedle) ||
+        (m.postcode || "").toLowerCase().includes(locationNeedle) ||
+        (m.serviceAreaPostcode || "").toLowerCase().includes(locationNeedle);
 
       const matchesServiceFilters =
         appliedFilters.services.includes("All") ||
@@ -195,21 +286,27 @@ export default function HappyTailsFindMinder() {
         (m.petTypes || []).length === 0 ||
         appliedFilters.pets.some((pet) => (m.petTypes || []).includes(pet));
 
-      const matchesAvailability =
+      const matchesPresetAvailability =
         appliedFilters.availability.includes("Any") ||
-        (m.availability || []).length === 0 ||
-        appliedFilters.availability.some((slot) =>
-          (m.availability || []).includes(slot)
-        );
+        appliedFilters.availability.some((option) => {
+          const presetRange = getPresetRange(option);
+          if (!presetRange) return false;
+          return hasOverlap(m.slots, presetRange.start, presetRange.end);
+        });
+
+      const matchesCustomRange =
+        !hasCustomRange || hasOverlap(m.slots, customStart, customEnd);
 
       const matchesPrice =
         m.price === 0 || m.price <= appliedFilters.maxPrice;
 
       return (
         matchesQuery &&
+        matchesLocation &&
         matchesServiceFilters &&
         matchesPetFilters &&
-        matchesAvailability &&
+        matchesPresetAvailability &&
+        matchesCustomRange &&
         matchesPrice
       );
     });
@@ -220,6 +317,9 @@ export default function HappyTailsFindMinder() {
         break;
       case "Lowest Price":
         result.sort((a, b) => a.price - b.price);
+        break;
+      case "Price: High to Low":
+        result.sort((a, b) => b.price - a.price);
         break;
       case "Most Reviews":
         result.sort((a, b) => b.reviews - a.reviews);
