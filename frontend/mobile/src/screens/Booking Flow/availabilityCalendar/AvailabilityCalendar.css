@@ -33,10 +33,11 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Header ── */
+/* ── Header ── */
 .cal-header {
   flex-shrink: 0;
-  background: #ee8b28;
-  padding: 20px 20px 18px;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
+  padding: 18px 18px 22px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -54,14 +55,16 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   flex-shrink: 0;
   transition: opacity 0.15s;
 }
-.cal-back:hover { opacity: 0.8; }
+
+.cal-back:hover {
+  opacity: 0.8;
+}
 
 .cal-title {
   margin: 0;
   color: #fff;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
 }
 
 /* ── Body ── */
