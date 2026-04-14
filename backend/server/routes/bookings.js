@@ -688,7 +688,6 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   send(res, 200, updatedRows);
 });
 
-// PATCH /api/bookings/:id/cancel
 register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -697,36 +696,89 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (!ownerID) return send(res, 403, { error: 'Owner profile not found' });
 
   const bookingID = req.params.id;
-  const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
+  const [[booking]] = await db.query(
+    'SELECT * FROM BOOKING WHERE bookingID = ?',
+    [bookingID]
+  );
+
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.ownerID !== ownerID) return send(res, 403, { error: 'Forbidden' });
 
   const body = await req.parseBody();
-  const reason = body?.cancellationReason;
+  const reason = body?.cancellationReason || null;
 
-  const status = String(booking.status).toLowerCase();
-  if (['completed', 'cancelled'].includes(status)) {
-    return send(res, 409, { error: 'Booking cannot be cancelled' });
+  const groupID =
+    booking.bookingGroupID && String(booking.bookingGroupID).trim()
+      ? String(booking.bookingGroupID).trim()
+      : null;
+
+  let bookingsToCancel = [];
+
+  if (groupID) {
+    const [rows] = await db.query(
+      `
+      SELECT *
+      FROM BOOKING
+      WHERE ownerID = ?
+        AND bookingGroupID = ?
+        AND status NOT IN ('completed', 'cancelled', 'rejected')
+      ORDER BY startTime ASC
+      `,
+      [ownerID, groupID]
+    );
+
+    bookingsToCancel = rows;
+  } else {
+    const status = String(booking.status || '').toLowerCase();
+
+    if (['completed', 'cancelled', 'rejected'].includes(status)) {
+      return send(res, 409, { error: 'Booking cannot be cancelled' });
+    }
+
+    bookingsToCancel = [booking];
   }
 
-  await db.query('UPDATE BOOKING SET status = ?, cancellationReason = ? WHERE bookingID = ?', [
-    'cancelled',
-    reason,
-    bookingID,
-  ]);
+  if (!bookingsToCancel.length) {
+    return send(res, 409, { error: 'No cancellable bookings found' });
+  }
 
-  if (status === 'accepted' || status === 'pending') {
-    const [acceptedUsingSlot] = await db.query(
-      `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
-      [booking.slotID]
-    );
-    if (!acceptedUsingSlot.length) {
-      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+  const bookingIDsToCancel = bookingsToCancel.map((b) => b.bookingID);
+
+  await db.query(
+    `
+    UPDATE BOOKING
+    SET status = ?, cancellationReason = ?
+    WHERE bookingID IN (${bookingIDsToCancel.map(() => '?').join(',')})
+    `,
+    ['cancelled', reason, ...bookingIDsToCancel]
+  );
+
+  for (const b of bookingsToCancel) {
+    const previousStatus = String(b.status || '').toLowerCase();
+
+    if (previousStatus === 'accepted' || previousStatus === 'pending') {
+      const [acceptedUsingSlot] = await db.query(
+        `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
+        [b.slotID]
+      );
+
+      if (!acceptedUsingSlot.length) {
+        await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
+      }
     }
   }
 
-  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  send(res, 200, updated);
+  const [updatedRows] = await db.query(
+    `
+    SELECT *
+    FROM BOOKING
+    WHERE bookingID IN (${bookingIDsToCancel.map(() => '?').join(',')})
+    ORDER BY startTime ASC
+    `,
+    bookingIDsToCancel
+  );
+
+  send(res, 200, updatedRows);
 });
 
 // POST /api/bookings/:id/meet-and-greet
