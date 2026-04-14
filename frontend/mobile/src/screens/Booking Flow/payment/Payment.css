@@ -1,0 +1,257 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #fff;
+}
+
+.mobile-stage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.mobile-frame {
+  width: min(100%, 390px);
+  height: min(calc(100svh - 40px), 844px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 8px solid #111;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-screen {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #fff8f1 0%, #ffffff 28%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pay-header {
+  flex-shrink: 0;
+  background: #ee8b28;
+  padding: 20px 18px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-back {
+  border: none;
+  background: none;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.pay-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.pay-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pay-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.pay-body {
+  padding: 18px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pay-hero-card,
+.pay-card {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #f0e2d1;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.pay-hero-card {
+  padding: 18px 16px;
+  background: linear-gradient(180deg, #fff6ea 0%, #ffffff 100%);
+}
+
+.pay-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #b86b17;
+  text-transform: uppercase;
+}
+
+.pay-amount {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pay-subtext {
+  margin: 8px 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.pay-card {
+  padding: 16px;
+}
+
+.pay-card-title {
+  margin: 0 0 12px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.pay-row:last-child {
+  border-bottom: none;
+}
+
+.pay-row--total {
+  padding-top: 14px;
+}
+
+.pay-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #7c7c7c;
+}
+
+.pay-value {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.pay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pay-field:last-child {
+  margin-bottom: 0;
+}
+
+.pay-field-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.pay-input {
+  width: 100%;
+  border: 1px solid #e2ddd7;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: #222;
+  background: #fff;
+  outline: none;
+}
+
+.pay-input:focus {
+  border-color: #ee8b28;
+  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.12);
+}
+
+.pay-input--error {
+  border-color: #d9534f;
+}
+
+.pay-inline-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pay-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #d9534f;
+  font-weight: 600;
+}
+
+.pay-error--submit {
+  padding: 0 2px;
+}
+
+.pay-footer {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #f2f2f2;
+  padding: 14px 16px 18px;
+}
+
+.pay-button {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 12px;
+  background: #ee8b28;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(238, 139, 40, 0.28);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.pay-button:hover {
+  transform: translateY(-1px);
+}
+
+.pay-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 430px) {
+  .mobile-stage {
+    padding: 0;
+  }
+
+  .mobile-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

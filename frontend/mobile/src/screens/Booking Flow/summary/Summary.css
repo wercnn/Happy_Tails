@@ -239,6 +239,10 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .bs-confirm-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .bs-confirm-btn:active { transform: translateY(1px); filter: brightness(0.96); }
 
+.bs-row--notes {
+  border-top: 1px solid rgba(238, 139, 40, 0.1);
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
