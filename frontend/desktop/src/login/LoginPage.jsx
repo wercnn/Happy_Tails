@@ -185,13 +185,6 @@ export default function LoginPage({ onLogin }) {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
-          <div className="login-card__demo">
-            Demo credentials — Email:{" "}
-            <span className="login-card__demo-strong">admin@happytails.com</span>
-            &nbsp; Password:{" "}
-            <span className="login-card__demo-strong">admin123</span>
-          </div>
         </div>
       </div>
     </>
