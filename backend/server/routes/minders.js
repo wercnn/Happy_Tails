@@ -32,7 +32,7 @@ register('GET', '/api/minders', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
 
-  const { postcode, medication, serviceTypeID } = req.query;
+  const { postcode, medication, serviceTypeID, location } = req.query;
 
   let query = `
     SELECT
@@ -55,6 +55,14 @@ register('GET', '/api/minders', async (req, res, send) => {
   if (postcode) {
     conditions.push('m.serviceAreaPostcode = ?');
     params.push(postcode);
+  }
+
+  if (location) {
+    conditions.push(
+      '(LOWER(p.city) LIKE LOWER(?) OR LOWER(p.postcode) LIKE LOWER(?) OR LOWER(m.serviceAreaPostcode) LIKE LOWER(?))'
+    );
+    const pattern = `%${String(location).trim()}%`;
+    params.push(pattern, pattern, pattern);
   }
 
   if (medication === 'true') {
@@ -176,14 +184,17 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
   }
 
   const body = await req.parseBody();
-  const fields = ['customPrice', 'isActive'];
+  const fields = ['customPrice', 'isActive', 'duration', 'description'];
   const sets = [];
   const params = [];
 
   for (const f of fields) {
     if (Object.prototype.hasOwnProperty.call(body, f)) {
       sets.push(`${f} = ?`);
-      params.push(f === 'isActive' ? !!body[f] : body[f]);
+      if (f === 'isActive') params.push(!!body[f]);
+      else if (f === 'description') params.push(body[f] == null ? null : String(body[f]));
+      else if (f === 'duration') params.push(body[f] == null ? null : String(body[f]));
+      else params.push(body[f]);
     }
   }
 
@@ -197,6 +208,51 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
 
   const [[row]] = await db.query('SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?', [minderServiceID]);
   send(res, 200, row);
+});
+
+// GET /api/minders/me/pet-types
+register('GET', '/api/minders/me/pet-types', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const [rows] = await db.query(
+    'SELECT petType FROM MINDER_PET_TYPE WHERE sitterID = ? ORDER BY petType',
+    [sitterID]
+  );
+
+  send(res, 200, rows.map((r) => r.petType));
+});
+
+// PUT /api/minders/me/pet-types
+register('PUT', '/api/minders/me/pet-types', async (req, res, send) => {
+  if (!requireUser(req, send, res)) return;
+  if (!requireRole(req, send, res, 'minder')) return;
+
+  const sitterID = await getSitterId(db, req.userId);
+  if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
+
+  const body = await req.parseBody();
+  const petTypes = body?.petTypes;
+
+  if (!Array.isArray(petTypes)) {
+    return badRequest(send, res, 'petTypes must be an array of strings');
+  }
+
+  const normalized = [...new Set(petTypes.map((t) => String(t || '').trim()).filter(Boolean))];
+
+  await db.query('DELETE FROM MINDER_PET_TYPE WHERE sitterID = ?', [sitterID]);
+
+  for (const petType of normalized) {
+    await db.query(
+      'INSERT INTO MINDER_PET_TYPE (minderPetTypeID, sitterID, petType) VALUES (?, ?, ?)',
+      [uuid(), sitterID, petType]
+    );
+  }
+
+  send(res, 200, normalized);
 });
 
 // DELETE /api/services/:id
@@ -451,8 +507,9 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
 
   const [services] = await db.query(
     `SELECT
-       MS.minderServiceID, MS.serviceTypeID, ST.name, ST.description,
-       ST.basePrice, MS.customPrice, MS.isActive
+       MS.minderServiceID, MS.serviceTypeID, ST.name, ST.description AS serviceTypeDescription,
+       ST.basePrice, MS.customPrice, MS.isActive,
+       MS.duration, MS.description
      FROM MINDER_SERVICE MS
      JOIN SERVICE_TYPE ST ON ST.serviceTypeID = MS.serviceTypeID
      WHERE MS.sitterID = ?

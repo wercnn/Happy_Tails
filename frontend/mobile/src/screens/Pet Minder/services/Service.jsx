@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Service.css";
 
@@ -23,6 +23,7 @@ function getAuthHeaders() {
 export default function HappyTailsMyServices() {
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
+  const [petTypes, setPetTypes] = useState([]);
   const [activeNav, setActiveNav] = useState("services");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,13 +32,24 @@ export default function HappyTailsMyServices() {
     setLoading(true);
     setError(null);
     try {
-      const userID = localStorage.getItem("userID");
-      const res = await fetch(`${API_BASE}/api/users/${userID}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error(`Failed to fetch services (${res.status})`);
-      const data = await res.json();
-      setServices(data.services || []);
+      const meRes = await fetch(`${API_BASE}/api/minders/me`, { headers: getAuthHeaders() });
+      const me = await meRes.json().catch(() => null);
+      if (!meRes.ok) throw new Error(me?.error || `Failed to load minder profile (${meRes.status})`);
+      if (!me?.sitterID) throw new Error("Minder profile missing sitterID.");
+
+      const [svcRes, ptRes] = await Promise.all([
+        fetch(`${API_BASE}/api/minders/${me.sitterID}`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/api/minders/me/pet-types`, { headers: getAuthHeaders() }),
+      ]);
+
+      const svcData = await svcRes.json().catch(() => ({}));
+      const ptData = await ptRes.json().catch(() => []);
+
+      if (!svcRes.ok) throw new Error(svcData?.error || `Failed to fetch services (${svcRes.status})`);
+      if (!ptRes.ok) throw new Error(ptData?.error || `Failed to fetch pet types (${ptRes.status})`);
+
+      setServices(svcData.services || []);
+      setPetTypes(Array.isArray(ptData) ? ptData : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,27 +76,95 @@ export default function HappyTailsMyServices() {
   };
 
   const editService = async (svc) => {
-    const newPriceStr = prompt(
-      `New price for "${svc.name}" (current: £${svc.customPrice}):`,
-      svc.customPrice
-    );
-    if (newPriceStr === null) return;
-    const newPrice = parseFloat(newPriceStr);
-    if (isNaN(newPrice) || newPrice < 0) {
-      alert("Please enter a valid price.");
-      return;
+    setEditingService(svc);
+  };
+
+  const PET_TYPE_OPTIONS = useMemo(
+    () => ["Dogs", "Cats", "Rabbits", "Birds", "Reptiles", "Small mammals", "Other"],
+    []
+  );
+
+  const [editingService, setEditingService] = useState(null);
+  const [editForm, setEditForm] = useState({
+    customPrice: "",
+    duration: "",
+    description: "",
+    petTypes: [],
+  });
+  const [editErrors, setEditErrors] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    if (!editingService) return;
+    setEditErrors({});
+    setSavingEdit(false);
+    setEditForm({
+      customPrice:
+        editingService.customPrice == null ? "" : String(editingService.customPrice),
+      duration: editingService.duration || "",
+      description: editingService.description || "",
+      petTypes: Array.isArray(petTypes) ? petTypes : [],
+    });
+  }, [editingService, petTypes]);
+
+  const validateEdit = () => {
+    const nextErrors = {};
+
+    const priceNum = Number(editForm.customPrice);
+    if (editForm.customPrice === "" || Number.isNaN(priceNum) || priceNum < 0) {
+      nextErrors.customPrice = "Enter a valid price (0 or more).";
     }
+
+    if (editForm.description && String(editForm.description).length > 250) {
+      nextErrors.description = "Description must be 250 characters or fewer.";
+    }
+
+    if (!Array.isArray(editForm.petTypes) || editForm.petTypes.length === 0) {
+      nextErrors.petTypes = "Select at least one supported pet type.";
+    }
+
+    setEditErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const saveEdit = async () => {
+    if (!editingService) return;
+    if (!validateEdit()) return;
+
+    setSavingEdit(true);
     try {
-      const res = await fetch(`${API_BASE}/api/services/${svc.minderServiceID}`, {
+      const svcRes = await fetch(`${API_BASE}/api/services/${editingService.minderServiceID}`, {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ customPrice: newPrice }),
+        body: JSON.stringify({
+          customPrice: Number(editForm.customPrice),
+          duration: editForm.duration || null,
+          description: editForm.description || null,
+        }),
       });
-      if (!res.ok) throw new Error(`Failed to update price (${res.status})`);
+      const svcBody = await svcRes.json().catch(() => ({}));
+      if (!svcRes.ok) throw new Error(svcBody?.error || `Failed to save service (${svcRes.status})`);
+
+      const ptRes = await fetch(`${API_BASE}/api/minders/me/pet-types`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ petTypes: editForm.petTypes }),
+      });
+      const ptBody = await ptRes.json().catch(() => ({}));
+      if (!ptRes.ok) throw new Error(ptBody?.error || `Failed to save pet types (${ptRes.status})`);
+
+      setEditingService(null);
       await fetchServices();
     } catch (err) {
       alert(`Error: ${err.message}`);
+    } finally {
+      setSavingEdit(false);
     }
+  };
+
+  const closeEdit = () => {
+    if (savingEdit) return;
+    setEditingService(null);
   };
 
   const handleNavClick = (id) => {
@@ -151,6 +231,100 @@ export default function HappyTailsMyServices() {
               )}
             </div>
           </div>
+
+          {editingService && (
+            <div className="ms-modal-backdrop" role="dialog" aria-modal="true">
+              <div className="ms-modal">
+                <div className="ms-modal-header">
+                  <h2 className="ms-modal-title">Edit Service</h2>
+                  <button className="ms-modal-close" onClick={closeEdit} type="button">
+                    ✕
+                  </button>
+                </div>
+
+                <div className="ms-form">
+                  <div className="ms-field">
+                    <label className="ms-label">Service type</label>
+                    <input className="ms-input" value={editingService.name} disabled />
+                  </div>
+
+                  <div className="ms-field">
+                    <label className="ms-label">Price (£)</label>
+                    <input
+                      className={`ms-input${editErrors.customPrice ? " ms-input--error" : ""}`}
+                      value={editForm.customPrice}
+                      onChange={(e) => setEditForm((p) => ({ ...p, customPrice: e.target.value }))}
+                      inputMode="decimal"
+                      placeholder="e.g. 15"
+                    />
+                    {editErrors.customPrice && <div className="ms-error">{editErrors.customPrice}</div>}
+                  </div>
+
+                  <div className="ms-field">
+                    <label className="ms-label">Duration</label>
+                    <input
+                      className="ms-input"
+                      value={editForm.duration}
+                      onChange={(e) => setEditForm((p) => ({ ...p, duration: e.target.value }))}
+                      placeholder='e.g. "30 mins"'
+                    />
+                  </div>
+
+                  <div className="ms-field">
+                    <label className="ms-label">Description</label>
+                    <textarea
+                      className={`ms-textarea${editErrors.description ? " ms-input--error" : ""}`}
+                      value={editForm.description}
+                      onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Short description (max 250 chars)"
+                      rows={4}
+                    />
+                    <div className="ms-hint">
+                      {String(editForm.description || "").length}/250
+                    </div>
+                    {editErrors.description && <div className="ms-error">{editErrors.description}</div>}
+                  </div>
+
+                  <div className="ms-field">
+                    <label className="ms-label">Supported pet types</label>
+                    <div className={`ms-checkbox-grid${editErrors.petTypes ? " ms-checkbox-grid--error" : ""}`}>
+                      {PET_TYPE_OPTIONS.map((pt) => {
+                        const checked = editForm.petTypes.includes(pt);
+                        return (
+                          <label key={pt} className="ms-check">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const on = e.target.checked;
+                                setEditForm((p) => {
+                                  const next = new Set(p.petTypes);
+                                  if (on) next.add(pt);
+                                  else next.delete(pt);
+                                  return { ...p, petTypes: [...next] };
+                                });
+                              }}
+                            />
+                            <span>{pt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {editErrors.petTypes && <div className="ms-error">{editErrors.petTypes}</div>}
+                  </div>
+                </div>
+
+                <div className="ms-modal-actions">
+                  <button className="ms-secondary" onClick={closeEdit} type="button" disabled={savingEdit}>
+                    Cancel
+                  </button>
+                  <button className="ms-primary" onClick={saveEdit} type="button" disabled={savingEdit}>
+                    {savingEdit ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <nav className="ms-nav">
             {NAV.map((item) => (

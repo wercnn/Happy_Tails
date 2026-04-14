@@ -107,6 +107,50 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   color: #fff;
 }
 
+/* ── Inputs ── */
+.flt-text-input,
+.flt-date-input {
+  width: 100%;
+  background: #fff;
+  border: 1.8px solid #ddd;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.flt-text-input:focus,
+.flt-date-input:focus {
+  border-color: #ee8b28;
+  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.18);
+}
+
+.flt-text-input::placeholder {
+  color: #aaa;
+}
+
+.flt-date-row {
+  display: flex;
+  gap: 10px;
+}
+
+.flt-date-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flt-date-label {
+  font-size: 0.78rem;
+  color: #777;
+  font-weight: 600;
+}
+
 /* ── Slider ── */
 .flt-slider-wrap {
   display: flex;
