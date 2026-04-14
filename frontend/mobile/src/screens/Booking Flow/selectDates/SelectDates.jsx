@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SelectDates.css";
 
@@ -21,6 +21,44 @@ function buildTimeSlots() {
   return slots;
 }
 
+function toDate(value) {
+  return new Date(String(value).replace(" ", "T"));
+}
+
+function formatTimeLabel(dateStr) {
+  const date = toDate(dateStr);
+  if (Number.isNaN(date.getTime())) return null;
+
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const meridiem = hours >= 12 ? "PM" : "AM";
+
+  if (hours === 0) hours = 12;
+  else if (hours > 12) hours -= 12;
+
+  return `${hours}:${String(minutes).padStart(2, "0")} ${meridiem}`;
+}
+
+function expandSlotToTimeLabels(startTime, endTime, stepMinutes = 30) {
+  const labels = [];
+  const start = toDate(startTime);
+  const end = toDate(endTime);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return labels;
+  }
+
+  const current = new Date(start);
+
+  while (current < end) {
+    const label = formatTimeLabel(current.toISOString());
+    if (label) labels.push(label);
+    current.setMinutes(current.getMinutes() + stepMinutes);
+  }
+
+  return labels;
+}
+
 const TIME_SLOTS = buildTimeSlots();
 
 export default function HappyTailsDateTime() {
@@ -37,6 +75,8 @@ export default function HappyTailsDateTime() {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [isLoadingPets, setIsLoadingPets] = useState(true);
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [isLoadingTimes, setIsLoadingTimes] = useState(true);
 
   useEffect(() => {
     const loadPets = async () => {
@@ -82,6 +122,66 @@ export default function HappyTailsDateTime() {
     loadPets();
   }, []);
 
+  useEffect(() => {
+    const loadAvailableTimes = async () => {
+      if (!minder?.sitterID) {
+        setAvailableTimes([]);
+        setIsLoadingTimes(false);
+        return;
+      }
+
+      setIsLoadingTimes(true);
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/minders/${minder.sitterID}/slots`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": localStorage.getItem("userID") || "",
+            "x-user-role": localStorage.getItem("userRole") || "",
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to load minder slots:", data);
+          setAvailableTimes(TIME_SLOTS);
+          return;
+        }
+
+        const expandedLabels = [
+          ...new Set(
+            (Array.isArray(data) ? data : []).flatMap((slot) =>
+              expandSlotToTimeLabels(slot.startTime, slot.endTime, 30)
+            )
+          ),
+        ];
+
+        const orderedAvailableTimes = TIME_SLOTS.filter((slot) =>
+          expandedLabels.includes(slot)
+        );
+
+        setAvailableTimes(orderedAvailableTimes);
+
+        if (timeSlot && !orderedAvailableTimes.includes(timeSlot)) {
+          setTimeSlot("");
+        }
+      } catch (err) {
+        console.error("Failed to load available times:", err);
+        setAvailableTimes(TIME_SLOTS);
+      } finally {
+        setIsLoadingTimes(false);
+      }
+    };
+
+    loadAvailableTimes();
+  }, [minder?.sitterID, timeSlot]);
+
+  const displayTimeSlots = useMemo(() => {
+    return availableTimes;
+  }, [availableTimes]);
+
   const handleBack = () => {
     navigate("/selectService", {
       state: {
@@ -126,9 +226,16 @@ export default function HappyTailsDateTime() {
                     className="dt-select"
                     value={timeSlot}
                     onChange={(e) => setTimeSlot(e.target.value)}
+                    disabled={isLoadingTimes}
                   >
-                    <option value="">Choose a time</option>
-                    {TIME_SLOTS.map((t) => (
+                    <option value="">
+                      {isLoadingTimes
+                        ? "Loading times..."
+                        : displayTimeSlots.length
+                        ? "Choose a time"
+                        : "No times available"}
+                    </option>
+                    {displayTimeSlots.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
@@ -194,7 +301,7 @@ export default function HappyTailsDateTime() {
               className="dt-check-btn"
               onClick={handleCheckAvailability}
               type="button"
-              disabled={!timeSlot || !pet || pets.length === 0}
+              disabled={!timeSlot || !pet || pets.length === 0 || isLoadingTimes}
             >
               CHECK AVAILABILITY →
             </button>

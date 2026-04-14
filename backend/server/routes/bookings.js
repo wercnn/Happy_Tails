@@ -452,9 +452,6 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
 });
 
 
-// ─────────────────────────────────────────────
-// PATCH /api/bookings/:id/accept
-// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -472,85 +469,49 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  const createdMinuteKey = getCreatedMinuteKey(booking.createdAt);
-
-  const [relatedBookings] = await db.query(
+  const [conflicts] = await db.query(
     `
-    SELECT *
+    SELECT bookingID
     FROM BOOKING
-    WHERE ownerID = ?
-      AND sitterID = ?
-      AND petID = ?
-      AND serviceTypeID = ?
-      AND COALESCE(ownerNotes, '') = COALESCE(?, '')
-      AND status = 'pending'
-    ORDER BY startTime ASC
+    WHERE sitterID = ?
+      AND status = 'accepted'
+      AND bookingID <> ?
+      AND NOT (endTime <= ? OR startTime >= ?)
+    LIMIT 1
     `,
-    [
-      booking.ownerID,
-      booking.sitterID,
-      booking.petID,
-      booking.serviceTypeID,
-      booking.ownerNotes || '',
-    ]
+    [sitterID, bookingID, booking.startTime, booking.endTime]
   );
 
-  const groupedBookings = relatedBookings.filter(
-    (b) => getCreatedMinuteKey(b.createdAt) === createdMinuteKey
-  );
-
-  const bookingsToAccept = groupedBookings.length > 0 ? groupedBookings : [booking];
-  const bookingIDsToAccept = bookingsToAccept.map((b) => b.bookingID);
-
-  // Reject overlaps against already accepted bookings for this sitter.
-  for (const b of bookingsToAccept) {
-    const [conflicts] = await db.query(
-      `
-      SELECT bookingID
-      FROM BOOKING
-      WHERE sitterID = ?
-        AND status = 'accepted'
-        AND bookingID NOT IN (${bookingIDsToAccept.map(() => '?').join(',')})
-        AND NOT (endTime <= ? OR startTime >= ?)
-      LIMIT 1
-      `,
-      [sitterID, ...bookingIDsToAccept, b.startTime, b.endTime]
-    );
-
-    if (conflicts.length) {
-      return send(res, 409, { error: 'Booking overlaps an existing confirmed booking' });
-    }
+  if (conflicts.length) {
+    return send(res, 409, { error: 'Booking overlaps an existing confirmed booking' });
   }
 
-  // Lock slots for accepted bookings (prevents double-accept races).
-  for (const b of bookingsToAccept) {
-    const [result] = await db.query(
-      'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
-      [b.slotID]
-    );
-    if (!result.affectedRows) {
-      return send(res, 409, { error: 'Slot already booked' });
-    }
+  const [slotResult] = await db.query(
+    'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
+    [booking.slotID]
+  );
+
+  if (!slotResult.affectedRows) {
+    return send(res, 409, { error: 'Slot already booked' });
   }
 
   await db.query(
-    `UPDATE BOOKING SET status = 'accepted' WHERE bookingID IN (${bookingIDsToAccept
-      .map(() => '?')
-      .join(',')})`,
-    bookingIDsToAccept
+    'UPDATE BOOKING SET status = ? WHERE bookingID = ?',
+    ['accepted', bookingID]
   );
 
   try {
-    await createGroupedBookingConfirmedMessage(bookingsToAccept, req.userId);
+    await createGroupedBookingConfirmedMessage([booking], req.userId);
   } catch (err) {
-    console.error('Failed to create grouped booking confirmation chat message:', err);
+    console.error('Failed to create booking confirmation chat message:', err);
   }
 
   try {
-    const ownerUserID  = await getUserIdForOwner(booking.ownerID);
-    const serviceName  = await getServiceName(booking.serviceTypeID);
-    const minderName   = await getMinderName(sitterID);
-    const startDate    = formatBookingDate(booking.startTime) || '';
+    const ownerUserID = await getUserIdForOwner(booking.ownerID);
+    const serviceName = await getServiceName(booking.serviceTypeID);
+    const minderName = await getMinderName(sitterID);
+    const startDate = formatBookingDate(booking.startTime) || '';
+
     if (ownerUserID) {
       await insertNotification(
         ownerUserID,
@@ -562,14 +523,12 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     console.error('Failed to create acceptance notification:', notifErr.message);
   }
 
-  const [updatedRows] = await db.query(
-    `SELECT * FROM BOOKING WHERE bookingID IN (${bookingIDsToAccept
-      .map(() => '?')
-      .join(',')}) ORDER BY startTime ASC`,
-    bookingIDsToAccept
+  const [[updated]] = await db.query(
+    'SELECT * FROM BOOKING WHERE bookingID = ?',
+    [bookingID]
   );
 
-  send(res, 200, updatedRows);
+  send(res, 200, updated);
 });
 
 

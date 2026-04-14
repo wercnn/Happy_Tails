@@ -10,7 +10,6 @@ const {
   getSitterId,
 } = require('../lib/helpers');
 
-
 function toMySqlDateTime(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
@@ -476,11 +475,19 @@ register('GET', '/api/minders/:id/slots', async (req, res, send) => {
   if (!calendar) return send(res, 200, []);
 
   const [slots] = await db.query(
-    `SELECT slotID, startTime, endTime
-     FROM SLOT
-     WHERE calendarID = ? AND isBooked = FALSE
-     ORDER BY startTime`,
-    [calendar.calendarID]
+    `SELECT S.slotID, S.startTime, S.endTime
+     FROM SLOT S
+     WHERE S.calendarID = ?
+       AND S.isBooked = FALSE
+       AND NOT EXISTS (
+         SELECT 1
+         FROM BOOKING B
+         WHERE B.sitterID = ?
+           AND B.status IN ('pending', 'accepted')
+           AND NOT (B.endTime <= S.startTime OR B.startTime >= S.endTime)
+       )
+     ORDER BY S.startTime`,
+    [calendar.calendarID, sitterID]
   );
 
   send(res, 200, slots);
