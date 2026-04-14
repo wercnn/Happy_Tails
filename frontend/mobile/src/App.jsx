@@ -42,6 +42,7 @@ import Notifications from './screens/Notifications & Profile/notifications/Notif
 import MindNotifications from './screens/Pet Minder/notifications/MindNotifications'
 import ReportIncident from './screens/Emergency/ReportIncident'
 import ReportSubmitted from './screens/Emergency/reportSubmitted/ReportSubmitted'
+import Payment from './screens/Booking Flow/payment/Payment'
 
 
 /* Pet Minder and Pet Owner profile screens */
@@ -91,6 +92,7 @@ function App() {
       <Route path="/raiseDispute" element={<RaiseDispute />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/mindNotifications" element={<MindNotifications />} />
+      <Route path="/payment" element={<Payment />} />
 
       <Route path="/profile" element={<Profile />} />
       <Route path="/conversation" element={<Conversation />} />
