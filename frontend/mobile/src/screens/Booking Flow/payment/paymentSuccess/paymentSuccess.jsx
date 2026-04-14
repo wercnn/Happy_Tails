@@ -69,49 +69,26 @@ export default function HappyTailsPaymentSuccess() {
                   <span className="ps-value">{petName || "Pet profile selected"}</span>
                 </div>
               </section>
-
-              <section className="ps-card">
-                <h2 className="ps-card-title">What Happens Next</h2>
-
-                <div className="ps-step">
-                  <span className="ps-step-number">1</span>
-                  <p className="ps-step-text">
-                    Your booking request and payment have been recorded.
-                  </p>
-                </div>
-
-                <div className="ps-step">
-                  <span className="ps-step-number">2</span>
-                  <p className="ps-step-text">
-                    You can track your booking status from your bookings page.
-                  </p>
-                </div>
-
-                <div className="ps-step">
-                  <span className="ps-step-number">3</span>
-                  <p className="ps-step-text">
-                    We will notify you when there is an update from your pet minder.
-                  </p>
-                </div>
-              </section>
             </div>
           </div>
 
           <div className="ps-footer">
             <button
               type="button"
-              className="ps-secondary-btn"
-              onClick={() => navigate("/ownerBookings")}
-            >
-              VIEW BOOKINGS
-            </button>
-
-            <button
-              type="button"
               className="ps-primary-btn"
-              onClick={() => navigate("/ownerHome")}
+              onClick={() =>
+                navigate("/requestSent", {
+                    state: {
+                    minderName,
+                    serviceName,
+                    petName,
+                    total,
+                    paymentMethod,
+                    },
+                })
+                }
             >
-              DONE
+              CONTINUE ➜
             </button>
           </div>
         </div>
