@@ -2,6 +2,16 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Payment.css";
 
+const API_BASE = "http://localhost:3000";
+
+function getAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": localStorage.getItem("userID") || "",
+    "X-User-Role": localStorage.getItem("userRole") || "",
+  };
+}
+
 function formatMoney(value) {
   return `£${Number(value || 0).toFixed(2)}`;
 }
@@ -17,16 +27,36 @@ function formatExpiry(value) {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 }
 
+function getMinderName(minder) {
+  if (!minder) return "";
+  return (
+    minder.name ||
+    [minder.firstName, minder.lastName].filter(Boolean).join(" ") ||
+    ""
+  );
+}
+
+function getServiceName(service) {
+  if (!service) return "";
+  return (
+    service.name ||
+    service.description ||
+    service.title ||
+    service?.raw?.name ||
+    ""
+  );
+}
+
 export default function HappyTailsPayment() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const paymentInfo = location.state?.payment || {};
+  const bookingDraft = location.state?.bookingDraft || null;
 
   const subtotal = Number(paymentInfo.subtotal ?? paymentInfo.amount ?? 0);
-  const serviceFee = Number(paymentInfo.serviceFee ?? subtotal * 0.1);
-  const tax = Number(paymentInfo.tax ?? 0);
-  const total = Number(paymentInfo.total ?? subtotal + serviceFee + tax);
+  const serviceFee = Number(paymentInfo.serviceFee ?? subtotal * 0.05);
+  const total = Number(paymentInfo.total ?? subtotal + serviceFee);
 
   const [form, setForm] = useState({
     cardName: "",
@@ -43,9 +73,8 @@ export default function HappyTailsPayment() {
     () => [
       { label: "Booking subtotal", value: subtotal },
       { label: "Service fee", value: serviceFee },
-      { label: "Tax", value: tax },
     ],
-    [subtotal, serviceFee, tax]
+    [subtotal, serviceFee]
   );
 
   const handleChange = (e) => {
@@ -90,6 +119,10 @@ export default function HappyTailsPayment() {
       nextErrors.postcode = "Billing postcode is required.";
     }
 
+    if (!bookingDraft) {
+      nextErrors.submit = "Missing booking details.";
+    }
+
     return nextErrors;
   };
 
@@ -102,19 +135,112 @@ export default function HappyTailsPayment() {
     try {
       setIsPaying(true);
 
-      // Replace with your real payment API call
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      const {
+        minder,
+        service,
+        pet,
+        petData,
+        notes,
+        selectedTime,
+        selectedSlots,
+        locationPayload,
+        meetAndGreet,
+        serviceTypeID,
+      } = bookingDraft;
+
+      const uniqueSlots = [
+        ...new Map(
+          (selectedSlots || [])
+            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+            .map((slot) => [String(slot.startTime).slice(0, 10), slot])
+        ).values(),
+      ];
+
+      if (!minder?.sitterID) throw new Error("Missing minder.");
+      if (!petData?.petID) throw new Error("Missing pet.");
+      if (!serviceTypeID) throw new Error("Missing service.");
+      if (!uniqueSlots.length) throw new Error("No booking dates selected.");
+
+      const createdBookings = [];
+
+      for (const slot of uniqueSlots) {
+        const bookingRes = await fetch(`${API_BASE}/api/bookings`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            sitterID: minder.sitterID,
+            petID: petData.petID,
+            slotID: slot.slotID,
+            serviceTypeID,
+            location: locationPayload,
+            ownerNotes: notes || "",
+            selectedTime: selectedTime || "",
+          }),
+        });
+
+        const bookingData = await bookingRes.json();
+
+        if (!bookingRes.ok) {
+          throw new Error(bookingData.error || "Failed to create booking.");
+        }
+
+        createdBookings.push(bookingData);
+      }
+
+      const firstBookingID = createdBookings[0]?.bookingID;
+
+      if (meetAndGreet && firstBookingID) {
+        const magRes = await fetch(`${API_BASE}/api/bookings/${firstBookingID}/meet-and-greet`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            scheduledTime: meetAndGreet.scheduledTime,
+            isVirtual: meetAndGreet.isVirtual,
+            meetingLinkOrLocation: meetAndGreet.meetingLinkOrLocation || null,
+            note: meetAndGreet.note || null,
+          }),
+        });
+
+        if (!magRes.ok) {
+          const magErr = await magRes.json().catch(() => ({}));
+          console.warn("Meet & greet save failed:", magErr.error);
+        }
+      }
+
+      const last4 = form.cardNumber.replace(/\s/g, "").slice(-4);
+      const maskedPaymentMethod = `card ending ${last4}`;
+
+      for (const booking of createdBookings) {
+        const paymentRes = await fetch(`${API_BASE}/api/payments`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            bookingID: booking.bookingID,
+            paymentMethod: maskedPaymentMethod,
+            platformFeeRate: 0.05,
+          }),
+        });
+
+        const paymentData = await paymentRes.json();
+
+        if (!paymentRes.ok) {
+          throw new Error(paymentData.error || "Failed to save payment.");
+        }
+      }
 
       navigate("/paymentSuccess", {
         state: {
           total,
-          paymentMethod: `**** **** **** ${form.cardNumber.replace(/\s/g, "").slice(-4)}`,
+          paymentMethod: `**** **** **** ${last4}`,
+          minderName: getMinderName(bookingDraft?.minder),
+          serviceName: getServiceName(bookingDraft?.service),
+          petName: bookingDraft?.petData?.name || bookingDraft?.pet || "",
         },
       });
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        submit: "Payment failed. Please try again.",
+        submit: error.message || "Payment failed. Please try again.",
       }));
     } finally {
       setIsPaying(false);
@@ -256,7 +382,7 @@ export default function HappyTailsPayment() {
               onClick={handlePay}
               disabled={isPaying}
             >
-              {isPaying ? "Processing..." : `Pay ${formatMoney(total)}`}
+              {isPaying ? "PROCESSING..." : `PAY ${formatMoney(total)}`}
             </button>
           </div>
         </div>

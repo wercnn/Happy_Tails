@@ -23,7 +23,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Screen ── */
-.pay-screen {
+.ps-screen {
   height: 100%;
   width: 100%;
   background: #f0f0f0;
@@ -33,33 +33,16 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Header ── */
-.pay-header {
+.ps-header {
   flex-shrink: 0;
   background: #ee8b28;
   padding: 20px 20px 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
 }
 
-.pay-back {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.4rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-}
-
-.pay-back:hover {
-  opacity: 0.8;
-}
-
-.pay-title {
+.ps-title {
   margin: 0;
   color: #fff;
   font-size: 1.2rem;
@@ -68,18 +51,18 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Scroll ── */
-.pay-scroll {
+.ps-scroll {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 
-.pay-scroll::-webkit-scrollbar {
+.ps-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.pay-body {
+.ps-body {
   padding: 14px 14px 20px;
   display: flex;
   flex-direction: column;
@@ -87,25 +70,45 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 /* ── Cards ── */
-.pay-hero-card,
-.pay-card {
+.ps-hero-card,
+.ps-card {
   background: #fff8f0;
   border: 2px solid #f0c88a;
   border-radius: 16px;
   padding: 16px 18px 12px;
 }
 
-.pay-eyebrow {
-  display: inline-block;
+.ps-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.ps-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: #ee8b28;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(238, 139, 40, 0.24);
+}
+
+.ps-eyebrow {
+  display: block;
   margin-bottom: 8px;
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #b86b17;
   text-transform: uppercase;
+  text-align: center;
 }
 
-.pay-amount {
+.ps-amount {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 800;
@@ -113,15 +116,16 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   text-align: center;
 }
 
-.pay-subtext {
+.ps-subtext {
   margin: 8px 0 0;
   color: #777;
   font-size: 0.88rem;
   font-weight: 500;
   text-align: center;
+  line-height: 1.5;
 }
 
-.pay-card-title {
+.ps-card-title {
   margin: 0 0 14px;
   font-size: 1rem;
   font-weight: 800;
@@ -129,115 +133,45 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   text-align: center;
 }
 
-/* ── Summary Rows ── */
-.pay-row {
+/* ── Rows ── */
+.ps-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  justify-content: space-between;
+  padding: 9px 0;
   border-bottom: 1px solid rgba(238, 139, 40, 0.1);
   gap: 10px;
 }
 
-.pay-row:last-child {
+.ps-row--last {
   border-bottom: none;
 }
 
-.pay-row--total {
-  border-bottom: none;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 2px solid rgba(238, 139, 40, 0.2);
-}
-
-.pay-label {
-  font-size: 0.85rem;
-  color: #777;
+.ps-label {
+  font-size: 0.83rem;
+  color: #aaa;
   font-weight: 500;
+  flex-shrink: 0;
+  min-width: 80px;
 }
 
-.pay-value {
+.ps-value {
   font-size: 0.9rem;
   font-weight: 700;
   color: #1a1a1a;
   text-align: right;
-}
-
-/* ── Fields ── */
-.pay-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.pay-field:last-child {
-  margin-bottom: 0;
-}
-
-.pay-field-label {
-  font-size: 0.83rem;
-  color: #aaa;
-  font-weight: 500;
-}
-
-.pay-input {
-  width: 100%;
-  border: 1.5px solid #e6d8c3;
-  border-radius: 12px;
-  padding: 13px 14px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: #1a1a1a;
-  background: #fff;
-  outline: none;
-}
-
-.pay-input::placeholder {
-  color: #b6b6b6;
-  font-weight: 500;
-}
-
-.pay-input:focus {
-  border-color: #ee8b28;
-  box-shadow: 0 0 0 3px rgba(238, 139, 40, 0.12);
-}
-
-.pay-input--error {
-  border-color: #d9534f;
-}
-
-.pay-inline-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* ── Errors ── */
-.pay-error {
-  margin: 0;
-  font-size: 0.78rem;
-  color: #d9534f;
-  font-weight: 600;
-}
-
-.pay-error--submit {
-  padding: 0 2px;
+  word-break: break-word;
 }
 
 /* ── Footer ── */
-.pay-footer {
+.ps-footer {
   flex-shrink: 0;
   padding: 12px 14px 18px;
   background: #f0f0f0;
 }
 
-.pay-button {
+.ps-primary-btn {
   width: 100%;
-  background: #f28c28;
-  color: #fff;
-  border: none;
   border-radius: 14px;
   padding: 15px 10px;
   font-size: 0.85rem;
@@ -245,30 +179,27 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-family: inherit;
   letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
   transition: transform 0.15s ease, filter 0.15s ease;
+  background: #f28c28;
+  color: #fff;
+  border: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
 }
 
-.pay-button:hover {
+.ps-primary-btn:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);
 }
 
-.pay-button:active {
+.ps-primary-btn:active {
   transform: translateY(1px);
   filter: brightness(0.96);
-}
-
-.pay-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  filter: none;
 }
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
+
   .mobile-frame {
     width: 100%;
     height: 100svh;
@@ -276,5 +207,6 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     border-radius: 0;
     box-shadow: none;
   }
-  .pay-body { padding: 12px 12px 18px; }
+
+  .ps-body { padding: 12px 12px 18px; }
 }
