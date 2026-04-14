@@ -129,7 +129,7 @@ export default function HappyTailsAvailability() {
   const isPastDay = (day) =>
     isCurrentMonth && new Date(year, month, day) < today;
 
-  useEffect(() => {
+  const refreshSlots = () => {
     fetch(`${API_BASE}/api/minders/me`, { headers: getAuthHeaders() })
       .then((res) => (res.ok ? res.json() : null))
       .then((profile) => {
@@ -143,12 +143,33 @@ export default function HappyTailsAvailability() {
         if (data?.slots) setExistingSlots(data.slots);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshSlots();
+    const onFocus = () => refreshSlots();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   const existingDaysInMonth = useMemo(() => {
     const set = new Set();
 
     existingSlots.forEach((s) => {
+      const d = new Date(s.startTime.replace(" ", "T"));
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        set.add(d.getDate());
+      }
+    });
+
+    return set;
+  }, [existingSlots, year, month]);
+
+  const bookedDaysInMonth = useMemo(() => {
+    const set = new Set();
+
+    existingSlots.forEach((s) => {
+      if (!s?.isBooked) return;
       const d = new Date(s.startTime.replace(" ", "T"));
       if (d.getFullYear() === year && d.getMonth() === month) {
         set.add(d.getDate());
@@ -193,6 +214,11 @@ export default function HappyTailsAvailability() {
 
   const toggleDay = (day) => {
     setSaveError("");
+
+    if (bookedDaysInMonth.has(day)) {
+      setSaveError("That day is already booked and cannot be changed.");
+      return;
+    }
 
     if (existingDaysInMonth.has(day) && !deselectedExistingDays.has(day)) {
       setDeselectedExistingDays((prev) => {
@@ -440,9 +466,11 @@ export default function HappyTailsAvailability() {
                       existingDaysInMonth.has(day) && !deselectedExistingDays.has(day);
                     const isSelected = selectedDays.has(day);
                     const isDeselected = deselectedExistingDays.has(day);
+                    const isBooked = bookedDaysInMonth.has(day);
 
                     let cls = "av-cal-cell";
-                    if (isExisting) cls += " av-cal-cell--existing";
+                    if (isBooked) cls += " av-cal-cell--booked";
+                    else if (isExisting) cls += " av-cal-cell--existing";
                     else if (isSelected) cls += " av-cal-cell--available av-cal-cell--selected";
                     else if (isDeselected) cls += " av-cal-cell--available";
                     else cls += " av-cal-cell--available";
@@ -452,6 +480,7 @@ export default function HappyTailsAvailability() {
                         key={day}
                         className={cls}
                         onClick={() => toggleDay(day)}
+                        disabled={isBooked}
                         type="button"
                       >
                         {day}
@@ -462,8 +491,12 @@ export default function HappyTailsAvailability() {
 
                 <div className="av-cal-legend">
                   <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--booked" />
+                    Booked
+                  </span>
+                  <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--available" />
-                    Available
+                    Available to Set
                   </span>
                   <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--past" />
@@ -475,7 +508,7 @@ export default function HappyTailsAvailability() {
                   </span>
                   <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--existing" />
-                    Already Set
+                    Already Set Availability
                   </span>
                 </div>
               </section>

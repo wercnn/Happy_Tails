@@ -244,6 +244,22 @@ register('POST', '/api/bookings', async (req, res, send) => {
   if (!slotRows.length) return notFound(send, res, 'Slot not found');
   if (slotRows[0].isBooked) return send(res, 409, { error: 'Slot already booked' });
 
+  // Prevent double-booking against already accepted bookings (even if slot overlaps).
+  const [overlapRows] = await db.query(
+    `
+    SELECT bookingID
+    FROM BOOKING
+    WHERE sitterID = ?
+      AND status = 'accepted'
+      AND NOT (endTime <= ? OR startTime >= ?)
+    LIMIT 1
+    `,
+    [sitterID, slotRows[0].startTime, slotRows[0].endTime]
+  );
+  if (overlapRows.length) {
+    return send(res, 409, { error: 'Selected time overlaps an existing confirmed booking' });
+  }
+
   const [[serviceRow]] = await db.query(
     `SELECT
        COALESCE(MS.customPrice, ST.basePrice) AS price
@@ -295,8 +311,6 @@ register('POST', '/api/bookings', async (req, res, send) => {
       ownerNotes || null,
     ]
   );
-
-  await db.query('UPDATE SLOT SET isBooked = TRUE WHERE slotID = ?', [slotID]);
 
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 201, booking);
@@ -468,6 +482,37 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   const bookingsToAccept = groupedBookings.length > 0 ? groupedBookings : [booking];
   const bookingIDsToAccept = bookingsToAccept.map((b) => b.bookingID);
 
+  // Reject overlaps against already accepted bookings for this sitter.
+  for (const b of bookingsToAccept) {
+    const [conflicts] = await db.query(
+      `
+      SELECT bookingID
+      FROM BOOKING
+      WHERE sitterID = ?
+        AND status = 'accepted'
+        AND bookingID NOT IN (${bookingIDsToAccept.map(() => '?').join(',')})
+        AND NOT (endTime <= ? OR startTime >= ?)
+      LIMIT 1
+      `,
+      [sitterID, ...bookingIDsToAccept, b.startTime, b.endTime]
+    );
+
+    if (conflicts.length) {
+      return send(res, 409, { error: 'Booking overlaps an existing confirmed booking' });
+    }
+  }
+
+  // Lock slots for accepted bookings (prevents double-accept races).
+  for (const b of bookingsToAccept) {
+    const [result] = await db.query(
+      'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
+      [b.slotID]
+    );
+    if (!result.affectedRows) {
+      return send(res, 409, { error: 'Slot already booked' });
+    }
+  }
+
   await db.query(
     `UPDATE BOOKING SET status = 'accepted' WHERE bookingID IN (${bookingIDsToAccept
       .map(() => '?')
@@ -524,8 +569,55 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
   if (String(booking.status).toLowerCase() !== 'pending') return send(res, 409, { error: 'Booking not pending' });
 
-  await db.query('UPDATE BOOKING SET status = ? WHERE bookingID = ?', ['rejected', bookingID]);
-  await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+  // Reject the whole grouped request (same grouping logic as accept).
+  const createdMinuteKey = getCreatedMinuteKey(booking.createdAt);
+
+  const [relatedBookings] = await db.query(
+    `
+    SELECT *
+    FROM BOOKING
+    WHERE ownerID = ?
+      AND sitterID = ?
+      AND petID = ?
+      AND serviceTypeID = ?
+      AND COALESCE(ownerNotes, '') = COALESCE(?, '')
+      AND status = 'pending'
+    ORDER BY startTime ASC
+    `,
+    [
+      booking.ownerID,
+      booking.sitterID,
+      booking.petID,
+      booking.serviceTypeID,
+      booking.ownerNotes || '',
+    ]
+  );
+
+  const groupedBookings = relatedBookings.filter(
+    (b) => getCreatedMinuteKey(b.createdAt) === createdMinuteKey
+  );
+
+  const bookingsToReject = groupedBookings.length > 0 ? groupedBookings : [booking];
+  const bookingIDsToReject = bookingsToReject.map((b) => b.bookingID);
+
+  await db.query(
+    `UPDATE BOOKING SET status = 'rejected' WHERE bookingID IN (${bookingIDsToReject
+      .map(() => '?')
+      .join(',')})`,
+    bookingIDsToReject
+  );
+
+  // Ensure slots are not left booked from older flows.
+  // Only clear if a slot is not used by any accepted booking.
+  for (const b of bookingsToReject) {
+    const [acceptedUsingSlot] = await db.query(
+      `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
+      [b.slotID]
+    );
+    if (!acceptedUsingSlot.length) {
+      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
+    }
+  }
 
   try {
     const ownerUserID = await getUserIdForOwner(booking.ownerID);
@@ -542,8 +634,13 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     console.error('Failed to create rejection notification:', notifErr.message);
   }
 
-  const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
-  send(res, 200, updated);
+  const [updatedRows] = await db.query(
+    `SELECT * FROM BOOKING WHERE bookingID IN (${bookingIDsToReject
+      .map(() => '?')
+      .join(',')}) ORDER BY startTime ASC`,
+    bookingIDsToReject
+  );
+  send(res, 200, updatedRows);
 });
 
 
@@ -574,7 +671,16 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
     reason,
     bookingID,
   ]);
-  await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+  // Free slot for accepted bookings, and also clean up legacy "book on pending" data safely.
+  if (status === 'accepted' || status === 'pending') {
+    const [acceptedUsingSlot] = await db.query(
+      `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
+      [booking.slotID]
+    );
+    if (!acceptedUsingSlot.length) {
+      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [booking.slotID]);
+    }
+  }
 
   const [[updated]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   send(res, 200, updated);

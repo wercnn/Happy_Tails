@@ -171,6 +171,7 @@ export default function HappyTailsRequestDetails() {
   const petName = getPetName(primary);
   const serviceName = getServiceName(primary);
   const statusLabel = getStatusLabel(primary?.status);
+  const canReportIncident = ["accepted", "active"].includes(String(primary?.status || "").toLowerCase());
   const startTimeLabel = primary?.startTime ? formatTime(primary.startTime) : "Not provided";
   const endTimeLabel = primary?.endTime ? formatTime(primary.endTime) : "Not provided";
   const locationText = getLocationText(primary);
@@ -402,15 +403,17 @@ export default function HappyTailsRequestDetails() {
             </div>
           </div>
 
-          <div className="rd-report-section">
-            <button
-              className="rd-report-btn"
-              onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
-              type="button"
-            >
-              ⚠ Report an Incident
-            </button>
-          </div>
+          {canReportIncident && (
+            <div className="rd-report-section">
+              <button
+                className="rd-report-btn"
+                onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+                type="button"
+              >
+                ⚠ Report an Incident
+              </button>
+            </div>
+          )}
 
           <div className="rd-footer">
             <button
