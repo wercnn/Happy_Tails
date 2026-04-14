@@ -122,6 +122,27 @@ export default function UsersPage({ user, searchQuery = "" }) {
     }
   }
 
+  async function handleActivate(userID) {
+    const newStatus = "Active";
+    try {
+      const res = await fetch(`${API}/users/${userID}/suspend`, {
+        method: "PATCH",
+        headers: authHeaders(user),
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const update = (list) =>
+        list.map((u) => (u.userID === userID ? { ...u, status: newStatus } : u));
+      setOwners(update);
+      setMinders(update);
+      if (selectedUser?.userID === userID) setSelectedUser({ ...selectedUser, status: newStatus });
+    } catch (e) {
+      alert(e.message || "Failed to activate user");
+    }
+  }
+
   async function handleVerify(sitterID) {
     try {
       const res = await fetch(`${API}/minders/${sitterID}/verify`, {
@@ -230,6 +251,15 @@ export default function UsersPage({ user, searchQuery = "" }) {
                   <Td>
                     <div className="users-page__actions">
                       <Btn variant="outline" small onClick={() => handleViewUser(u.userID)}>View</Btn>
+                      {u.status === "Inactive" && (
+                        <Btn
+                          variant="success"
+                          small
+                          onClick={() => handleActivate(u.userID)}
+                        >
+                          Activate
+                        </Btn>
+                      )}
                       <Btn
                         variant="danger"
                         small
@@ -279,6 +309,15 @@ export default function UsersPage({ user, searchQuery = "" }) {
                   <Td>
                     <div className="users-page__actions">
                       <Btn variant="outline" small onClick={() => handleViewUser(m.userID)}>View</Btn>
+                      {m.status === "Inactive" && (
+                        <Btn
+                          variant="success"
+                          small
+                          onClick={() => handleActivate(m.userID)}
+                        >
+                          Activate
+                        </Btn>
+                      )}
                       <Btn
                         variant="danger"
                         small
@@ -444,6 +483,17 @@ export default function UsersPage({ user, searchQuery = "" }) {
             </div>
 
             <div className="users-page__overlay-actions">
+              {selectedUser.status === "Inactive" && (
+                <Btn
+                  variant="success"
+                  onClick={() => {
+                    handleActivate(selectedUser.userID);
+                    setSelectedUser(null);
+                  }}
+                >
+                  Activate Account
+                </Btn>
+              )}
               <Btn
                 variant="danger"
                 onClick={() => {

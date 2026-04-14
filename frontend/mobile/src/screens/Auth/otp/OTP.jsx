@@ -1,13 +1,27 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./OTP.css";
 
 const LENGTH = 6;
 
 export default function HappyTailsOTP() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [digits, setDigits] = useState(Array(LENGTH).fill(""));
   const inputs = useRef([]);
+
+  const rawPhone =
+    location.state?.phoneNumber ||
+    localStorage.getItem("phoneNumber") ||
+    "";
+
+  const maskedPhone = useMemo(() => {
+    const digitsOnly = String(rawPhone).replace(/\D/g, "");
+    if (digitsOnly.length < 4) return "+44 ****";
+    const last2 = digitsOnly.slice(-2);
+    const prefix = digitsOnly.slice(0, 2);
+    return `+44 ${prefix} ** **${last2}`;
+  }, [rawPhone]);
 
   const handleChange = (i, e) => {
     const val = e.target.value.replace(/\D/, "").slice(-1);
@@ -47,7 +61,7 @@ export default function HappyTailsOTP() {
             <span className="otp-phone-emoji">📱</span>
             <h1 className="otp-heading">Verify Your Number</h1>
             <p className="otp-subtext">
-              We sent a code to +44 7700 <span className="otp-masked">****</span>00
+              We sent a code to <span className="otp-masked">{maskedPhone}</span>
             </p>
           </header>
 

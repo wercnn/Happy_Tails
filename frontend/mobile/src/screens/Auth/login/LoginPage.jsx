@@ -59,6 +59,14 @@ export default function LoginPage() {
       localStorage.setItem("username", data.username || "");
       localStorage.setItem("firstName", data.profile?.firstName || "");
       localStorage.setItem("lastName", data.profile?.lastName || "");
+      localStorage.setItem("userStatus", data.status || "Inactive");
+      localStorage.setItem("phoneNumber", data.phoneNumber || "");
+
+      const status = String(data.status || "").toLowerCase();
+      if (status !== "active" && data.role !== "support") {
+        navigate("/pendingApproval");
+        return;
+      }
 
       if (data.role === "minder") {
         navigate("/mindDash");

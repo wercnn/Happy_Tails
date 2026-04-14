@@ -32,6 +32,7 @@ export default function HappyTailsMinderRegister() {
   const [days, setDays] = useState([]);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
   const [draggingId, setDraggingId] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState({ uploading: false, message: "" });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,8 +52,30 @@ export default function HappyTailsMinderRegister() {
     }));
   };
 
-  const handleFile = (file, setter) => {
-    if (file) setter(file.name);
+  const handleFile = (file, setter, kind) => {
+    if (!file) return;
+
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+
+    if (kind === "photo" && !isImage) {
+      setUploadStatus({ uploading: false, message: "Profile photo must be an image." });
+      return;
+    }
+    if (kind === "id" && !(isImage || isPdf)) {
+      setUploadStatus({ uploading: false, message: "ID must be an image or PDF." });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadStatus({ uploading: false, message: "File too large (max 8MB)." });
+      return;
+    }
+
+    setUploadStatus({ uploading: true, message: "Uploading (prototype)…" });
+    setTimeout(() => {
+      setter(file.name);
+      setUploadStatus({ uploading: false, message: "Upload successful (prototype)." });
+    }, 700);
   };
 
   const toggle = (val, list, setter) =>
@@ -158,6 +181,8 @@ export default function HappyTailsMinderRegister() {
       localStorage.setItem("username", data.username || form.username.trim());
       localStorage.setItem("firstName", data.firstName || form.firstName.trim());
       localStorage.setItem("lastName", data.lastName || form.lastName.trim());
+      localStorage.setItem("userStatus", data.status || "Inactive");
+      localStorage.setItem("phoneNumber", data.phoneNumber || form.phone.trim());
 
       navigate("/otp", {
         state: {
@@ -167,6 +192,7 @@ export default function HappyTailsMinderRegister() {
           firstName: data.firstName,
           lastName: data.lastName,
           role: data.role,
+          phoneNumber: data.phoneNumber || form.phone.trim(),
         },
       });
     } catch (error) {
@@ -248,7 +274,7 @@ export default function HappyTailsMinderRegister() {
                   onDrop={(e) => {
                     e.preventDefault();
                     setDraggingPhoto(false);
-                    handleFile(e.dataTransfer.files[0], setPhoto);
+                    handleFile(e.dataTransfer.files[0], setPhoto, "photo");
                   }}
                   onClick={() => photoInputRef.current?.click()}
                 >
@@ -268,7 +294,7 @@ export default function HappyTailsMinderRegister() {
                     type="file"
                     accept="image/*"
                     style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files[0], setPhoto)}
+                    onChange={(e) => handleFile(e.target.files[0], setPhoto, "photo")}
                   />
                 </div>
               </div>
@@ -378,7 +404,7 @@ export default function HappyTailsMinderRegister() {
                   onDrop={(e) => {
                     e.preventDefault();
                     setDraggingId(false);
-                    handleFile(e.dataTransfer.files[0], setIdDoc);
+                    handleFile(e.dataTransfer.files[0], setIdDoc, "id");
                   }}
                   onClick={() => idInputRef.current?.click()}
                 >
@@ -396,10 +422,16 @@ export default function HappyTailsMinderRegister() {
                     type="file"
                     accept="image/*,application/pdf"
                     style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files[0], setIdDoc)}
+                    onChange={(e) => handleFile(e.target.files[0], setIdDoc, "id")}
                   />
                 </div>
               </div>
+
+              {uploadStatus.message && (
+                <p className="mreg-drop-sub" style={{ marginTop: 4 }}>
+                  {uploadStatus.message}
+                </p>
+              )}
 
               {errors.submit && (
                 <p className="mreg-error-text">{errors.submit}</p>
