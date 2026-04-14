@@ -95,12 +95,12 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .home-header-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
+.home-message-btn,
 .home-bell-btn {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -115,6 +115,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   flex-shrink: 0;
   transition: background 0.15s, transform 0.1s;
 }
+
+.home-message-btn:hover,
 .home-bell-btn:hover {
   background: rgba(255,255,255,0.32);
   transform: scale(1.05);
@@ -458,37 +460,13 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   white-space: nowrap;
 }
 
-.home-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.home-nav-item--active .home-nav-label {
+  color: #f28c28;
 }
 
-.home-message-btn,
-.home-bell-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  width: 38px;
-  height: 38px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s, transform 0.1s;
+.home-nav-item--active .home-nav-emoji {
+  filter: none;
 }
-
-.home-message-btn:hover,
-.home-bell-btn:hover {
-  background: rgba(255,255,255,0.32);
-  transform: scale(1.05);
-}
-
-.home-nav-item--active .home-nav-label { color: #f28c28; }
-.home-nav-item--active .home-nav-emoji { filter: none; }
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
