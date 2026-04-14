@@ -207,6 +207,20 @@ body {
   margin-top: 14px;
 }
 
+.rd-divider {
+  height: 1px;
+  background: #f2f2f2;
+  margin: 14px 0;
+}
+
+.rd-med-note {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #b23a3a;
+  line-height: 1.35;
+}
+
 .rd-primary-btn,
 .rd-secondary-btn {
   flex: 1;

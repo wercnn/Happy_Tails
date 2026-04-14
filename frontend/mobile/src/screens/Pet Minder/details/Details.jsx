@@ -210,6 +210,7 @@ export default function HappyTailsRequestDetails() {
   const [isRoutinesOpen, setIsRoutinesOpen] = useState(false);
   const [medicationQualified, setMedicationQualified] = useState(false);
   const [checklist, setChecklist] = useState([]);
+  const [medChecklist, setMedChecklist] = useState([]);
   const [proofUploading, setProofUploading] = useState(false);
   const proofInputRef = useRef(null);
 
@@ -269,20 +270,52 @@ export default function HappyTailsRequestDetails() {
         disabled: false,
         reason: "",
       })),
+    ];
+
+    setChecklist(tasks);
+
+    // Separate medication checklist (gated by medicationQualified)
+    const medTasks = [
       {
-        id: "medication",
-        label: "Medication",
+        id: "med-prepare",
+        label: "Prepare medication (check label + dosage)",
+        completed: false,
+        disabled: !medicationQualified,
+        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+      },
+      {
+        id: "med-administer",
+        label: "Administer medication",
+        completed: false,
+        disabled: !medicationQualified,
+        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+      },
+      {
+        id: "med-record",
+        label: "Record time given",
+        completed: false,
+        disabled: !medicationQualified,
+        reason: medicationQualified ? "" : "Not qualified to administer medication.",
+      },
+      {
+        id: "med-monitor",
+        label: "Monitor for side effects (10–15 mins)",
         completed: false,
         disabled: !medicationQualified,
         reason: medicationQualified ? "" : "Not qualified to administer medication.",
       },
     ];
-
-    setChecklist(tasks);
+    setMedChecklist(medTasks);
   }, [primary, medicationQualified]);
 
   const toggleTask = (id) => {
     setChecklist((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
+
+  const toggleMedTask = (id) => {
+    setMedChecklist((prev) =>
       prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     );
   };
@@ -640,6 +673,36 @@ export default function HappyTailsRequestDetails() {
                     ))}
                   </div>
 
+                  <div className="rd-divider" />
+
+                  <h3 className="rd-card-title" style={{ marginTop: 2 }}>
+                    Medication checklist
+                  </h3>
+                  {!medicationQualified && (
+                    <p className="rd-med-note">
+                      Not qualified to administer medication. These tasks are disabled.
+                    </p>
+                  )}
+                  <div className="rd-checklist">
+                    {medChecklist.map((t) => (
+                      <label
+                        key={t.id}
+                        className={`rd-task${t.disabled ? " rd-task--disabled" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={t.completed}
+                          disabled={t.disabled}
+                          onChange={() => toggleMedTask(t.id)}
+                        />
+                        <span className="rd-task-label">{t.label}</span>
+                        {t.disabled && t.reason && (
+                          <span className="rd-task-reason">{t.reason}</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+
                   <div className="rd-active-actions">
                     <button
                       className="rd-secondary-btn"
@@ -653,7 +716,9 @@ export default function HappyTailsRequestDetails() {
                       className="rd-primary-btn"
                       type="button"
                       onClick={() =>
-                        navigate("/visitReport", { state: { booking: primary, checklist } })
+                        navigate("/visitReport", {
+                          state: { booking: primary, checklist, medChecklist },
+                        })
                       }
                     >
                       Submit Visit Report

@@ -18,10 +18,16 @@ export default function VisitReport() {
 
   const booking = location.state?.booking || null;
   const initialChecklist = location.state?.checklist || [];
+  const initialMedChecklist = location.state?.medChecklist || [];
 
   const [checklist, setChecklist] = useState(
     Array.isArray(initialChecklist)
       ? initialChecklist.map((t) => ({ ...t, completed: !!t.completed }))
+      : []
+  );
+  const [medChecklist, setMedChecklist] = useState(
+    Array.isArray(initialMedChecklist)
+      ? initialMedChecklist.map((t) => ({ ...t, completed: !!t.completed }))
       : []
   );
   const [notes, setNotes] = useState("");
@@ -31,6 +37,10 @@ export default function VisitReport() {
   const completedCount = useMemo(
     () => checklist.filter((t) => t.completed).length,
     [checklist]
+  );
+  const medCompletedCount = useMemo(
+    () => medChecklist.filter((t) => t.completed).length,
+    [medChecklist]
   );
 
   const handleSubmit = async () => {
@@ -45,15 +55,22 @@ export default function VisitReport() {
     try {
       const payload = {
         bookingID: booking.bookingID,
-        taskChecklist: JSON.stringify(
-          checklist.map((t) => ({
+        taskChecklist: JSON.stringify({
+          care: checklist.map((t) => ({
             id: t.id,
             label: t.label,
             completed: !!t.completed,
             disabled: !!t.disabled,
             reason: t.reason || "",
-          }))
-        ),
+          })),
+          medication: medChecklist.map((t) => ({
+            id: t.id,
+            label: t.label,
+            completed: !!t.completed,
+            disabled: !!t.disabled,
+            reason: t.reason || "",
+          })),
+        }),
         behaviouralNotes: notes || null,
         completedAt: new Date().toISOString().slice(0, 19).replace("T", " "),
       };
@@ -125,6 +142,40 @@ export default function VisitReport() {
                         onChange={(e) => {
                           const checked = e.target.checked;
                           setChecklist((prev) =>
+                            prev.map((x) =>
+                              x.id === t.id ? { ...x, completed: checked } : x
+                            )
+                          );
+                        }}
+                      />
+                      <span className="vr-check-label">{t.label}</span>
+                      {t.disabled && t.reason && (
+                        <span className="vr-check-reason">{t.reason}</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <section className="vr-card">
+                <h2 className="vr-card-title">Medication checklist</h2>
+                <p className="vr-sub">
+                  {medCompletedCount}/{medChecklist.length} completed
+                </p>
+
+                <div className="vr-checklist">
+                  {medChecklist.map((t) => (
+                    <label
+                      key={t.id}
+                      className={`vr-check${t.disabled ? " vr-check--disabled" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={t.completed}
+                        disabled={t.disabled}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setMedChecklist((prev) =>
                             prev.map((x) =>
                               x.id === t.id ? { ...x, completed: checked } : x
                             )
