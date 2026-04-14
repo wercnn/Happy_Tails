@@ -7,47 +7,103 @@ function getToday() {
 }
 
 export default function MeetAndGreet() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const {
-    minder, service, selectedSlots, selectedTime,
-    selectedDateKeys, pet, petData, notes,
+    minder,
+    service,
+    selectedSlots,
+    selectedTime,
+    selectedDateKeys,
+    pet,
+    petData,
+    notes,
+    meetAndGreet,
+    returnToSummary,
   } = location.state || {};
 
-  const [showForm, setShowForm]           = useState(false);
-  const [date, setDate]                   = useState("");
-  const [time, setTime]                   = useState("");
-  const [isVirtual, setIsVirtual]         = useState(false);
-  const [locationOrLink, setLocationOrLink] = useState("");
-  const [note, setNote]                   = useState("");
+  const existingMeetAndGreet = meetAndGreet || null;
 
-  const summaryState = { minder, service, selectedSlots, selectedTime, selectedDateKeys, pet, petData, notes };
+  const [showForm, setShowForm] = useState(Boolean(existingMeetAndGreet));
+  const [date, setDate] = useState(
+    existingMeetAndGreet?.scheduledTime
+      ? String(existingMeetAndGreet.scheduledTime).slice(0, 10)
+      : ""
+  );
+  const [time, setTime] = useState(
+    existingMeetAndGreet?.scheduledTime
+      ? String(existingMeetAndGreet.scheduledTime).slice(11, 16)
+      : ""
+  );
+  const [isVirtual, setIsVirtual] = useState(Boolean(existingMeetAndGreet?.isVirtual));
+  const [locationOrLink, setLocationOrLink] = useState(
+    existingMeetAndGreet?.meetingLinkOrLocation || ""
+  );
+  const [note, setNote] = useState(existingMeetAndGreet?.note || "");
+
+  const summaryState = {
+    minder,
+    service,
+    selectedSlots,
+    selectedTime,
+    selectedDateKeys,
+    pet,
+    petData,
+    notes,
+    returnToSummary: true,
+  };
 
   const handleNo = () => {
-    navigate("/bookingSummary", { state: { ...summaryState, meetAndGreet: null } });
+    navigate("/bookingSummary", {
+      state: {
+        ...summaryState,
+        meetAndGreet: null,
+      },
+    });
   };
 
   const handleBack = () => {
-    if (showForm) {
+    if (showForm && !returnToSummary && !existingMeetAndGreet) {
       setShowForm(false);
-    } else {
-      navigate("/availabilityCalendar", {
-        state: { minder, service, timeSlot: selectedTime, pet, petData, notes },
-      });
+      return;
     }
+
+    if (returnToSummary) {
+      navigate("/bookingSummary", {
+        state: {
+          ...summaryState,
+          meetAndGreet: existingMeetAndGreet,
+        },
+      });
+      return;
+    }
+
+    navigate("/availabilityCalendar", {
+      state: {
+        minder,
+        service,
+        timeSlot: selectedTime,
+        pet,
+        petData,
+        notes,
+        selectedSlots,
+        selectedDateKeys,
+      },
+    });
   };
 
   const handleConfirm = () => {
     if (!date || !time) return;
+
     navigate("/bookingSummary", {
       state: {
         ...summaryState,
         meetAndGreet: {
-          scheduledTime:        `${date}T${time}:00`,
+          scheduledTime: `${date}T${time}:00`,
           isVirtual,
           meetingLinkOrLocation: locationOrLink.trim() || null,
-          note:                  note.trim() || null,
+          note: note.trim() || null,
         },
       },
     });
@@ -55,7 +111,6 @@ export default function MeetAndGreet() {
 
   const canConfirm = Boolean(date && time);
 
-  // ── Question view ─────────────────────────────────────────────────────────
   if (!showForm) {
     return (
       <div className="mobile-stage">
@@ -79,10 +134,19 @@ export default function MeetAndGreet() {
               </p>
 
               <div className="mag-question-actions">
-                <button className="mag-yes-btn" type="button" onClick={() => setShowForm(true)}>
+                <button
+                  className="mag-yes-btn"
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                >
                   Yes, I'd like one
                 </button>
-                <button className="mag-no-btn" type="button" onClick={handleNo}>
+
+                <button
+                  className="mag-no-btn"
+                  type="button"
+                  onClick={handleNo}
+                >
                   No, skip for now
                 </button>
               </div>
@@ -93,7 +157,6 @@ export default function MeetAndGreet() {
     );
   }
 
-  // ── Form view ─────────────────────────────────────────────────────────────
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
@@ -105,7 +168,6 @@ export default function MeetAndGreet() {
 
           <div className="mag-form-scroll">
             <div className="mag-form">
-
               <div className="mag-field">
                 <label className="mag-label">Date</label>
                 <input
@@ -173,7 +235,6 @@ export default function MeetAndGreet() {
                   onChange={(e) => setNote(e.target.value)}
                 />
               </div>
-
             </div>
           </div>
 
@@ -184,7 +245,7 @@ export default function MeetAndGreet() {
               disabled={!canConfirm}
               onClick={handleConfirm}
             >
-              CONFIRM MEET &amp; GREET →
+              {returnToSummary ? "SAVE MEET & GREET →" : "CONFIRM MEET & GREET →"}
             </button>
           </div>
         </div>

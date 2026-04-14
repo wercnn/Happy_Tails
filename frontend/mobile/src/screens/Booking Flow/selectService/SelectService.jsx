@@ -17,7 +17,9 @@ const getServiceEmoji = (serviceName) => {
 export default function HappyTailsSelectService() {
   const navigate = useNavigate();
   const location = useLocation();
+
   const minder = location.state?.minder || null;
+  const returnToSummary = Boolean(location.state?.returnToSummary);
 
   const [selected, setSelected] = useState(null);
   const [fullMinder, setFullMinder] = useState(minder);
@@ -74,6 +76,24 @@ export default function HappyTailsSelectService() {
           }));
 
         setServices(activeServices);
+
+        const existingService =
+          location.state?.service?.minderServiceID ||
+          location.state?.service?.serviceTypeID ||
+          location.state?.service?.id ||
+          null;
+
+        if (existingService) {
+          const matched = activeServices.find(
+            (svc) =>
+              svc.id === existingService ||
+              svc.minderServiceID === existingService ||
+              svc.serviceTypeID === existingService
+          );
+          if (matched) {
+            setSelected(matched.id);
+          }
+        }
       } catch (err) {
         console.error("Failed to load minder services:", err);
         setError("Server error. Please try again.");
@@ -83,9 +103,19 @@ export default function HappyTailsSelectService() {
     };
 
     loadMinderServices();
-  }, [minder]);
+  }, [minder, location.state]);
 
   const handleBack = () => {
+    if (returnToSummary) {
+      navigate("/bookingSummary", {
+        state: {
+          ...location.state,
+          minder: fullMinder || minder,
+        },
+      });
+      return;
+    }
+
     if (minder) {
       navigate("/viewMinders", { state: { minder: fullMinder || minder } });
       return;
@@ -99,6 +129,17 @@ export default function HappyTailsSelectService() {
 
     const selectedService = services.find((svc) => svc.id === selected);
     if (!selectedService) return;
+
+    if (returnToSummary) {
+      navigate("/bookingSummary", {
+        state: {
+          ...location.state,
+          minder: fullMinder || minder,
+          service: selectedService,
+        },
+      });
+      return;
+    }
 
     navigate("/selectDates", {
       state: {
@@ -148,7 +189,8 @@ export default function HappyTailsSelectService() {
                       <div className="ss-card-info">
                         <span className="ss-card-name">{svc.name}</span>
                         <span className="ss-card-price">
-                          {svc.price}{svc.unit}
+                          {svc.price}
+                          {svc.unit}
                         </span>
                       </div>
                       <span className={`ss-radio${selected === svc.id ? " ss-radio--active" : ""}`} />
@@ -169,7 +211,7 @@ export default function HappyTailsSelectService() {
               disabled={!selected}
               type="button"
             >
-              CONTINUE →
+              {returnToSummary ? "SAVE CHANGES →" : "CONTINUE →"}
             </button>
           </div>
         </div>

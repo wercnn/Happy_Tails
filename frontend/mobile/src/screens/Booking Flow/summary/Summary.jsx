@@ -2,20 +2,16 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Summary.css";
 
-const API_BASE = "http://localhost:3000";
-
-function getAuthHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "X-User-Id": localStorage.getItem("userID") || "",
-    "X-User-Role": localStorage.getItem("userRole") || "",
-  };
+function formatMoney(value) {
+  return `£${Number(value || 0).toFixed(2)}`;
 }
 
 function formatDateLabel(dateKey) {
   if (!dateKey) return "Not selected";
+
   const [year, month, day] = String(dateKey).split("-").map(Number);
   const d = new Date(year, month - 1, day);
+
   return d.toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -25,19 +21,17 @@ function formatDateLabel(dateKey) {
 }
 
 function formatMeetAndGreetTime(isoStr) {
-  if (!isoStr) return "";
+  if (!isoStr) return "Not arranged";
   const d = new Date(isoStr);
+
   return d.toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
-}
-
-function formatPrice(value) {
-  return `£${Number(value || 0).toFixed(2)}`;
 }
 
 function getServiceTypeId(service) {
@@ -63,6 +57,7 @@ function getServiceName(service) {
 
 function getServicePrice(service) {
   if (!service) return 0;
+
   const raw =
     service.customPrice ??
     service.price ??
@@ -78,6 +73,7 @@ function getServicePrice(service) {
 
 function getMinderName(minder) {
   if (!minder) return "Unknown minder";
+
   return (
     minder.name ||
     [minder.firstName, minder.lastName].filter(Boolean).join(" ") ||
@@ -92,7 +88,9 @@ function getPetName(petData, pet) {
 }
 
 function getLocationLabel(minder, locationState) {
-  if (typeof locationState === "string" && locationState.trim()) return locationState;
+  if (typeof locationState === "string" && locationState.trim()) {
+    return locationState;
+  }
 
   if (locationState && typeof locationState === "object") {
     const parts = [
@@ -129,132 +127,36 @@ function getLocationPayload(minder, locationState) {
   };
 }
 
-function MeetAndGreetCard({ mag }) {
+function SummaryCard({ title, onEdit, children }) {
   return (
-    <div className="bs-card">
-      <h2 className="bs-card-title">Meet &amp; Greet</h2>
-
-      <div className="bs-row">
-        <span className="bs-label">Type</span>
-        <span className="bs-value">{mag.isVirtual ? "💻 Virtual" : "🏠 In-Person"}</span>
+    <section className="bks-card">
+      <div className="bks-card-head">
+        <h2 className="bks-card-title">{title}</h2>
+        {onEdit && (
+          <button type="button" className="bks-edit-btn" onClick={onEdit}>
+            Edit
+          </button>
+        )}
       </div>
-
-      <div className="bs-row">
-        <span className="bs-label">Date &amp; Time</span>
-        <span className="bs-value">{formatMeetAndGreetTime(mag.scheduledTime)}</span>
-      </div>
-
-      {mag.meetingLinkOrLocation && (
-        <div className="bs-row">
-          <span className="bs-label">{mag.isVirtual ? "Link" : "Location"}</span>
-          <span className="bs-value bs-value--wrap">{mag.meetingLinkOrLocation}</span>
-        </div>
-      )}
-
-      {mag.note && (
-        <div className="bs-row bs-row--last bs-row--top">
-          <span className="bs-label">Note</span>
-          <span className="bs-value bs-value--wrap">{mag.note}</span>
-        </div>
-      )}
-
-      {!mag.meetingLinkOrLocation && !mag.note && (
-        <div className="bs-row bs-row--last">
-          <span className="bs-label">Details</span>
-          <span className="bs-value">To be confirmed</span>
-        </div>
-      )}
-    </div>
+      <div className="bks-card-body">{children}</div>
+    </section>
   );
 }
 
-function BookingSummaryCard({ booking }) {
+function SummaryRow({ label, value, stacked = false }) {
   return (
-    <div className="bs-summary">
-      <div className="bs-card">
-        <h2 className="bs-card-title">Booking Details</h2>
-
-        <div className="bs-row">
-          <span className="bs-label">Service</span>
-          <span className="bs-value">{booking.service}</span>
-        </div>
-
-        <div className="bs-row">
-          <span className="bs-label">Minder</span>
-          <span className="bs-value">{booking.minder}</span>
-        </div>
-
-        <div className="bs-row">
-          <span className="bs-label">Pet</span>
-          <span className="bs-value">{booking.pet}</span>
-        </div>
-
-        <div className="bs-row bs-row--top">
-          <span className="bs-label">Dates</span>
-          <div className="bs-dates-list">
-            {booking.dates.length > 0 ? (
-              booking.dates.map((dateLabel, i) => (
-                <span key={`${dateLabel}-${i}`} className="bs-value bs-date-item">
-                  {dateLabel}
-                </span>
-              ))
-            ) : (
-              <span className="bs-value">No dates selected</span>
-            )}
-          </div>
-        </div>
-
-        <div className="bs-row">
-          <span className="bs-label">Time</span>
-          <span className="bs-value">{booking.time || "Not selected"}</span>
-        </div>
-
-        <div className="bs-row">
-          <span className="bs-label">Location</span>
-          <span className="bs-value">{booking.location}</span>
-        </div>
-
-        <div className="bs-row bs-row--last">
-          <span className="bs-label">Meet &amp; Greet</span>
-          <span className="bs-value">{booking.meetAndGreet ? "✅ Yes" : "—"}</span>
-        </div>
-
-        {booking.notes ? (
-          <div className="bs-row bs-row--last bs-row--notes">
-            <span className="bs-label">Notes</span>
-            <span className="bs-value">{booking.notes}</span>
-          </div>
-        ) : null}
-      </div>
-
-      {booking.meetAndGreet && <MeetAndGreetCard mag={booking.meetAndGreet} />}
-
-      <div className="bs-card">
-        <h2 className="bs-card-title">Cost Breakdown</h2>
-
-        <div className="bs-cost-row">
-          <span className="bs-cost-label">
-            {booking.service}
-            {booking.dayCount > 1 ? ` × ${booking.dayCount} days` : ""}
-          </span>
-          <span className="bs-cost-value">{formatPrice(booking.serviceCost)}</span>
-        </div>
-
-        <div className="bs-cost-row">
-          <span className="bs-cost-label">Platform Fee (5%)</span>
-          <span className="bs-cost-value">{formatPrice(booking.platformFee)}</span>
-        </div>
-
-        <div className="bs-cost-row bs-cost-row--total">
-          <span className="bs-total-label">Total</span>
-          <span className="bs-total-value">{formatPrice(booking.total)}</span>
-        </div>
+    <div className={`bks-row${stacked ? " bks-row--top" : ""}`}>
+      <span className="bks-label">{label}</span>
+      <div className={`bks-value${stacked ? " bks-value--stack" : ""}`}>
+        {Array.isArray(value)
+          ? value.map((item, index) => <span key={`${label}-${index}`}>{item}</span>)
+          : <span>{value}</span>}
       </div>
     </div>
   );
 }
 
-export default function HappyTailsBookingSummary() {
+export default function BookingSummary() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -271,6 +173,20 @@ export default function HappyTailsBookingSummary() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  const sharedState = {
+    minder,
+    service,
+    pet,
+    petData,
+    notes,
+    selectedTime,
+    selectedDateKeys,
+    selectedSlots,
+    location: selectedLocation,
+    meetAndGreet,
+    returnToSummary: true,
+  };
+
   const booking = useMemo(() => {
     const pricePerDay = getServicePrice(service);
     const dayCount = Math.max(selectedDateKeys.length, 1);
@@ -285,7 +201,7 @@ export default function HappyTailsBookingSummary() {
       dates: selectedDateKeys.map(formatDateLabel),
       time: selectedTime || "Not selected",
       location: getLocationLabel(minder, selectedLocation),
-      notes,
+      notes: notes || "No notes added",
       meetAndGreet,
       dayCount,
       serviceCost,
@@ -296,16 +212,31 @@ export default function HappyTailsBookingSummary() {
 
   const handleBack = () => {
     navigate("/meetAndGreet", {
-      state: {
-        minder,
-        service,
-        selectedSlots,
-        selectedTime,
-        selectedDateKeys,
-        pet,
-        petData,
-        notes,
-      },
+      state: sharedState,
+    });
+  };
+
+  const handleEditService = () => {
+    navigate("/selectService", {
+      state: sharedState,
+    });
+  };
+
+  const handleEditDateTime = () => {
+    navigate("/selectDates", {
+      state: sharedState,
+    });
+  };
+
+  const handleEditMeetAndGreet = () => {
+    navigate("/meetAndGreet", {
+      state: sharedState,
+    });
+  };
+
+  const handleEditPetAndNotes = () => {
+    navigate("/selectDates", {
+      state: sharedState,
     });
   };
 
@@ -365,23 +296,83 @@ export default function HappyTailsBookingSummary() {
   return (
     <div className="mobile-stage">
       <div className="mobile-frame">
-        <div className="bs-screen">
-          <header className="bs-header">
-            <button className="bs-back" onClick={handleBack} type="button">
+        <div className="bks-screen">
+          <header className="bks-header">
+            <button className="bks-back" onClick={handleBack} type="button">
               ←
             </button>
-            <h1 className="bs-title">Booking Summary</h1>
+            <h1 className="bks-title">Review Booking</h1>
           </header>
 
-          <div className="bs-scroll">
-            <div className="bs-body">
-              <BookingSummaryCard booking={booking} />
+          <div className="bks-scroll">
+            <div className="bks-body">
+              <section className="bks-hero-card">
+                <span className="bks-eyebrow">Before you pay</span>
+                <h2 className="bks-hero-title">Check your booking details</h2>
+                <p className="bks-hero-text">
+                  You can update any section below without restarting the booking process.
+                </p>
+              </section>
+
+              <SummaryCard title="Service" onEdit={handleEditService}>
+                <SummaryRow label="Service" value={booking.service} />
+                <SummaryRow label="Minder" value={booking.minder} />
+              </SummaryCard>
+
+              <SummaryCard title="Date & Time" onEdit={handleEditDateTime}>
+                <SummaryRow
+                  label="Dates"
+                  value={booking.dates.length ? booking.dates : ["No dates selected"]}
+                  stacked
+                />
+                <SummaryRow label="Chosen time" value={booking.time} />
+                <SummaryRow label="Location" value={booking.location} />
+              </SummaryCard>
+
+              <SummaryCard title="Pet & Notes" onEdit={handleEditPetAndNotes}>
+                <SummaryRow label="Pet" value={booking.pet} />
+                <SummaryRow label="Notes" value={booking.notes} stacked />
+              </SummaryCard>
+
+              <SummaryCard title="Meet & Greet" onEdit={handleEditMeetAndGreet}>
+                <SummaryRow
+                  label="Included"
+                  value={booking.meetAndGreet ? "Yes" : "No"}
+                />
+                {booking.meetAndGreet ? (
+                  <>
+                    <SummaryRow
+                      label="Type"
+                      value={booking.meetAndGreet.isVirtual ? "Virtual" : "In-person"}
+                    />
+                    <SummaryRow
+                      label="When"
+                      value={formatMeetAndGreetTime(booking.meetAndGreet.scheduledTime)}
+                    />
+                    <SummaryRow
+                      label={booking.meetAndGreet.isVirtual ? "Link" : "Location"}
+                      value={booking.meetAndGreet.meetingLinkOrLocation || "To be confirmed"}
+                      stacked
+                    />
+                  </>
+                ) : null}
+              </SummaryCard>
+
+              <SummaryCard title="Price Summary">
+                <SummaryRow label="Days booked" value={booking.dayCount} />
+                <SummaryRow label="Service subtotal" value={formatMoney(booking.serviceCost)} />
+                <SummaryRow label="Platform fee (5%)" value={formatMoney(booking.platformFee)} />
+                <div className="bks-total-row">
+                  <span className="bks-total-label">Total</span>
+                  <span className="bks-total-value">{formatMoney(booking.total)}</span>
+                </div>
+              </SummaryCard>
             </div>
           </div>
 
-          <div className="bs-footer">
+          <div className="bks-footer">
             <button
-              className="bs-confirm-btn"
+              className="bks-confirm-btn"
               onClick={handleGoToPayment}
               type="button"
               disabled={confirmDisabled}

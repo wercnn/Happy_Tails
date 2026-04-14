@@ -38,13 +38,14 @@ export default function HappyTailsDateTime() {
 
   const minder = location.state?.minder || null;
   const selectedService = location.state?.service || null;
+  const returnToSummary = Boolean(location.state?.returnToSummary);
 
-  const [timeSlot, setTimeSlot] = useState("");
+  const [timeSlot, setTimeSlot] = useState(location.state?.selectedTime || location.state?.timeSlot || "");
   const [timeOpen, setTimeOpen] = useState(false);
   const [pets, setPets] = useState([]);
-  const [pet, setPet] = useState("");
+  const [pet, setPet] = useState(location.state?.pet || "");
   const [petOpen, setPetOpen] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(location.state?.notes || "");
   const [error, setError] = useState("");
   const [isLoadingPets, setIsLoadingPets] = useState(true);
   const [minderTimeRanges, setMinderTimeRanges] = useState([]);
@@ -81,7 +82,16 @@ export default function HappyTailsDateTime() {
         setPets(formattedPets);
 
         if (formattedPets.length > 0) {
-          setPet(formattedPets[0].label);
+          if (location.state?.pet) {
+            const matchedPet = formattedPets.find((p) => p.label === location.state.pet);
+            if (matchedPet) {
+              setPet(matchedPet.label);
+            } else {
+              setPet(formattedPets[0].label);
+            }
+          } else {
+            setPet(formattedPets[0].label);
+          }
         }
       } catch (err) {
         console.error("Failed to load pets:", err);
@@ -92,7 +102,7 @@ export default function HappyTailsDateTime() {
     };
 
     loadPets();
-  }, []);
+  }, [location.state]);
 
   useEffect(() => {
     const loadMinderTimeRanges = async () => {
@@ -152,6 +162,21 @@ export default function HappyTailsDateTime() {
   }, [minder?.sitterID]);
 
   const handleBack = () => {
+    if (returnToSummary) {
+      navigate("/bookingSummary", {
+        state: {
+          ...location.state,
+          minder,
+          service: selectedService,
+          pet,
+          notes,
+          selectedTime: timeSlot,
+          timeSlot,
+        },
+      });
+      return;
+    }
+
     navigate("/selectService", {
       state: {
         minder,
@@ -162,6 +187,22 @@ export default function HappyTailsDateTime() {
 
   const handleCheckAvailability = () => {
     const selectedPet = pets.find((p) => p.label === pet);
+
+    if (returnToSummary) {
+      navigate("/bookingSummary", {
+        state: {
+          ...location.state,
+          minder,
+          service: selectedService,
+          timeSlot,
+          selectedTime: timeSlot,
+          pet,
+          petData: selectedPet?.raw || null,
+          notes,
+        },
+      });
+      return;
+    }
 
     navigate("/availabilityCalendar", {
       state: {
@@ -300,7 +341,7 @@ export default function HappyTailsDateTime() {
               type="button"
               disabled={!timeSlot || !pet || pets.length === 0}
             >
-              CHECK AVAILABILITY →
+              {returnToSummary ? "SAVE CHANGES →" : "CHECK AVAILABILITY →"}
             </button>
           </div>
         </div>
