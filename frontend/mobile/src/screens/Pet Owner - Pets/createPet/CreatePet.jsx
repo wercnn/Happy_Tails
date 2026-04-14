@@ -80,7 +80,16 @@ export default function HappyTailsCreatePet() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const nextValue = name === "notes" ? value.slice(0, 200) : value;
+
+    let nextValue = value;
+
+    if (name === "notes") {
+      nextValue = value.slice(0, 200);
+    }
+
+    if (name === "age") {
+      nextValue = value.replace(/[^\d]/g, "");
+    }
 
     setForm((prev) => ({ ...prev, [name]: nextValue }));
     setErrors((prev) => ({
@@ -186,6 +195,7 @@ export default function HappyTailsCreatePet() {
 
   const formatFileSize = (bytes) => {
     const size = Number(bytes || 0);
+    if (!size) return "";
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -198,8 +208,17 @@ export default function HappyTailsCreatePet() {
     if (!form.name.trim()) newErrors.name = "Pet name is required.";
     if (!form.species.trim()) newErrors.species = "Species is required.";
     if (!form.breed.trim()) newErrors.breed = "Breed is required.";
-    if (!normalizedAge) newErrors.age = "Age is required.";
+
+    if (!normalizedAge) {
+      newErrors.age = "Age is required.";
+    } else if (!/^\d+$/.test(normalizedAge)) {
+      newErrors.age = "Age must be a valid number.";
+    } else if (Number(normalizedAge) <= 0) {
+      newErrors.age = "Age must be greater than 0.";
+    }
+
     if (!form.notes.trim()) newErrors.notes = "Daily routines / notes are required.";
+
     if (medicalDocuments.length > MAX_MEDICAL_DOCS) {
       newErrors.medicalDocuments = `Only ${MAX_MEDICAL_DOCS} medical documents are allowed.`;
     }
@@ -226,7 +245,7 @@ export default function HappyTailsCreatePet() {
         name: form.name.trim(),
         species: form.species,
         breed: form.breed.trim(),
-        age: String(form.age ?? "").trim(),
+        age: Number(form.age),
         routines: form.notes.trim(),
         weight: null,
         neutered: false,
@@ -386,8 +405,11 @@ export default function HappyTailsCreatePet() {
                   id="age"
                   name="age"
                   className={`cpet-input ${errors.age ? "cpet-input--error" : ""}`}
-                  type="text"
-                  placeholder="e.g. 3 years"
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="e.g. 3"
                   value={form.age}
                   onChange={handleChange}
                 />
@@ -442,10 +464,13 @@ export default function HappyTailsCreatePet() {
                 {medicalDocuments.length > 0 && (
                   <div className="cpet-doc-list">
                     {medicalDocuments.map((doc) => (
-                      <div key={doc.id} className="cpet-doc-item">
+                      <div
+                        key={doc.id || doc.name || doc.url}
+                        className="cpet-doc-item"
+                      >
                         <div className="cpet-doc-info">
                           <span className="cpet-doc-name">{doc.name}</span>
-                          {doc.size ? (
+                          {formatFileSize(doc.size) ? (
                             <span className="cpet-doc-meta">{formatFileSize(doc.size)}</span>
                           ) : null}
                         </div>

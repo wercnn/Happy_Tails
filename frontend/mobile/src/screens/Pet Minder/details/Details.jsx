@@ -99,7 +99,7 @@ function getOwnerName(item) {
 }
 
 function getPetName(item) {
-  return item?.petName || item?.pet || "Pet";
+  return item?.petName || item?.pet || item?.name || "Pet";
 }
 
 function getServiceName(item) {
@@ -141,6 +141,50 @@ function getUniqueDates(bookings) {
     .sort((a, b) => toDate(a) - toDate(b));
 }
 
+function getPetProfileFromSources(primary, stateGroup, stateBooking) {
+  const pet =
+    primary?.petProfile ||
+    stateGroup?.petProfile ||
+    stateBooking?.petProfile ||
+    primary?.pet ||
+    stateGroup?.pet ||
+    stateBooking?.pet ||
+    null;
+
+  return {
+    name: pet?.name || primary?.petName || primary?.pet || "Pet",
+    species: pet?.species || primary?.petSpecies || primary?.species || "Not provided",
+    breed: pet?.breed || primary?.petBreed || primary?.breed || "Not provided",
+    age:
+      pet?.age !== undefined && pet?.age !== null && String(pet.age).trim() !== ""
+        ? String(pet.age)
+        : primary?.petAge !== undefined && primary?.petAge !== null && String(primary.petAge).trim() !== ""
+        ? String(primary.petAge)
+        : primary?.age !== undefined && primary?.age !== null && String(primary.age).trim() !== ""
+        ? String(primary.age)
+        : "Not provided",
+    routines:
+      pet?.routines ||
+      pet?.notes ||
+      primary?.petRoutines ||
+      primary?.routines ||
+      primary?.petNotes ||
+      "No pet notes provided",
+    photo:
+      pet?.photoURL ||
+      pet?.photo ||
+      primary?.photoURL ||
+      primary?.photo ||
+      null,
+    medicalDocuments:
+      (Array.isArray(pet?.medicalDocuments) && pet.medicalDocuments) ||
+      (Array.isArray(primary?.medicalDocuments) && primary.medicalDocuments) ||
+      (Array.isArray(stateGroup?.medicalDocuments) && stateGroup.medicalDocuments) ||
+      (Array.isArray(stateBooking?.medicalDocuments) && stateBooking.medicalDocuments) ||
+      [],
+  };
+}
+
 export default function HappyTailsRequestDetails() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -163,6 +207,7 @@ export default function HappyTailsRequestDetails() {
   }, [stateGroup, stateBookings, stateBooking]);
 
   const [submitting, setSubmitting] = useState(false);
+  const [isRoutinesOpen, setIsRoutinesOpen] = useState(false);
 
   const primary = bookings[0] || null;
   const uniqueDates = getUniqueDates(bookings);
@@ -171,7 +216,6 @@ export default function HappyTailsRequestDetails() {
   const petName = getPetName(primary);
   const serviceName = getServiceName(primary);
   const statusLabel = getStatusLabel(primary?.status);
-  const canReportIncident = ["accepted", "active"].includes(String(primary?.status || "").toLowerCase());
   const startTimeLabel = primary?.startTime ? formatTime(primary.startTime) : "Not provided";
   const endTimeLabel = primary?.endTime ? formatTime(primary.endTime) : "Not provided";
   const locationText = getLocationText(primary);
@@ -181,6 +225,11 @@ export default function HappyTailsRequestDetails() {
     getMeetAndGreetFromItem(stateGroup) ||
     bookings.map(getMeetAndGreetFromItem).find(Boolean) ||
     null;
+
+  const petProfile = useMemo(
+    () => getPetProfileFromSources(primary, stateGroup, stateBooking),
+    [primary, stateGroup, stateBooking]
+  );
 
   const handleBack = () => {
     navigate(-1);
@@ -278,6 +327,88 @@ export default function HappyTailsRequestDetails() {
               </section>
 
               <section className="rd-card">
+                <h3 className="rd-card-title">Pet Information</h3>
+
+                <div className="rd-row">
+                  <span className="rd-label">Pet Name</span>
+                  <span className="rd-value">{petProfile.name}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Species</span>
+                  <span className="rd-value">{petProfile.species}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Breed</span>
+                  <span className="rd-value">{petProfile.breed}</span>
+                </div>
+
+                <div className="rd-row">
+                  <span className="rd-label">Age</span>
+                  <span className="rd-value">{petProfile.age}</span>
+                </div>
+
+                <div className="rd-row rd-row--top">
+                  <span className="rd-label">Routines / Notes</span>
+
+                  <div className="rd-value rd-routines-wrap">
+                    <button
+                      type="button"
+                      className="rd-dropdown-toggle rd-dropdown-toggle--plain"
+                      onClick={() => setIsRoutinesOpen((prev) => !prev)}
+                      aria-expanded={isRoutinesOpen}
+                    >
+                      <span
+                        className={`rd-dropdown-arrow ${isRoutinesOpen ? "rd-dropdown-arrow--open" : ""}`}
+                        aria-hidden="true"
+                      >
+                        ▼
+                      </span>
+                    </button>
+
+                    {isRoutinesOpen && (
+                      <div className="rd-dropdown-content rd-dropdown-content--plain">
+                        <p className="rd-routines-text">{petProfile.routines}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rd-row rd-row--top">
+                  <span className="rd-label">Medical Documents</span>
+                  <div className="rd-value rd-value--stack">
+                    {petProfile.medicalDocuments.length > 0 ? (
+                      petProfile.medicalDocuments.map((doc, index) => (
+                        <div
+                          key={doc.id || doc.docID || doc.url || `${doc.name}-${index}`}
+                          className="rd-doc-row"
+                        >
+                          <span className="rd-doc-name">
+                            {doc.name || doc.fileName || `Document ${index + 1}`}
+                          </span>
+
+                          {(doc.url || doc.fileURL) ? (
+                            <a
+                              href={doc.url || doc.fileURL}
+                              download={doc.name || doc.fileName || "medical-document.pdf"}
+                              className="rd-link-btn"
+                            >
+                              View
+                            </a>
+                          ) : (
+                            <span className="rd-doc-unavailable">Unavailable</span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <span>No medical documents shared.</span>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="rd-card">
                 <h3 className="rd-card-title">Booking Information</h3>
 
                 <div className="rd-row">
@@ -288,11 +419,6 @@ export default function HappyTailsRequestDetails() {
                 <div className="rd-row">
                   <span className="rd-label">Owner</span>
                   <span className="rd-value">{ownerName}</span>
-                </div>
-
-                <div className="rd-row">
-                  <span className="rd-label">Pet</span>
-                  <span className="rd-value">{petName}</span>
                 </div>
 
                 <div className="rd-row rd-row--top">
@@ -403,17 +529,15 @@ export default function HappyTailsRequestDetails() {
             </div>
           </div>
 
-          {canReportIncident && (
-            <div className="rd-report-section">
-              <button
-                className="rd-report-btn"
-                onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
-                type="button"
-              >
-                ⚠ Report an Incident
-              </button>
-            </div>
-          )}
+          <div className="rd-report-section">
+            <button
+              className="rd-report-btn"
+              onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+              type="button"
+            >
+              ⚠ Report an Incident
+            </button>
+          </div>
 
           <div className="rd-footer">
             <button
