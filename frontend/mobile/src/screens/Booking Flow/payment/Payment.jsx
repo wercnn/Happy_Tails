@@ -47,6 +47,14 @@ function getServiceName(service) {
   );
 }
 
+function createBookingGroupID() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `group-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function HappyTailsPayment() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -161,6 +169,7 @@ export default function HappyTailsPayment() {
       if (!serviceTypeID) throw new Error("Missing service.");
       if (!uniqueSlots.length) throw new Error("No booking dates selected.");
 
+      const bookingGroupID = createBookingGroupID();
       const createdBookings = [];
 
       for (const slot of uniqueSlots) {
@@ -175,6 +184,7 @@ export default function HappyTailsPayment() {
             location: locationPayload,
             ownerNotes: notes || "",
             selectedTime: selectedTime || "",
+            bookingGroupID,
           }),
         });
 

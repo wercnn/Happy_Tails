@@ -11,14 +11,6 @@ const {
   getSitterId,
 } = require('../lib/helpers');
 
-// Helper to check if a booking can be accessed by the current user.
-async function canAccessBooking(booking, ownerID, sitterID) {
-  if (!booking) return false;
-  if (ownerID && booking.ownerID === ownerID) return true;
-  if (sitterID && booking.sitterID === sitterID) return true;
-  return false;
-}
-
 async function insertNotification(recipientUserID, title, body) {
   await db.query(
     `INSERT INTO NOTIFICATION (notificationID, recipientID, channel, title, body)
@@ -191,9 +183,7 @@ async function createGroupedBookingConfirmedMessage(bookings, acceptedByUserID) 
   );
 }
 
-// ─────────────────────────────────────────────
-// POST /api/bookings → create booking
-// ─────────────────────────────────────────────
+// POST /api/bookings
 register('POST', '/api/bookings', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -213,7 +203,14 @@ register('POST', '/api/bookings', async (req, res, send) => {
     bookingGroupID,
   } = body;
 
-  if (!sitterID || !petID || !slotID || !serviceTypeID || !location?.postcode || !location?.country) {
+  if (
+    !sitterID ||
+    !petID ||
+    !slotID ||
+    !serviceTypeID ||
+    !location?.postcode ||
+    !location?.country
+  ) {
     return badRequest(
       send,
       res,
@@ -279,7 +276,11 @@ register('POST', '/api/bookings', async (req, res, send) => {
   );
 
   const bookingID = uuid();
-  const resolvedBookingGroupID = bookingGroupID || bookingID;
+  const resolvedBookingGroupID =
+    bookingGroupID && String(bookingGroupID).trim()
+      ? String(bookingGroupID).trim()
+      : bookingID;
+
   const startTime = slotRows[0].startTime;
   const endTime = slotRows[0].endTime;
   const totalCost = Number(serviceRow.price);
@@ -310,9 +311,7 @@ register('POST', '/api/bookings', async (req, res, send) => {
   send(res, 201, booking);
 });
 
-// ─────────────────────────────────────────────
-// GET /api/bookings → list own bookings
-// ─────────────────────────────────────────────
+// GET /api/bookings
 register('GET', '/api/bookings', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
@@ -336,16 +335,11 @@ register('GET', '/api/bookings', async (req, res, send) => {
          L.county,
          L.country
        FROM BOOKING B
-       JOIN PET_PROFILE P
-         ON P.petID = B.petID
-       JOIN SERVICE_TYPE ST
-         ON ST.serviceTypeID = B.serviceTypeID
-       JOIN PET_MINDER M
-         ON M.sitterID = B.sitterID
-       JOIN USER_PROFILE MP
-         ON MP.userID = M.userID
-       LEFT JOIN LOCATION L
-         ON L.locationID = B.locationID
+       JOIN PET_PROFILE P ON P.petID = B.petID
+       JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+       JOIN PET_MINDER M ON M.sitterID = B.sitterID
+       JOIN USER_PROFILE MP ON MP.userID = M.userID
+       LEFT JOIN LOCATION L ON L.locationID = B.locationID
        WHERE B.ownerID = ?
        ORDER BY B.createdAt DESC`,
       [ownerID]
@@ -375,16 +369,11 @@ register('GET', '/api/bookings', async (req, res, send) => {
         L.county,
         L.country
       FROM BOOKING B
-      JOIN PET_PROFILE P
-        ON P.petID = B.petID
-      JOIN SERVICE_TYPE ST
-        ON ST.serviceTypeID = B.serviceTypeID
-      JOIN PET_OWNER O
-        ON O.ownerID = B.ownerID
-      JOIN USER_PROFILE UP
-        ON UP.userID = O.userID
-      LEFT JOIN LOCATION L
-        ON L.locationID = B.locationID
+      JOIN PET_PROFILE P ON P.petID = B.petID
+      JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
+      JOIN PET_OWNER O ON O.ownerID = B.ownerID
+      JOIN USER_PROFILE UP ON UP.userID = O.userID
+      LEFT JOIN LOCATION L ON L.locationID = B.locationID
       WHERE B.sitterID = ?
       ORDER BY B.createdAt DESC`,
       [sitterID]
@@ -409,19 +398,18 @@ register('GET', '/api/bookings', async (req, res, send) => {
 
     return send(res, 200, rows);
   }
+
   return send(res, 403, { error: 'Forbidden' });
 });
 
-// ─────────────────────────────────────────────
 // GET /api/bookings/:id
-// ─────────────────────────────────────────────
 register('GET', '/api/bookings/:id', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, ['owner', 'minder'])) return;
 
   const role = String(req.userRole || '').toLowerCase();
-
   const bookingID = req.params.id;
+
   const [[booking]] = await db.query('SELECT * FROM BOOKING WHERE bookingID = ?', [bookingID]);
   if (!booking) return notFound(send, res, 'Booking not found');
 
@@ -442,10 +430,7 @@ register('GET', '/api/bookings/:id', async (req, res, send) => {
   return send(res, 403, { error: 'Forbidden' });
 });
 
-// ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/accept
-// Accept all pending bookings in the same booking group.
-// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -458,12 +443,14 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
 
   if (!booking) return notFound(send, res, 'Booking not found');
   if (booking.sitterID !== sitterID) return send(res, 403, { error: 'Forbidden' });
-
   if (String(booking.status).toLowerCase() !== 'pending') {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  const groupID = booking.bookingGroupID || booking.bookingID;
+  const groupID =
+    booking.bookingGroupID && String(booking.bookingGroupID).trim()
+      ? booking.bookingGroupID
+      : booking.bookingID;
 
   const [bookingsToAccept] = await db.query(
     `
@@ -477,13 +464,10 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     [sitterID, groupID]
   );
 
-  if (!bookingsToAccept.length) {
-    return send(res, 409, { error: 'No pending bookings found in this group' });
-  }
+  const safeBookings = bookingsToAccept.length ? bookingsToAccept : [booking];
+  const bookingIDsToAccept = safeBookings.map((b) => b.bookingID);
 
-  const bookingIDsToAccept = bookingsToAccept.map((b) => b.bookingID);
-
-  for (const b of bookingsToAccept) {
+  for (const b of safeBookings) {
     const placeholders = bookingIDsToAccept.map(() => '?').join(',');
     const [conflicts] = await db.query(
       `
@@ -503,7 +487,7 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
     }
   }
 
-  for (const b of bookingsToAccept) {
+  for (const b of safeBookings) {
     const [slotResult] = await db.query(
       'UPDATE SLOT SET isBooked = TRUE WHERE slotID = ? AND isBooked = FALSE',
       [b.slotID]
@@ -522,7 +506,7 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   );
 
   try {
-    await createGroupedBookingConfirmedMessage(bookingsToAccept, req.userId);
+    await createGroupedBookingConfirmedMessage(safeBookings, req.userId);
   } catch (err) {
     console.error('Failed to create booking confirmation chat message:', err);
   }
@@ -554,10 +538,7 @@ register('PATCH', '/api/bookings/:id/accept', async (req, res, send) => {
   send(res, 200, updatedRows);
 });
 
-// ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/reject
-// Reject all pending bookings in the same booking group.
-// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -574,7 +555,10 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     return send(res, 409, { error: 'Booking not pending' });
   }
 
-  const groupID = booking.bookingGroupID || booking.bookingID;
+  const groupID =
+    booking.bookingGroupID && String(booking.bookingGroupID).trim()
+      ? booking.bookingGroupID
+      : booking.bookingID;
 
   const [bookingsToReject] = await db.query(
     `
@@ -588,11 +572,8 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     [sitterID, groupID]
   );
 
-  if (!bookingsToReject.length) {
-    return send(res, 409, { error: 'No pending bookings found in this group' });
-  }
-
-  const bookingIDsToReject = bookingsToReject.map((b) => b.bookingID);
+  const safeBookings = bookingsToReject.length ? bookingsToReject : [booking];
+  const bookingIDsToReject = safeBookings.map((b) => b.bookingID);
 
   await db.query(
     `UPDATE BOOKING
@@ -601,7 +582,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     bookingIDsToReject
   );
 
-  for (const b of bookingsToReject) {
+  for (const b of safeBookings) {
     const [acceptedUsingSlot] = await db.query(
       `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
       [b.slotID]
@@ -615,6 +596,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
     const ownerUserID = await getUserIdForOwner(booking.ownerID);
     const serviceName = await getServiceName(booking.serviceTypeID);
     const startDate = formatBookingDate(booking.startTime) || '';
+
     if (ownerUserID) {
       await insertNotification(
         ownerUserID,
@@ -636,9 +618,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   send(res, 200, updatedRows);
 });
 
-// ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/cancel
-// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -679,10 +659,7 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   send(res, 200, updated);
 });
 
-// ─────────────────────────────────────────────
 // POST /api/bookings/:id/meet-and-greet
-// Owner creates a meet & greet for a booking.
-// ─────────────────────────────────────────────
 register('POST', '/api/bookings/:id/meet-and-greet', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -718,10 +695,7 @@ register('POST', '/api/bookings/:id/meet-and-greet', async (req, res, send) => {
   send(res, 201, row);
 });
 
-// ─────────────────────────────────────────────
 // PATCH /api/bookings/:id/complete
-// Minder marks a booking as completed. Notifies the owner and prompts a review.
-// ─────────────────────────────────────────────
 register('PATCH', '/api/bookings/:id/complete', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'minder')) return;
@@ -744,6 +718,7 @@ register('PATCH', '/api/bookings/:id/complete', async (req, res, send) => {
     const serviceName = await getServiceName(booking.serviceTypeID);
     const minderName = await getMinderName(sitterID);
     const startDate = formatBookingDate(booking.startTime) || '';
+
     if (ownerUserID) {
       await insertNotification(
         ownerUserID,

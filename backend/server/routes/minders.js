@@ -1,4 +1,3 @@
-// server/routes/minders.js
 const { register } = require('../router');
 const db = require('../db');
 const {
@@ -327,8 +326,6 @@ register('GET', '/api/calendar', async (req, res, send) => {
 });
 
 // PUT /api/calendar
-// Replaces all unbooked slots for this minder.
-// Use this when the user keeps the same dates but changes only the time.
 register('PUT', '/api/calendar', async (req, res, send) => {
   try {
     if (!requireUser(req, send, res)) return;
@@ -375,29 +372,50 @@ register('PUT', '/api/calendar', async (req, res, send) => {
     const calendarID = await ensureCalendarForSitter(sitterID);
 
     await db.query(
-      'DELETE FROM SLOT WHERE calendarID = ? AND isBooked = FALSE',
+      `
+      DELETE S
+      FROM SLOT S
+      LEFT JOIN BOOKING B ON B.slotID = S.slotID
+      WHERE S.calendarID = ?
+        AND S.isBooked = FALSE
+        AND B.bookingID IS NULL
+      `,
       [calendarID]
     );
 
-    const created = [];
     for (const s of normalizedSlots) {
-      const slotID = uuid();
-      await db.query(
-        'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
-        [slotID, calendarID, s.startTime, s.endTime, false]
+      const [existing] = await db.query(
+        `
+        SELECT slotID
+        FROM SLOT
+        WHERE calendarID = ?
+          AND startTime = ?
+          AND endTime = ?
+        LIMIT 1
+        `,
+        [calendarID, s.startTime, s.endTime]
       );
-      created.push({
-        slotID,
-        calendarID,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        isBooked: false,
-      });
+
+      if (!existing.length) {
+        const slotID = uuid();
+        await db.query(
+          'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
+          [slotID, calendarID, s.startTime, s.endTime, false]
+        );
+      }
     }
+
+    const [allSlots] = await db.query(
+      `SELECT slotID, calendarID, startTime, endTime, isBooked
+       FROM SLOT
+       WHERE calendarID = ?
+       ORDER BY startTime`,
+      [calendarID]
+    );
 
     send(res, 200, {
       ok: true,
-      slots: created,
+      slots: allSlots,
     });
   } catch (err) {
     console.error('PUT /api/calendar failed:', err);
@@ -453,11 +471,15 @@ register('DELETE', '/api/calendar/:id', async (req, res, send) => {
   const [result] = await db.query(
     `DELETE S FROM SLOT S
      JOIN CALENDAR C ON C.calendarID = S.calendarID
-     WHERE S.slotID = ? AND C.sitterID = ? AND S.isBooked = FALSE`,
+     LEFT JOIN BOOKING B ON B.slotID = S.slotID
+     WHERE S.slotID = ?
+       AND C.sitterID = ?
+       AND S.isBooked = FALSE
+       AND B.bookingID IS NULL`,
     [slotID, sitterID]
   );
 
-  if (!result.affectedRows) return notFound(send, res, 'Slot not found (or already booked)');
+  if (!result.affectedRows) return notFound(send, res, 'Slot not found (or already booked / linked to a booking)');
   send(res, 200, { ok: true });
 });
 

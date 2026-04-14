@@ -271,7 +271,7 @@ export default function HappyTailsCalendar() {
 
             {!loading && !error && timeSlot && (
               <p className="cal-selected-time">
-                Preferred time: <strong>{timeSlot}</strong>
+                Your chosen time: <strong>{timeSlot}</strong>
               </p>
             )}
 
