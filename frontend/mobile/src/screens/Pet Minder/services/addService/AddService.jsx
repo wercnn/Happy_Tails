@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./AddService.css";
 
 const API_BASE = "http://localhost:3000";
@@ -13,9 +13,10 @@ const SERVICE_TYPES = [
 const PET_TYPES = [
   { id: "Dogs", label: "Dogs", emoji: "🐶" },
   { id: "Cats", label: "Cats", emoji: "🐱" },
+  { id: "Rabbits", label: "Rabbits", emoji: "🐰" },
   { id: "Birds", label: "Birds", emoji: "🐦" },
   { id: "Reptiles", label: "Reptiles", emoji: "🦎" },
-  { id: "Small Pets", label: "Small Pets", emoji: "🐹" },
+  { id: "Other", label: "Other", emoji: "🐾" }
 ];
 
 function getAuthHeaders() {
@@ -28,14 +29,29 @@ function getAuthHeaders() {
 
 export default function HappyTailsAddService() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [serviceType, setServiceType] = useState(SERVICE_TYPES[0]);
-  const [price, setPrice] = useState("");
-  const [selectedPetTypes, setSelectedPetTypes] = useState(["Dogs"]);
+  const editingService = location.state?.service || null;
+  const isEditMode = Boolean(editingService?.minderServiceID);
+
+  const initialServiceType =
+    SERVICE_TYPES.find((svc) => svc.id === editingService?.serviceTypeID) ||
+    SERVICE_TYPES[0];
+
+  const [serviceType, setServiceType] = useState(initialServiceType);
+  const [price, setPrice] = useState(
+    editingService?.customPrice != null ? String(editingService.customPrice) : ""
+  );
+  const [selectedPetTypes, setSelectedPetTypes] = useState(
+    Array.isArray(editingService?.selectedPetTypes) && editingService.selectedPetTypes.length
+      ? editingService.selectedPetTypes
+      : ["Dogs"]
+  );
   const [existingServiceTypeIDs, setExistingServiceTypeIDs] = useState([]);
   const [errors, setErrors] = useState({});
   const [serviceOpen, setServiceOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
   const serviceDropdownRef = useRef(null);
@@ -53,6 +69,8 @@ export default function HappyTailsAddService() {
 
   useEffect(() => {
     const loadExistingServices = async () => {
+      if (isEditMode) return;
+
       try {
         const meRes = await fetch(`${API_BASE}/api/minders/me`, {
           headers: getAuthHeaders(),
@@ -74,12 +92,12 @@ export default function HappyTailsAddService() {
 
         setExistingServiceTypeIDs(ids);
       } catch {
-        // keep silent, form can still work
+        // ignore
       }
     };
 
     loadExistingServices();
-  }, []);
+  }, [isEditMode]);
 
   const togglePetType = (petType) => {
     setSelectedPetTypes((prev) => {
@@ -93,11 +111,9 @@ export default function HappyTailsAddService() {
     setSubmitMessage("");
   };
 
-  const handleSave = async () => {
+  const validateForm = () => {
     const newErrors = {};
     const parsedPrice = parseFloat(price);
-
-    setSubmitMessage("");
 
     if (!price.trim()) {
       newErrors.price = "Price is required.";
@@ -109,38 +125,89 @@ export default function HappyTailsAddService() {
       newErrors.petTypes = "Please select at least one pet type.";
     }
 
-    if (existingServiceTypeIDs.includes(serviceType.id)) {
+    if (!isEditMode && existingServiceTypeIDs.includes(serviceType.id)) {
       newErrors.serviceType = "You already added this service.";
     }
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    return Object.keys(newErrors).length === 0;
+  };
 
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    const parsedPrice = parseFloat(price);
     setSubmitting(true);
+    setSubmitMessage("");
 
     try {
-      const res = await fetch(`${API_BASE}/api/services`, {
-        method: "POST",
+      const url = isEditMode
+        ? `${API_BASE}/api/services/${editingService.minderServiceID}`
+        : `${API_BASE}/api/services`;
+
+      const method = isEditMode ? "PATCH" : "POST";
+
+      const bodyPayload = isEditMode
+        ? {
+            customPrice: parsedPrice,
+            selectedPetTypes,
+          }
+        : {
+            serviceTypeID: serviceType.id,
+            customPrice: parsedPrice,
+            isActive: true,
+            selectedPetTypes,
+          };
+
+      const res = await fetch(url, {
+        method,
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          serviceTypeID: serviceType.id,
-          customPrice: parsedPrice,
-          isActive: true,
-          selectedPetTypes,
-        }),
+        body: JSON.stringify(bodyPayload),
       });
 
       const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(body.error || "Could not save service.");
+        throw new Error(body.error || (isEditMode ? "Could not update service." : "Could not save service."));
       }
 
       navigate("/mindService");
     } catch (err) {
-      setSubmitMessage(err.message || "Could not save service.");
+      setSubmitMessage(err.message || (isEditMode ? "Could not update service." : "Could not save service."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEditMode) return;
+
+    const confirmed = window.confirm("Are you sure you want to delete this service?");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setSubmitMessage("");
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/services/${editingService.minderServiceID}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(body.error || "Could not delete service.");
+      }
+
+      navigate("/mindService");
+    } catch (err) {
+      setSubmitMessage(err.message || "Could not delete service.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -156,17 +223,22 @@ export default function HappyTailsAddService() {
             >
               ←
             </button>
-            <h1 className="as-title">Add New Service</h1>
+            <h1 className="as-title">
+              {isEditMode ? "Edit Service" : "Add New Service"}
+            </h1>
           </header>
 
           <div className="as-scroll">
             <div className="as-form">
               <section className="as-card as-card--intro">
                 <p className="as-eyebrow">Service Setup</p>
-                <h2 className="as-section-title">Create a service listing</h2>
+                <h2 className="as-section-title">
+                  {isEditMode ? "Update your service" : "Create a service listing"}
+                </h2>
                 <p className="as-helper">
-                  Choose the service, set your price, and select which pet types
-                  you want to accept for this listing.
+                  {isEditMode
+                    ? "Change the price and accepted pet types for this service."
+                    : "Choose the service, set your price, and select which pet types you want to accept for this listing."}
                 </p>
               </section>
 
@@ -176,50 +248,63 @@ export default function HappyTailsAddService() {
                     Service Type
                   </label>
 
-                  <div
-                    ref={serviceDropdownRef}
-                    className={`as-custom-select${serviceOpen ? " as-custom-select--open" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      id="serviceType"
-                      className="as-custom-select-trigger"
-                      onClick={() => {
-                        setServiceOpen((prev) => !prev);
-                        setSubmitMessage("");
-                        setErrors((prev) => ({ ...prev, serviceType: "" }));
-                      }}
+                  {isEditMode ? (
+                    <div className="as-custom-select as-custom-select--locked">
+                      <button
+                        type="button"
+                        id="serviceType"
+                        className="as-custom-select-trigger as-custom-select-trigger--disabled"
+                        disabled
+                      >
+                        <span className="as-custom-select-value">{serviceType.name}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      ref={serviceDropdownRef}
+                      className={`as-custom-select${serviceOpen ? " as-custom-select--open" : ""}`}
                     >
-                      <span className="as-custom-select-value">{serviceType.name}</span>
-                      <span className="as-custom-select-arrow">
-                        {serviceOpen ? "⌃" : "⌄"}
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        id="serviceType"
+                        className="as-custom-select-trigger"
+                        onClick={() => {
+                          setServiceOpen((prev) => !prev);
+                          setSubmitMessage("");
+                          setErrors((prev) => ({ ...prev, serviceType: "" }));
+                        }}
+                      >
+                        <span className="as-custom-select-value">{serviceType.name}</span>
+                        <span className="as-custom-select-arrow">
+                          {serviceOpen ? "⌃" : "⌄"}
+                        </span>
+                      </button>
 
-                    {serviceOpen && (
-                      <div className="as-custom-select-menu">
-                        {SERVICE_TYPES.map((svc) => (
-                          <button
-                            key={svc.id}
-                            type="button"
-                            className={`as-custom-select-option${
-                              serviceType.id === svc.id
-                                ? " as-custom-select-option--selected"
-                                : ""
-                            }`}
-                            onClick={() => {
-                              setServiceType(svc);
-                              setServiceOpen(false);
-                              setSubmitMessage("");
-                              setErrors((prev) => ({ ...prev, serviceType: "" }));
-                            }}
-                          >
-                            {svc.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      {serviceOpen && (
+                        <div className="as-custom-select-menu">
+                          {SERVICE_TYPES.map((svc) => (
+                            <button
+                              key={svc.id}
+                              type="button"
+                              className={`as-custom-select-option${
+                                serviceType.id === svc.id
+                                  ? " as-custom-select-option--selected"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                setServiceType(svc);
+                                setServiceOpen(false);
+                                setSubmitMessage("");
+                                setErrors((prev) => ({ ...prev, serviceType: "" }));
+                              }}
+                            >
+                              {svc.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {errors.serviceType && (
                     <p className="as-error-text">{errors.serviceType}</p>
@@ -288,18 +373,29 @@ export default function HappyTailsAddService() {
                 </div>
               </section>
 
-              {submitMessage && (
-                <p className="as-error-text">{submitMessage}</p>
-              )}
+              {submitMessage && <p className="as-error-text">{submitMessage}</p>}
 
               <button
                 className="as-save-btn"
                 onClick={handleSave}
-                disabled={submitting}
+                disabled={submitting || deleting}
                 type="button"
               >
-                {submitting ? "Saving..." : "Save Service"}
+                {submitting
+                  ? (isEditMode ? "Saving Changes..." : "Saving...")
+                  : (isEditMode ? "Save Changes" : "Save Service")}
               </button>
+
+              {isEditMode && (
+                <button
+                  className="as-delete-btn"
+                  onClick={handleDelete}
+                  disabled={submitting || deleting}
+                  type="button"
+                >
+                  {deleting ? "Deleting..." : "Delete Service"}
+                </button>
+              )}
             </div>
           </div>
         </div>

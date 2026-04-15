@@ -192,6 +192,21 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: 0 0 0 2px rgba(242, 140, 40, 0.16), 0 8px 18px rgba(0, 0, 0, 0.09);
 }
 
+.as-custom-select--locked .as-custom-select-trigger,
+.as-custom-select-trigger--disabled {
+  cursor: not-allowed;
+  color: #6b7280;
+  background: #f9fafb;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  opacity: 1;
+}
+
+.as-custom-select--locked .as-custom-select-trigger:hover,
+.as-custom-select-trigger--disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
 .as-custom-select-value {
   text-align: left;
 }
@@ -347,7 +362,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   letter-spacing: 0.08em;
   cursor: pointer;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
   margin-top: 10px;
 }
 
@@ -359,6 +374,46 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .as-save-btn:active {
   transform: translateY(1px);
   filter: brightness(0.96);
+}
+
+.as-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.as-delete-btn {
+  width: 100%;
+  background: #b23a3a;
+  color: #fff;
+  border: 1.8px solid #fecaca;
+  border-radius: 14px;
+  padding: 14px 10px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  margin-top: 2px;
+}
+
+.as-delete-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.as-delete-btn:active {
+  transform: translateY(1px);
+}
+
+.as-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 @media (max-width: 430px) {
