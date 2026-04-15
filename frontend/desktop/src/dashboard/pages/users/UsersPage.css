@@ -255,3 +255,42 @@
   margin-top: 28px;
   flex-wrap: wrap;
 }
+
+.users-page__confirm-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px 28px 24px;
+  width: min(420px, 100%);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.users-page__confirm-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.users-page__confirm-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a2a4a;
+}
+
+.users-page__confirm-message {
+  margin: 0;
+  font-size: 14px;
+  color: #6f7a8a;
+  line-height: 1.5;
+}
+
+.users-page__confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}

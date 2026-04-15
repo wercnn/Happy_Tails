@@ -342,7 +342,7 @@ export default function Dashboard({ user, onLogout }) {
           </header>
 
           <main className="dashboard-content">
-            <PageComponent user={user} />
+            <PageComponent user={user} onNavigate={setPage} />
           </main>
         </div>
       </div>

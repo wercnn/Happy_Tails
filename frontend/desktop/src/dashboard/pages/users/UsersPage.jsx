@@ -28,6 +28,15 @@ export default function UsersPage({ user, searchQuery = "" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
+
+  function openConfirm(message, onConfirm) {
+    setConfirmModal({ open: true, message, onConfirm });
+  }
+
+  function closeConfirm() {
+    setConfirmModal({ open: false, message: "", onConfirm: null });
+  }
 
   // Sync global search query into local search state
   useEffect(() => {
@@ -162,54 +171,54 @@ export default function UsersPage({ user, searchQuery = "" }) {
   }
 
   async function handleDelete(userID) {
-    const ok = window.confirm("Permanently delete this account? This cannot be undone.");
-    if (!ok) return;
-    try {
-      const res = await fetch(`${API}/users/${userID}`, {
-        method: "DELETE",
-        headers: authHeaders(user),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to delete account");
-      const remove = (list) => list.filter((u) => u.userID !== userID);
-      setOwners(remove);
-      setMinders(remove);
-      if (selectedUser?.userID === userID) setSelectedUser(null);
-    } catch (e) {
-      alert(e.message || "Failed to delete account");
-    }
+    openConfirm("Permanently delete this account? This cannot be undone.", async () => {
+      try {
+        const res = await fetch(`${API}/users/${userID}`, {
+          method: "DELETE",
+          headers: authHeaders(user),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed to delete account");
+        const remove = (list) => list.filter((u) => u.userID !== userID);
+        setOwners(remove);
+        setMinders(remove);
+        if (selectedUser?.userID === userID) setSelectedUser(null);
+      } catch (e) {
+        setError(e.message || "Failed to delete account");
+      }
+    });
   }
 
   async function approveDeletion(requestID) {
-    const ok = window.confirm("Approve deletion request and permanently delete this account?");
-    if (!ok) return;
-    try {
-      const res = await fetch(`${API}/deletion-requests/${requestID}/approve`, {
-        method: "PATCH",
-        headers: authHeaders(user),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to approve deletion");
-      setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
-    } catch (e) {
-      alert(e.message || "Failed to approve deletion");
-    }
+    openConfirm("Approve deletion request and permanently delete this account?", async () => {
+      try {
+        const res = await fetch(`${API}/deletion-requests/${requestID}/approve`, {
+          method: "PATCH",
+          headers: authHeaders(user),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed to approve deletion");
+        setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
+      } catch (e) {
+        setError(e.message || "Failed to approve deletion");
+      }
+    });
   }
 
   async function rejectDeletion(requestID) {
-    const ok = window.confirm("Reject this deletion request and restore account access?");
-    if (!ok) return;
-    try {
-      const res = await fetch(`${API}/deletion-requests/${requestID}/reject`, {
-        method: "PATCH",
-        headers: authHeaders(user),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to reject deletion");
-      setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
-    } catch (e) {
-      alert(e.message || "Failed to reject deletion");
-    }
+    openConfirm("Reject this deletion request and restore account access?", async () => {
+      try {
+        const res = await fetch(`${API}/deletion-requests/${requestID}/reject`, {
+          method: "PATCH",
+          headers: authHeaders(user),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed to reject deletion");
+        setDeletionRequests((prev) => prev.filter((r) => r.requestID !== requestID));
+      } catch (e) {
+        setError(e.message || "Failed to reject deletion");
+      }
+    });
   }
 
   async function handleVerify(sitterID) {
@@ -524,6 +533,28 @@ export default function UsersPage({ user, searchQuery = "" }) {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {confirmModal.open && (
+        <div className="users-page__overlay" onClick={closeConfirm}>
+          <div className="users-page__confirm-card" onClick={(e) => e.stopPropagation()}>
+            <div className="users-page__confirm-icon">⚠️</div>
+            <h3 className="users-page__confirm-title">Are you sure?</h3>
+            <p className="users-page__confirm-message">{confirmModal.message}</p>
+            <div className="users-page__confirm-actions">
+              <Btn variant="outline" onClick={closeConfirm}>Cancel</Btn>
+              <Btn
+                variant="danger"
+                onClick={() => {
+                  confirmModal.onConfirm?.();
+                  closeConfirm();
+                }}
+              >
+                Confirm
+              </Btn>
+            </div>
+          </div>
+        </div>
       )}
 
       {selectedUser && (

@@ -27,7 +27,7 @@ function renderStars(rating) {
   return "⭐".repeat(Math.min(Math.max(Number(rating) || 0, 0), 5));
 }
 
-export default function ReviewsPage({ searchQuery = "" }) {
+export default function ReviewsPage({ searchQuery = "", onNavigate }) {
   const [filter, setFilter] = useState("all");
   const [reviews, setReviews] = useState(null);   // null = loading
   const [stats, setStats] = useState(null);
@@ -412,8 +412,7 @@ export default function ReviewsPage({ searchQuery = "" }) {
                   </Btn>
                 </>
               )}
-              <Btn variant="outline">View Booking</Btn>
-              <Btn variant="outline">Contact User</Btn>
+              <Btn variant="outline" onClick={() => { setSelectedReview(null); onNavigate?.("bookings"); }}>View Booking</Btn>
             </div>
           </div>
         </div>
