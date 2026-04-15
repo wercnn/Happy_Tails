@@ -103,7 +103,7 @@ CREATE TABLE IDENTITY_DOCUMENT (
     documentID      VARCHAR(36)     NOT NULL,
     verificationID  VARCHAR(36)     NOT NULL,
     documentType    VARCHAR(100)    NOT NULL,
-    fileURL         VARCHAR(500)    NOT NULL,
+    fileURL         LONGTEXT    NOT NULL,
     uploadDate      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_IDENTITY_DOCUMENT PRIMARY KEY (documentID),
     CONSTRAINT FK_IDENTITY_DOCUMENT_VERIFICATION FOREIGN KEY (verificationID)
@@ -471,7 +471,7 @@ CREATE TABLE MEDIA (
     reportID    VARCHAR(36)     NULL,
     messageID   VARCHAR(36)     NULL,
     incidentID  VARCHAR(36)     NULL,                               -- #7: link media to incident reports
-    fileURL     VARCHAR(500)    NOT NULL,
+    fileURL     LONGTEXT    NOT NULL,
     mediaType   VARCHAR(50)     NOT NULL,
     timestamp   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_MEDIA PRIMARY KEY (mediaID),

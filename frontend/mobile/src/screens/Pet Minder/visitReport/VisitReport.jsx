@@ -161,14 +161,33 @@ export default function VisitReport() {
 
               <section className="vr-card">
                 <h2 className="vr-card-title">Medication checklist</h2>
-                <p className="vr-sub">
-                  {medCompletedCount}/{medChecklist.length} completed
-                </p>
-                <p className="vr-sub" style={{ marginTop: -6 }}>
-                  <strong>Pet requires medication:</strong> {petRequiresMedication ? "Yes" : "No"}
-                  {"  "}·{"  "}
-                  <strong>You are medically qualified:</strong> {medicationQualified ? "Yes" : "No"}
-                </p>
+                <p className="vr-sub">{medCompletedCount}/{medChecklist.length} completed</p>
+
+                <div className="vr-med-status-row">
+                  <span className="vr-med-status-item">
+                    <span className="vr-med-status-label">Medication required</span>
+                    <span className={`vr-med-status-badge ${petRequiresMedication ? "vr-med-status-badge--yes" : "vr-med-status-badge--no"}`}>
+                      {petRequiresMedication ? "Yes" : "No"}
+                    </span>
+                  </span>
+                  <span className="vr-med-status-item">
+                    <span className="vr-med-status-label">Qualified</span>
+                    <span className={`vr-med-status-badge ${medicationQualified ? "vr-med-status-badge--yes" : "vr-med-status-badge--no"}`}>
+                      {medicationQualified ? "Yes" : "No"}
+                    </span>
+                  </span>
+                </div>
+
+                {!petRequiresMedication && (
+                  <div className="vr-med-banner vr-med-banner--info">
+                    This pet does not require medication. These tasks are disabled.
+                  </div>
+                )}
+                {petRequiresMedication && !medicationQualified && (
+                  <div className="vr-med-banner vr-med-banner--warn">
+                    You are not qualified to administer medication. These tasks are disabled.
+                  </div>
+                )}
 
                 <div className="vr-checklist">
                   {medChecklist.map((t) => (
@@ -190,9 +209,6 @@ export default function VisitReport() {
                         }}
                       />
                       <span className="vr-check-label">{t.label}</span>
-                      {t.disabled && t.reason && (
-                        <span className="vr-check-reason">{t.reason}</span>
-                      )}
                     </label>
                   ))}
                 </div>

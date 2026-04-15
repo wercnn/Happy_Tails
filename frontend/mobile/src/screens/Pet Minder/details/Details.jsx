@@ -219,6 +219,10 @@ export default function HappyTailsRequestDetails() {
   const proofInputRef = useRef(null);
 
   const primary = bookings[0] || null;
+  const proofKey = primary?.bookingID ? `proof_uploaded_${primary.bookingID}` : null;
+  const [proofUploaded, setProofUploaded] = useState(
+    () => (proofKey ? localStorage.getItem(proofKey) === "1" : false)
+  );
   const uniqueDates = getUniqueDates(bookings);
 
   const ownerName = getOwnerName(primary);
@@ -361,7 +365,8 @@ export default function HappyTailsRequestDetails() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to upload proof.");
-      alert("Proof uploaded (prototype).");
+      if (proofKey) localStorage.setItem(proofKey, "1");
+      setProofUploaded(true);
     } catch (e) {
       alert(e.message || "Could not upload proof.");
     } finally {
@@ -689,21 +694,33 @@ export default function HappyTailsRequestDetails() {
                   <h3 className="rd-card-title" style={{ marginTop: 2 }}>
                     Medication checklist
                   </h3>
-                  <p className="rd-med-note" style={{ marginBottom: 10 }}>
-                    <strong>Pet requires medication:</strong> {petRequiresMedication ? "Yes" : "No"}
-                    {"  "}·{"  "}
-                    <strong>You are medically qualified:</strong> {medicationQualified ? "Yes" : "No"}
-                  </p>
+
+                  <div className="rd-med-status-row">
+                    <span className="rd-med-status-item">
+                      <span className="rd-med-status-label">Medication required</span>
+                      <span className={`rd-med-status-badge ${petRequiresMedication ? "rd-med-status-badge--yes" : "rd-med-status-badge--no"}`}>
+                        {petRequiresMedication ? "Yes" : "No"}
+                      </span>
+                    </span>
+                    <span className="rd-med-status-item">
+                      <span className="rd-med-status-label">Qualified</span>
+                      <span className={`rd-med-status-badge ${medicationQualified ? "rd-med-status-badge--yes" : "rd-med-status-badge--no"}`}>
+                        {medicationQualified ? "Yes" : "No"}
+                      </span>
+                    </span>
+                  </div>
+
                   {!petRequiresMedication && (
-                    <p className="rd-med-note">
+                    <div className="rd-med-banner rd-med-banner--info">
                       This pet does not require medication. These tasks are disabled.
-                    </p>
+                    </div>
                   )}
                   {petRequiresMedication && !medicationQualified && (
-                    <p className="rd-med-note">
-                      Not qualified to administer medication. These tasks are disabled.
-                    </p>
+                    <div className="rd-med-banner rd-med-banner--warn">
+                      You are not qualified to administer medication. These tasks are disabled.
+                    </div>
                   )}
+
                   <div className="rd-checklist">
                     {medChecklist.map((t) => (
                       <label
@@ -717,21 +734,18 @@ export default function HappyTailsRequestDetails() {
                           onChange={() => toggleMedTask(t.id)}
                         />
                         <span className="rd-task-label">{t.label}</span>
-                        {t.disabled && t.reason && (
-                          <span className="rd-task-reason">{t.reason}</span>
-                        )}
                       </label>
                     ))}
                   </div>
 
                   <div className="rd-active-actions">
                     <button
-                      className="rd-secondary-btn"
+                      className={`rd-secondary-btn${proofUploaded ? " rd-secondary-btn--uploaded" : ""}`}
                       type="button"
-                      disabled={proofUploading}
+                      disabled={proofUploading || proofUploaded}
                       onClick={() => proofInputRef.current?.click()}
                     >
-                      {proofUploading ? "Uploading…" : "Upload Proof"}
+                      {proofUploading ? "Uploading…" : proofUploaded ? "✓ Uploaded" : "Upload Proof"}
                     </button>
                     <button
                       className="rd-primary-btn"
