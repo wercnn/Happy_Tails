@@ -212,7 +212,7 @@ export default function BookingSummary() {
 
   const handleBack = () => {
     navigate("/meetAndGreet", {
-      state: sharedState,
+      state: { ...sharedState, returnToSummary: false },
     });
   };
 
