@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "./CreatePet.css";
 
 const SPECIES = ["Dog", "Cat", "Rabbit", "Bird", "Reptile", "Other"];
-const MAX_MEDICAL_DOCS = 3;
 
 const EMPTY_FORM = {
   name: "",
@@ -22,12 +21,10 @@ export default function HappyTailsCreatePet() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
-  const [medicalDocuments, setMedicalDocuments] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileRef = useRef(null);
-  const medicalDocRef = useRef(null);
 
   useEffect(() => {
     if (!editingPet) return;
@@ -54,9 +51,6 @@ export default function HappyTailsCreatePet() {
         });
 
         setPhoto(petData.photoURL || petData.photo || null);
-        setMedicalDocuments(
-          Array.isArray(petData.medicalDocuments) ? petData.medicalDocuments : []
-        );
       } catch (error) {
         console.error("Failed to load pet details:", error);
 
@@ -69,9 +63,6 @@ export default function HappyTailsCreatePet() {
         });
 
         setPhoto(editingPet.photoURL || editingPet.photo || null);
-        setMedicalDocuments(
-          Array.isArray(editingPet.medicalDocuments) ? editingPet.medicalDocuments : []
-        );
       }
     };
 
@@ -96,7 +87,6 @@ export default function HappyTailsCreatePet() {
       ...prev,
       [name]: "",
       submit: "",
-      medicalDocuments: "",
     }));
   };
 
@@ -115,92 +105,6 @@ export default function HappyTailsCreatePet() {
       reader.readAsDataURL(file);
     });
 
-  const isPdfFile = (file) => {
-    if (!file) return false;
-    const fileName = String(file.name || "").toLowerCase();
-    return file.type === "application/pdf" || fileName.endsWith(".pdf");
-  };
-
-  const handleMedicalDocuments = async (files) => {
-    const pickedFiles = Array.from(files || []);
-    if (pickedFiles.length === 0) return;
-
-    const invalidFiles = pickedFiles.filter((file) => !isPdfFile(file));
-    if (invalidFiles.length > 0) {
-      setErrors((prev) => ({
-        ...prev,
-        medicalDocuments: "Only PDF medical documents are allowed.",
-        submit: "",
-      }));
-      return;
-    }
-
-    const remainingSlots = MAX_MEDICAL_DOCS - medicalDocuments.length;
-
-    if (remainingSlots <= 0) {
-      setErrors((prev) => ({
-        ...prev,
-        medicalDocuments: `You can upload up to ${MAX_MEDICAL_DOCS} medical documents only.`,
-      }));
-      return;
-    }
-
-    if (pickedFiles.length > remainingSlots) {
-      setErrors((prev) => ({
-        ...prev,
-        medicalDocuments: `You can only add ${remainingSlots} more medical document${remainingSlots === 1 ? "" : "s"}.`,
-      }));
-    } else {
-      setErrors((prev) => ({
-        ...prev,
-        medicalDocuments: "",
-        submit: "",
-      }));
-    }
-
-    const filesToUpload = pickedFiles.slice(0, remainingSlots);
-
-    try {
-      const uploadedDocs = await Promise.all(
-        filesToUpload.map(async (file) => {
-          const fileUrl = await fileToDataUrl(file);
-
-          return {
-            id: `${file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            name: file.name,
-            size: file.size || 0,
-            uploadedAt: new Date().toISOString(),
-            url: fileUrl,
-          };
-        })
-      );
-
-      setMedicalDocuments((prev) => [...prev, ...uploadedDocs]);
-    } catch (error) {
-      console.error("Medical document upload failed:", error);
-      setErrors((prev) => ({
-        ...prev,
-        medicalDocuments: "Failed to upload medical document.",
-      }));
-    }
-  };
-
-  const handleRemoveMedicalDocument = (docId) => {
-    setMedicalDocuments((prev) => prev.filter((doc) => doc.id !== docId));
-    setErrors((prev) => ({
-      ...prev,
-      medicalDocuments: "",
-    }));
-  };
-
-  const formatFileSize = (bytes) => {
-    const size = Number(bytes || 0);
-    if (!size) return "";
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
   const validateForm = () => {
     const newErrors = {};
     const normalizedAge = String(form.age ?? "").trim();
@@ -218,10 +122,6 @@ export default function HappyTailsCreatePet() {
     }
 
     if (!form.notes.trim()) newErrors.notes = "Daily routines / notes are required.";
-
-    if (medicalDocuments.length > MAX_MEDICAL_DOCS) {
-      newErrors.medicalDocuments = `Only ${MAX_MEDICAL_DOCS} medical documents are allowed.`;
-    }
 
     return newErrors;
   };
@@ -249,7 +149,6 @@ export default function HappyTailsCreatePet() {
         routines: form.notes.trim(),
         weight: null,
         neutered: false,
-        medicalDocuments,
         ...(photoURL && { photoURL }),
       };
 
@@ -429,80 +328,6 @@ export default function HappyTailsCreatePet() {
                 />
                 <p className="cpet-character-count">{form.notes.length}/200</p>
                 {errors.notes && <p className="cpet-error-text">{errors.notes}</p>}
-              </div>
-
-              <div className="cpet-field">
-                <label className="cpet-label">Medical Documents</label>
-
-                <button
-                  type="button"
-                  className="cpet-doc-upload-btn"
-                  onClick={() => medicalDocRef.current?.click()}
-                  disabled={medicalDocuments.length >= MAX_MEDICAL_DOCS}
-                >
-                  {medicalDocuments.length >= MAX_MEDICAL_DOCS
-                    ? `Maximum ${MAX_MEDICAL_DOCS} Documents Reached`
-                    : "+ Add Medical Document"}
-                </button>
-
-                <input
-                  ref={medicalDocRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  multiple
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    handleMedicalDocuments(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-
-                <p className="cpet-doc-limit">
-                  {medicalDocuments.length}/{MAX_MEDICAL_DOCS} documents uploaded
-                </p>
-
-                {medicalDocuments.length > 0 && (
-                  <div className="cpet-doc-list">
-                    {medicalDocuments.map((doc) => (
-                      <div
-                        key={doc.id || doc.name || doc.url}
-                        className="cpet-doc-item"
-                      >
-                        <div className="cpet-doc-info">
-                          <span className="cpet-doc-name">{doc.name}</span>
-                          {formatFileSize(doc.size) ? (
-                            <span className="cpet-doc-meta">{formatFileSize(doc.size)}</span>
-                          ) : null}
-                        </div>
-
-                        <div className="cpet-doc-actions">
-                          {doc.url ? (
-                            <a
-                              href={doc.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="cpet-doc-link"
-                            >
-                              View
-                            </a>
-                          ) : null}
-
-                          <button
-                            type="button"
-                            className="cpet-doc-remove"
-                            onClick={() => handleRemoveMedicalDocument(doc.id)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {errors.medicalDocuments && (
-                  <p className="cpet-error-text">{errors.medicalDocuments}</p>
-                )}
               </div>
 
               {errors.submit && <p className="cpet-error-text">{errors.submit}</p>}
