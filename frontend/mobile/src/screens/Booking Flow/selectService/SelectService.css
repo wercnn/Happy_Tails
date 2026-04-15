@@ -196,6 +196,12 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   box-shadow: none;
 }
 
+.ss-card-pet-types {
+  font-size: 0.78rem;
+  color: #7a7a7a;
+  line-height: 1.35;
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./SelectDates.css";
 
@@ -30,6 +30,45 @@ function formatTimeLabel(dateStr) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+function normalizePetTypeLabel(value) {
+  const raw = String(value || "").trim().toLowerCase();
+
+  if (!raw) return "";
+  if (raw.includes("dog")) return "dogs";
+  if (raw.includes("cat")) return "cats";
+  if (raw.includes("rabbit") || raw.includes("bunny")) return "rabbits";
+  if (raw.includes("bird")) return "birds";
+  if (raw.includes("reptile") || raw.includes("lizard") || raw.includes("snake") || raw.includes("tortoise")) {
+    return "reptiles";
+  }
+
+  return "other";
+}
+
+function getSupportedPetTypes(service) {
+  const raw =
+    service?.selectedPetTypes ??
+    service?.supportedPetTypes ??
+    service?.petTypes ??
+    service?.raw?.selectedPetTypes ??
+    service?.raw?.supportedPetTypes ??
+    service?.raw?.petTypes ??
+    [];
+
+  if (Array.isArray(raw)) {
+    return raw.map(normalizePetTypeLabel).filter(Boolean);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => normalizePetTypeLabel(item))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 const TIME_SLOTS = buildTimeSlots();
 
 export default function HappyTailsDateTime() {
@@ -39,6 +78,11 @@ export default function HappyTailsDateTime() {
   const minder = location.state?.minder || null;
   const selectedService = location.state?.service || null;
   const returnToSummary = Boolean(location.state?.returnToSummary);
+
+  const supportedPetTypes = useMemo(
+    () => getSupportedPetTypes(selectedService),
+    [selectedService]
+  );
 
   const [timeSlot, setTimeSlot] = useState(location.state?.selectedTime || location.state?.timeSlot || "");
   const [timeOpen, setTimeOpen] = useState(false);
@@ -79,19 +123,31 @@ export default function HappyTailsDateTime() {
           raw: p,
         }));
 
-        setPets(formattedPets);
+        const filteredPets =
+          supportedPetTypes.length === 0
+            ? formattedPets
+            : formattedPets.filter((p) =>
+                supportedPetTypes.includes(
+                  normalizePetTypeLabel(p.raw?.species || p.raw?.type || "")
+                )
+              );
 
-        if (formattedPets.length > 0) {
+        setPets(filteredPets);
+
+        if (filteredPets.length > 0) {
           if (location.state?.pet) {
-            const matchedPet = formattedPets.find((p) => p.label === location.state.pet);
+            const matchedPet = filteredPets.find((p) => p.label === location.state.pet);
             if (matchedPet) {
               setPet(matchedPet.label);
             } else {
-              setPet(formattedPets[0].label);
+              setPet(filteredPets[0].label);
             }
           } else {
-            setPet(formattedPets[0].label);
+            setPet(filteredPets[0].label);
           }
+        } else {
+          setPet("");
+          setPetOpen(false);
         }
       } catch (err) {
         console.error("Failed to load pets:", err);
@@ -102,7 +158,7 @@ export default function HappyTailsDateTime() {
     };
 
     loadPets();
-  }, [location.state]);
+  }, [location.state, supportedPetTypes]);
 
   useEffect(() => {
     const loadMinderTimeRanges = async () => {
@@ -285,12 +341,15 @@ export default function HappyTailsDateTime() {
 
               <div className="dt-field">
                 <label className="dt-label">Select Your Pet</label>
+
                 {isLoadingPets ? (
                   <p>Loading pets...</p>
                 ) : error ? (
                   <p>{error}</p>
                 ) : pets.length === 0 ? (
-                  <p>No pets found. Please add a pet first.</p>
+                <p className="dt-empty-box">
+                  No pets match this service&apos;s accepted pet types. Please add a matching pet or choose another service.
+                </p>
                 ) : (
                   <div className="dt-select-wrap">
                     <button
@@ -301,6 +360,7 @@ export default function HappyTailsDateTime() {
                       <span>{pet || "Choose a pet"}</span>
                       <span className={`dt-arrow${petOpen ? " dt-arrow--open" : ""}`}>▼</span>
                     </button>
+
                     {petOpen && (
                       <div className="dt-dropdown">
                         {pets.map((p) => (

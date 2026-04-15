@@ -45,7 +45,7 @@ export default function HappyTailsAddService() {
   const [selectedPetTypes, setSelectedPetTypes] = useState(
     Array.isArray(editingService?.selectedPetTypes) && editingService.selectedPetTypes.length
       ? editingService.selectedPetTypes
-      : ["Dogs"]
+      : []
   );
   const [existingServiceTypeIDs, setExistingServiceTypeIDs] = useState([]);
   const [errors, setErrors] = useState({});
@@ -354,7 +354,7 @@ export default function HappyTailsAddService() {
                     Select all pet types you are happy to provide this service for.
                   </p>
 
-                  <div className="as-pet-type-grid">
+                  <div className={`as-pet-type-grid${errors.petTypes ? " as-pet-type-grid--error" : ""}`}>
                     {PET_TYPES.map((petType) => {
                       const checked = selectedPetTypes.includes(petType.id);
 

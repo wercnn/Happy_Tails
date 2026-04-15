@@ -16,6 +16,36 @@ function Stars({ count }) {
   );
 }
 
+function getSupportedPetTypes(service) {
+  if (Array.isArray(service?.selectedPetTypes) && service.selectedPetTypes.length > 0) {
+    return service.selectedPetTypes;
+  }
+
+  if (Array.isArray(service?.supportedPetTypes) && service.supportedPetTypes.length > 0) {
+    return service.supportedPetTypes;
+  }
+
+  if (typeof service?.supportedPetTypes === "string" && service.supportedPetTypes.trim()) {
+    return service.supportedPetTypes
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof service?.petTypes === "string" && service.petTypes.trim()) {
+    return service.petTypes
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(service?.petTypes) && service.petTypes.length > 0) {
+    return service.petTypes;
+  }
+
+  return [];
+}
+
 export default function HappyTailsMinderProfile() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,7 +63,6 @@ export default function HappyTailsMinderProfile() {
   const [reviewsLoading, setReviewsLoading] = useState(Boolean(initialSitterID));
   const [reviewsError, setReviewsError] = useState("");
 
-  // Fetch full minder profile
   useEffect(() => {
     if (!initialSitterID) {
       setIsLoading(false);
@@ -72,7 +101,6 @@ export default function HappyTailsMinderProfile() {
     loadMinder();
   }, [initialSitterID]);
 
-  // Fetch reviews independently
   useEffect(() => {
     if (!initialSitterID) {
       setReviewsLoading(false);
@@ -97,7 +125,6 @@ export default function HappyTailsMinderProfile() {
           return;
         }
 
-        // Support either a raw array response or wrapped payloads.
         const normalizedReviews = Array.isArray(data)
           ? data
           : Array.isArray(data.reviews)
@@ -191,6 +218,7 @@ export default function HappyTailsMinderProfile() {
           ? `£${service.basePrice}`
           : "Price unavailable",
       unit: service.customPrice != null || service.basePrice != null ? "/hr" : "",
+      supportedPetTypes: getSupportedPetTypes(service),
     })),
   };
 
@@ -275,7 +303,16 @@ export default function HappyTailsMinderProfile() {
                   {profile.services.length > 0 ? (
                     profile.services.map((svc) => (
                       <div key={svc.id} className="mp-service-row">
-                        <span className="mp-service-name">{svc.name}</span>
+                        <div className="mp-service-main">
+                          <span className="mp-service-name">{svc.name}</span>
+
+                          {svc.supportedPetTypes.length > 0 && (
+                            <span className="mp-service-pets">
+                              Supports: {svc.supportedPetTypes.join(", ")}
+                            </span>
+                          )}
+                        </div>
+
                         <span className="mp-service-price">
                           {svc.price}
                           {svc.unit}

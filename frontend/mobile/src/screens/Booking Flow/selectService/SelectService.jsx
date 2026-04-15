@@ -14,6 +14,30 @@ const getServiceEmoji = (serviceName) => {
   return "🐾";
 };
 
+function normalizePetTypes(service) {
+  const raw =
+    service?.selectedPetTypes ??
+    service?.supportedPetTypes ??
+    service?.petTypes ??
+    service?.raw?.selectedPetTypes ??
+    service?.raw?.supportedPetTypes ??
+    service?.raw?.petTypes ??
+    [];
+
+  if (Array.isArray(raw)) {
+    return raw.filter(Boolean);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 export default function HappyTailsSelectService() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,13 +89,17 @@ export default function HappyTailsSelectService() {
             description: service.description || "",
             customPrice: service.customPrice ?? null,
             basePrice: service.basePrice ?? null,
+            supportedPetTypes: normalizePetTypes(service),
             price:
               service.customPrice != null
                 ? `£${service.customPrice}`
                 : service.basePrice != null
                   ? `£${service.basePrice}`
                   : "Price unavailable",
-            unit: "/hr",
+            unit:
+              service.customPrice != null || service.basePrice != null
+                ? "/hr"
+                : "",
             raw: service,
           }));
 
@@ -186,13 +214,22 @@ export default function HappyTailsSelectService() {
                       type="button"
                     >
                       <span className="ss-card-emoji">{svc.emoji}</span>
+
                       <div className="ss-card-info">
                         <span className="ss-card-name">{svc.name}</span>
+
                         <span className="ss-card-price">
                           {svc.price}
                           {svc.unit}
                         </span>
+
+                        {svc.supportedPetTypes.length > 0 && (
+                          <span className="ss-card-pet-types">
+                            Pet types: {svc.supportedPetTypes.join(", ")}
+                          </span>
+                        )}
                       </div>
+
                       <span className={`ss-radio${selected === svc.id ? " ss-radio--active" : ""}`} />
                     </button>
                   ))}
