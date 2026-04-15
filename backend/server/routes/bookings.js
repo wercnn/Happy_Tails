@@ -337,13 +337,21 @@ register('GET', '/api/bookings', async (req, res, send) => {
          L.street,
          L.city,
          L.county,
-         L.country
+         L.country,
+         MAG.meetID AS magMeetID,
+         MAG.scheduledTime AS magScheduledTime,
+         MAG.isVirtual AS magIsVirtual,
+         MAG.meetingLinkOrLocation AS magMeetingLinkOrLocation,
+         MAG.status AS magStatus,
+         MAGN.content AS magNote
        FROM BOOKING B
        JOIN PET_PROFILE P ON P.petID = B.petID
        JOIN SERVICE_TYPE ST ON ST.serviceTypeID = B.serviceTypeID
        JOIN PET_MINDER M ON M.sitterID = B.sitterID
        JOIN USER_PROFILE MP ON MP.userID = M.userID
        LEFT JOIN LOCATION L ON L.locationID = B.locationID
+       LEFT JOIN MEET_AND_GREET MAG ON MAG.bookingID = B.bookingID
+       LEFT JOIN MEET_AND_GREET_NOTE MAGN ON MAGN.meetID = MAG.meetID
        WHERE B.ownerID = ?
        ORDER BY B.createdAt DESC`,
       [ownerID]

@@ -128,6 +128,31 @@ function getPetNotes(item) {
   );
 }
 
+function formatMeetAndGreetTime(isoStr) {
+  if (!isoStr) return "Not arranged";
+  const d = new Date(String(isoStr).replace(" ", "T"));
+  return d.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function getMeetAndGreet(booking) {
+  if (!booking?.magMeetID) return null;
+  return {
+    meetID: booking.magMeetID,
+    scheduledTime: booking.magScheduledTime,
+    isVirtual: Boolean(Number(booking.magIsVirtual)),
+    meetingLinkOrLocation: booking.magMeetingLinkOrLocation || null,
+    status: booking.magStatus || null,
+    note: booking.magNote || null,
+  };
+}
+
 export default function HappyTailsOwnerViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -184,6 +209,7 @@ export default function HappyTailsOwnerViewDetails() {
   const statusLabel = getStatusLabel(primary?.status);
   const locationText = getLocationText(primary);
   const notes = getPetNotes(primary);
+  const meetAndGreet = getMeetAndGreet(primary);
 
   const subtotal = bookings.reduce((sum, b) => sum + Number(b.totalCost || 0), 0);
   const platformFee = Number((subtotal * 0.05).toFixed(2));
@@ -317,6 +343,47 @@ export default function HappyTailsOwnerViewDetails() {
               <section className="ovd-card">
                 <h3 className="ovd-card-title">Pet Notes</h3>
                 <p className="ovd-notes">{notes}</p>
+              </section>
+
+              <section className="ovd-card">
+                <h3 className="ovd-card-title">Meet &amp; Greet</h3>
+
+                {meetAndGreet ? (
+                  <>
+                    <div className="ovd-row">
+                      <span className="ovd-label">Scheduled</span>
+                      <span className="ovd-value">{formatMeetAndGreetTime(meetAndGreet.scheduledTime)}</span>
+                    </div>
+
+                    <div className="ovd-row">
+                      <span className="ovd-label">Type</span>
+                      <span className="ovd-value">{meetAndGreet.isVirtual ? "Virtual" : "In-person"}</span>
+                    </div>
+
+                    <div className="ovd-row">
+                      <span className="ovd-label">{meetAndGreet.isVirtual ? "Meeting Link" : "Location"}</span>
+                      <span className="ovd-value ovd-value--wrap">
+                        {meetAndGreet.meetingLinkOrLocation || "To be confirmed"}
+                      </span>
+                    </div>
+
+                    {meetAndGreet.note && (
+                      <div className="ovd-row ovd-row--top">
+                        <span className="ovd-label">Note</span>
+                        <span className="ovd-value ovd-value--wrap">{meetAndGreet.note}</span>
+                      </div>
+                    )}
+
+                    {meetAndGreet.status && (
+                      <div className="ovd-row">
+                        <span className="ovd-label">Status</span>
+                        <span className="ovd-value">{meetAndGreet.status}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="ovd-notes">No meet &amp; greet arranged.</p>
+                )}
               </section>
 
               <section className="ovd-card">

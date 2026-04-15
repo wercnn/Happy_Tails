@@ -351,6 +351,8 @@ CREATE TABLE BOOKING (
     CONSTRAINT CHK_BOOKING_TIMES CHECK (endTime > startTime)
 );
 
+CREATE INDEX idx_booking_groupID ON BOOKING (bookingGroupID);
+
 CREATE TABLE MEET_AND_GREET (
     meetID                  VARCHAR(36)     NOT NULL,
     bookingID               VARCHAR(36)     NOT NULL UNIQUE,
