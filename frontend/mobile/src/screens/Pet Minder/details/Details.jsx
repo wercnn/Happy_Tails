@@ -196,6 +196,7 @@ export default function HappyTailsRequestDetails() {
   const stateGroup = location.state?.requestGroup;
   const stateBookings = location.state?.bookings;
   const stateBooking = location.state?.booking;
+  const backTo = location.state?.backTo || null;
 
   const bookings = useMemo(() => {
     if (Array.isArray(stateGroup?.bookings) && stateGroup.bookings.length > 0) {
@@ -247,6 +248,10 @@ export default function HappyTailsRequestDetails() {
   const petRequiresMedication = !!petProfile.requiresMedication;
 
   const handleBack = () => {
+    if (backTo) {
+      navigate(backTo);
+      return;
+    }
     navigate(-1);
   };
 
@@ -283,7 +288,6 @@ export default function HappyTailsRequestDetails() {
 
     setChecklist(tasks);
 
-    // Separate medication checklist (gated by petRequiresMedication + medicationQualified)
     const medDisabledReason = !petRequiresMedication
       ? "Pet does not require medication."
       : medicationQualified
@@ -438,7 +442,7 @@ export default function HappyTailsRequestDetails() {
       <div className="mobile-frame">
         <div className="rd-screen">
           <header className="rd-header">
-            <button className="rd-back" onClick={() => navigate("/mindRequests")} type="button">
+            <button className="rd-back" onClick={handleBack} type="button">
               ←
             </button>
             <h1 className="rd-title">Request Details</h1>
@@ -758,6 +762,7 @@ export default function HappyTailsRequestDetails() {
                             medChecklist,
                             petRequiresMedication,
                             medicationQualified,
+                            backTo: backTo || null,
                           },
                         })
                       }
@@ -786,7 +791,15 @@ export default function HappyTailsRequestDetails() {
             <div className="rd-report-section">
               <button
                 className="rd-report-btn"
-                onClick={() => navigate("/reportIncident", { state: { booking: primary, bookings } })}
+                onClick={() =>
+                  navigate("/reportIncident", {
+                    state: {
+                      booking: primary,
+                      bookings,
+                      backTo: backTo || null,
+                    },
+                  })
+                }
                 type="button"
               >
                 ⚠ Report an Incident
