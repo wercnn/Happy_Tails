@@ -1,4 +1,3 @@
-import { useState } from "react";
 import "./RoleSelect.css";
 import { useNavigate } from "react-router-dom";
 
@@ -19,10 +18,8 @@ const roles = [
 
 export default function RoleSelect() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState(null);
 
   const handleRoleSelect = (roleId) => {
-    setSelected(roleId);
     localStorage.setItem("userRole", roleId);
 
     if (roleId === "owner") {
@@ -33,8 +30,8 @@ export default function RoleSelect() {
   };
 
   return (
-    <div className="mobile-stage">
-      <div className="mobile-frame">
+    <div className="welcome-stage">
+      <div className="welcome-frame">
         <main className="role-screen">
           <header className="role-header">
             <h1 className="role-brand-text">Happy Tails</h1>
@@ -47,7 +44,7 @@ export default function RoleSelect() {
               {roles.map((role) => (
                 <button
                   key={role.id}
-                  className={`role-card${selected === role.id ? " role-card--selected" : ""}`}
+                  className="role-card"
                   onClick={() => handleRoleSelect(role.id)}
                 >
                   <span className="role-card-emoji" aria-hidden="true">
