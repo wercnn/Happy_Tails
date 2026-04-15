@@ -44,6 +44,15 @@ function slotKey(startTime, endTime) {
   return `${startTime}|${endTime}`;
 }
 
+function normalizePetTypes(petTypes) {
+  if (!Array.isArray(petTypes)) return [];
+  return [...new Set(
+    petTypes
+      .map((t) => String(t || '').trim())
+      .filter(Boolean)
+  )];
+}
+
 async function ensureCalendarForSitter(sitterID) {
   const calendarID = uuid();
   await db.query(
@@ -57,6 +66,42 @@ async function ensureCalendarForSitter(sitterID) {
   );
 
   return row.calendarID;
+}
+
+async function getServicePetTypes(minderServiceID) {
+  const [rows] = await db.query(
+    `
+    SELECT petType
+    FROM MINDER_SERVICE_PET_TYPE
+    WHERE minderServiceID = ?
+    ORDER BY petType
+    `,
+    [minderServiceID]
+  );
+
+  return rows.map((row) => row.petType);
+}
+
+async function setServicePetTypes(minderServiceID, petTypes) {
+  const normalized = normalizePetTypes(petTypes);
+
+  await db.query(
+    'DELETE FROM MINDER_SERVICE_PET_TYPE WHERE minderServiceID = ?',
+    [minderServiceID]
+  );
+
+  for (const petType of normalized) {
+    await db.query(
+      `
+      INSERT INTO MINDER_SERVICE_PET_TYPE
+        (minderServicePetTypeID, minderServiceID, petType)
+      VALUES (?, ?, ?)
+      `,
+      [uuid(), minderServiceID, petType]
+    );
+  }
+
+  return normalized;
 }
 
 /*
@@ -222,19 +267,59 @@ register('POST', '/api/services', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const body = await req.parseBody();
-  const { serviceTypeID, customPrice, isActive } = body;
+  const { serviceTypeID, customPrice, isActive, duration, description, selectedPetTypes } = body;
 
   if (!serviceTypeID || customPrice == null) {
     return badRequest(send, res, 'serviceTypeID and customPrice are required');
   }
 
-  const minderServiceID = uuid();
-  await db.query(
-    'INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive) VALUES (?, ?, ?, ?, ?)',
-    [minderServiceID, sitterID, serviceTypeID, customPrice, !!isActive]
+  const normalizedPetTypes = normalizePetTypes(selectedPetTypes);
+  if (normalizedPetTypes.length === 0) {
+    return badRequest(send, res, 'selectedPetTypes must contain at least one pet type');
+  }
+
+  const [[existing]] = await db.query(
+    `
+    SELECT minderServiceID
+    FROM MINDER_SERVICE
+    WHERE sitterID = ? AND serviceTypeID = ?
+    LIMIT 1
+    `,
+    [sitterID, serviceTypeID]
   );
 
-  const [[row]] = await db.query('SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?', [minderServiceID]);
+  if (existing) {
+    return send(res, 409, { error: 'You already added this service.' });
+  }
+
+  const minderServiceID = uuid();
+
+  await db.query(
+    `
+    INSERT INTO MINDER_SERVICE
+      (minderServiceID, sitterID, serviceTypeID, customPrice, isActive, duration, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      minderServiceID,
+      sitterID,
+      serviceTypeID,
+      customPrice,
+      !!isActive,
+      duration == null ? null : String(duration),
+      description == null ? null : String(description),
+    ]
+  );
+
+  await setServicePetTypes(minderServiceID, normalizedPetTypes);
+
+  const [[row]] = await db.query(
+    'SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?',
+    [minderServiceID]
+  );
+
+  row.selectedPetTypes = await getServicePetTypes(minderServiceID);
+
   send(res, 201, row);
 });
 
@@ -272,15 +357,33 @@ register('PATCH', '/api/services/:id', async (req, res, send) => {
     }
   }
 
-  if (!sets.length) return badRequest(send, res, 'No updatable fields provided');
+  if (sets.length) {
+    params.push(minderServiceID, sitterID);
+    await db.query(
+      `UPDATE MINDER_SERVICE SET ${sets.join(', ')} WHERE minderServiceID = ? AND sitterID = ?`,
+      params
+    );
+  }
 
-  params.push(minderServiceID, sitterID);
-  await db.query(
-    `UPDATE MINDER_SERVICE SET ${sets.join(', ')} WHERE minderServiceID = ? AND sitterID = ?`,
-    params
+  if (Object.prototype.hasOwnProperty.call(body, 'selectedPetTypes')) {
+    const normalizedPetTypes = normalizePetTypes(body.selectedPetTypes);
+    if (normalizedPetTypes.length === 0) {
+      return badRequest(send, res, 'selectedPetTypes must contain at least one pet type');
+    }
+    await setServicePetTypes(minderServiceID, normalizedPetTypes);
+  }
+
+  if (!sets.length && !Object.prototype.hasOwnProperty.call(body, 'selectedPetTypes')) {
+    return badRequest(send, res, 'No updatable fields provided');
+  }
+
+  const [[row]] = await db.query(
+    'SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?',
+    [minderServiceID]
   );
 
-  const [[row]] = await db.query('SELECT * FROM MINDER_SERVICE WHERE minderServiceID = ?', [minderServiceID]);
+  row.selectedPetTypes = await getServicePetTypes(minderServiceID);
+
   send(res, 200, row);
 });
 
@@ -442,7 +545,6 @@ register('PUT', '/api/calendar', async (req, res, send) => {
       [calendarID]
     );
 
-    // Deactivate or delete slots no longer wanted
     for (const existing of allCalendarSlots) {
       const key = slotKey(existing.startTime, existing.endTime);
       const wanted = requestedMap.has(key);
@@ -451,28 +553,19 @@ register('PUT', '/api/calendar', async (req, res, send) => {
 
       if (wanted) continue;
 
-      if (activeBookingRefCount > 0) {
-        // Still tied to a pending/accepted/completed booking, keep it
-        continue;
-      }
+      if (activeBookingRefCount > 0) continue;
 
       if (bookingRefCount > 0) {
-        // Historical cancelled/rejected booking references exist
-        // Keep the row for history, but hide it from availability
         await db.query(
           'UPDATE SLOT SET isActive = FALSE, isBooked = FALSE WHERE slotID = ?',
           [existing.slotID]
         );
       } else {
-        // Free orphan slot: delete fully
         await db.query('DELETE FROM SLOT WHERE slotID = ?', [existing.slotID]);
       }
     }
 
-    // Add or reactivate requested slots
     for (const slot of normalizedSlots) {
-      const key = slotKey(slot.startTime, slot.endTime);
-
       const [matchingRows] = await db.query(
         `
         SELECT
@@ -703,6 +796,10 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
      ORDER BY ST.name`,
     [sitterID]
   );
+
+  for (const service of services) {
+    service.selectedPetTypes = await getServicePetTypes(service.minderServiceID);
+  }
 
   const [[calendar]] = await db.query(
     'SELECT calendarID, timeZone FROM CALENDAR WHERE sitterID = ?',

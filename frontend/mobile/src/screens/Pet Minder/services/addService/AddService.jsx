@@ -53,6 +53,7 @@ export default function HappyTailsAddService() {
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const serviceDropdownRef = useRef(null);
 
@@ -168,22 +169,34 @@ export default function HappyTailsAddService() {
       const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(body.error || (isEditMode ? "Could not update service." : "Could not save service."));
+        throw new Error(
+          body.error || (isEditMode ? "Could not update service." : "Could not save service.")
+        );
       }
 
       navigate("/mindService");
     } catch (err) {
-      setSubmitMessage(err.message || (isEditMode ? "Could not update service." : "Could not save service."));
+      setSubmitMessage(
+        err.message || (isEditMode ? "Could not update service." : "Could not save service.")
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!isEditMode) return;
+  const handleDeleteClick = () => {
+    if (!isEditMode || deleting || submitting) return;
+    setShowDeleteConfirm(true);
+    setSubmitMessage("");
+  };
 
-    const confirmed = window.confirm("Are you sure you want to delete this service?");
-    if (!confirmed) return;
+  const handleDeleteCancel = () => {
+    if (deleting) return;
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!isEditMode) return;
 
     setDeleting(true);
     setSubmitMessage("");
@@ -206,6 +219,7 @@ export default function HappyTailsAddService() {
       navigate("/mindService");
     } catch (err) {
       setSubmitMessage(err.message || "Could not delete service.");
+      setShowDeleteConfirm(false);
     } finally {
       setDeleting(false);
     }
@@ -389,7 +403,7 @@ export default function HappyTailsAddService() {
               {isEditMode && (
                 <button
                   className="as-delete-btn"
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   disabled={submitting || deleting}
                   type="button"
                 >
@@ -398,6 +412,36 @@ export default function HappyTailsAddService() {
               )}
             </div>
           </div>
+
+          {showDeleteConfirm && (
+            <div className="as-delete-overlay">
+              <div className="as-delete-modal">
+                <h3 className="as-delete-title">Delete service?</h3>
+                <p className="as-delete-text">
+                  Are you sure you want to delete this service? This action cannot be undone.
+                </p>
+
+                <div className="as-delete-actions">
+                  <button
+                    type="button"
+                    className="as-delete-cancel"
+                    onClick={handleDeleteCancel}
+                    disabled={deleting}
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    className="as-delete-confirm"
+                    onClick={handleDeleteConfirm}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting..." : "Yes, Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

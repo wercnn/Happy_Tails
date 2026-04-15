@@ -416,6 +416,86 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   transform: none;
 }
 
+.as-delete-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.as-delete-modal {
+  width: min(100%, 320px);
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px 18px 18px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.as-delete-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.as-delete-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.45;
+}
+
+.as-delete-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.as-delete-cancel,
+.as-delete-confirm {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.12s, filter 0.12s;
+}
+
+.as-delete-cancel {
+  background: #f3f4f6;
+  color: #555;
+}
+
+.as-delete-confirm {
+  background: #ef4444;
+  color: #fff;
+}
+
+.as-delete-cancel:hover,
+.as-delete-confirm:hover {
+  transform: translateY(-1px);
+}
+
+.as-delete-cancel:active,
+.as-delete-confirm:active {
+  transform: translateY(1px);
+}
+
+.as-delete-cancel:disabled,
+.as-delete-confirm:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
 

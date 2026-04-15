@@ -252,8 +252,8 @@ CREATE TABLE MINDER_SERVICE (
     sitterID        VARCHAR(36)     NOT NULL,
     serviceTypeID   VARCHAR(36)     NOT NULL,
     customPrice     DECIMAL(10,2)   NOT NULL,
-    duration        VARCHAR(100),                                   -- minder-specific duration (e.g. "1 hour", "30 mins")
-    description     TEXT,                                           -- minder-specific service description (max 250 chars in UI)
+    duration        VARCHAR(100),
+    description     TEXT,
     isActive        BOOLEAN         NOT NULL DEFAULT TRUE,
     CONSTRAINT PK_MINDER_SERVICE PRIMARY KEY (minderServiceID),
     CONSTRAINT FK_MS_MINDER FOREIGN KEY (sitterID)
@@ -263,11 +263,22 @@ CREATE TABLE MINDER_SERVICE (
     CONSTRAINT UQ_MINDER_SERVICE UNIQUE (sitterID, serviceTypeID)
 );
 
--- #4-new: Pet types a minder is willing to care for (MinderRegister checkboxes, SearchMinders filter)
+-- Per-service pet types a minder accepts
+CREATE TABLE MINDER_SERVICE_PET_TYPE (
+    minderServicePetTypeID VARCHAR(36)     NOT NULL,
+    minderServiceID        VARCHAR(36)     NOT NULL,
+    petType                VARCHAR(50)     NOT NULL,
+    CONSTRAINT PK_MINDER_SERVICE_PET_TYPE PRIMARY KEY (minderServicePetTypeID),
+    CONSTRAINT FK_MSPT_SERVICE FOREIGN KEY (minderServiceID)
+        REFERENCES MINDER_SERVICE (minderServiceID) ON DELETE CASCADE,
+    CONSTRAINT UQ_MINDER_SERVICE_PET_TYPE UNIQUE (minderServiceID, petType)
+);
+
+-- #4-new: Pet types a minder is willing to care for overall
 CREATE TABLE MINDER_PET_TYPE (
     minderPetTypeID VARCHAR(36)     NOT NULL,
     sitterID        VARCHAR(36)     NOT NULL,
-    petType         VARCHAR(50)     NOT NULL,   -- e.g. 'Dogs', 'Cats', 'Reptiles', 'Birds'
+    petType         VARCHAR(50)     NOT NULL,
     CONSTRAINT PK_MINDER_PET_TYPE PRIMARY KEY (minderPetTypeID),
     CONSTRAINT FK_MPT_MINDER FOREIGN KEY (sitterID)
         REFERENCES PET_MINDER (sitterID) ON DELETE CASCADE,
