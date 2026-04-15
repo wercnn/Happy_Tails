@@ -2,10 +2,6 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MinderRegister.css";
 
-const SERVICES = ["Dog Walking", "Pet Sitting", "Home Boarding"];
-const PETS = ["Dogs", "Cats", "Reptiles", "Birds"];
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 export default function HappyTailsMinderRegister() {
   const navigate = useNavigate();
 
@@ -22,25 +18,18 @@ export default function HappyTailsMinderRegister() {
     postcode: "",
     bio: "",
     experience: "",
-    hourlyRate: "",
   });
 
   const [photo, setPhoto] = useState(null);
-  const [idDoc, setIdDoc] = useState(null);
   const [hasMedicalQualification, setHasMedicalQualification] = useState(false);
   const [medicalDoc, setMedicalDoc] = useState(null);
-  const [services, setServices] = useState([]);
-  const [pets, setPets] = useState([]);
-  const [days, setDays] = useState([]);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
-  const [draggingId, setDraggingId] = useState(false);
   const [draggingMedical, setDraggingMedical] = useState(false);
   const [uploadStatus, setUploadStatus] = useState({ uploading: false, message: "" });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const photoInputRef = useRef(null);
-  const idInputRef = useRef(null);
   const medicalInputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -66,30 +55,27 @@ export default function HappyTailsMinderRegister() {
       setUploadStatus({ uploading: false, message: "Profile photo must be an image." });
       return;
     }
-    if (kind === "id" && !(isImage || isPdf)) {
-      setUploadStatus({ uploading: false, message: "ID must be an image or PDF." });
-      return;
-    }
+
     if (kind === "medical" && !(isImage || isPdf)) {
-      setUploadStatus({ uploading: false, message: "Medical qualification must be an image or PDF." });
+      setUploadStatus({
+        uploading: false,
+        message: "Medical qualification must be an image or PDF.",
+      });
       return;
     }
+
     if (file.size > 8 * 1024 * 1024) {
       setUploadStatus({ uploading: false, message: "File too large (max 8MB)." });
       return;
     }
 
     setUploadStatus({ uploading: true, message: "Uploading (prototype)…" });
+
     setTimeout(() => {
       setter(file.name);
       setUploadStatus({ uploading: false, message: "Upload successful (prototype)." });
     }, 700);
   };
-
-  const toggle = (val, list, setter) =>
-    setter((prev) =>
-      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
-    );
 
   const validateForm = () => {
     const newErrors = {};
@@ -331,109 +317,6 @@ export default function HappyTailsMinderRegister() {
                   value={form.experience}
                   onChange={handleChange}
                 />
-              </div>
-
-              <div className="mreg-chip-section">
-                <label className="mreg-chip-label">Services Offered</label>
-                <div className="mreg-chips">
-                  {SERVICES.map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      className={`mreg-chip${services.includes(s) ? " mreg-chip--active" : ""}`}
-                      onClick={() => toggle(s, services, setServices)}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mreg-chip-section">
-                <label className="mreg-chip-label">Pets Supported</label>
-                <div className="mreg-chips">
-                  {PETS.map((p) => (
-                    <button
-                      type="button"
-                      key={p}
-                      className={`mreg-chip${pets.includes(p) ? " mreg-chip--active" : ""}`}
-                      onClick={() => toggle(p, pets, setPets)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mreg-divider-section" />
-
-              <div className="mreg-chip-section">
-                <label className="mreg-chip-label">Hourly Rate</label>
-                <div className="mreg-rate-row">
-                  <div className="mreg-rate-currency">£</div>
-                  <div className="mreg-rate-box">
-                    <span className="mreg-rate-hint">RATE PER HOUR</span>
-                    <input
-                      name="hourlyRate"
-                      className="mreg-rate-input"
-                      type="number"
-                      placeholder="e.g. 15.00"
-                      value={form.hourlyRate}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mreg-chip-section">
-                <label className="mreg-chip-label">General Availability</label>
-                <div className="mreg-chips mreg-chips--days">
-                  {DAYS.map((d) => (
-                    <button
-                      type="button"
-                      key={d}
-                      className={`mreg-chip mreg-chip--day${days.includes(d) ? " mreg-chip--active" : ""}`}
-                      onClick={() => toggle(d, days, setDays)}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mreg-chip-section">
-                <label className="mreg-chip-label">Identity Verification</label>
-                <div
-                  className={`mreg-dropzone${draggingId ? " mreg-dropzone--active" : ""}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDraggingId(true);
-                  }}
-                  onDragLeave={() => setDraggingId(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDraggingId(false);
-                    handleFile(e.dataTransfer.files[0], setIdDoc, "id");
-                  }}
-                  onClick={() => idInputRef.current?.click()}
-                >
-                  <div className="mreg-upload-icon">↑</div>
-                  {idDoc ? (
-                    <p className="mreg-drop-text">{idDoc}</p>
-                  ) : (
-                    <>
-                      <p className="mreg-drop-text"><strong>Upload photo ID</strong></p>
-                      <p className="mreg-drop-sub">Passport or driving licences · PDF or image</p>
-                    </>
-                  )}
-                  <input
-                    ref={idInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files[0], setIdDoc, "id")}
-                  />
-                </div>
               </div>
 
               <div className="mreg-chip-section">
