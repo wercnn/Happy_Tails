@@ -23,6 +23,82 @@ function toMySqlDateTime(value) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
 
+function normalizeSlotInput(slot) {
+  if (!slot?.startTime || !slot?.endTime) return null;
+
+  const start = new Date(slot.startTime);
+  const end = new Date(slot.endTime);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  if (end <= start) return null;
+
+  const startTime = toMySqlDateTime(slot.startTime);
+  const endTime = toMySqlDateTime(slot.endTime);
+
+  if (!startTime || !endTime) return null;
+
+  return { startTime, endTime };
+}
+
+function slotKey(startTime, endTime) {
+  return `${startTime}|${endTime}`;
+}
+
+async function ensureCalendarForSitter(sitterID) {
+  const calendarID = uuid();
+  await db.query(
+    'INSERT IGNORE INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)',
+    [calendarID, sitterID]
+  );
+
+  const [[row]] = await db.query(
+    'SELECT calendarID FROM CALENDAR WHERE sitterID = ?',
+    [sitterID]
+  );
+
+  return row.calendarID;
+}
+
+/*
+  IMPORTANT:
+  This file assumes SLOT has:
+    isActive TINYINT(1) NOT NULL DEFAULT 1
+
+  Active availability means:
+  - slot belongs to sitter calendar
+  - slot.isActive = TRUE
+  - slot is not tied to any booking with status pending/accepted/completed
+
+  Cancelled/rejected historical slot rows may remain in DB for booking history,
+  but they should be hidden from current availability by setting isActive = FALSE.
+*/
+async function getActiveAvailabilitySlots(calendarID) {
+  const [rows] = await db.query(
+    `
+    SELECT
+      S.slotID,
+      S.calendarID,
+      S.startTime,
+      S.endTime,
+      S.isBooked,
+      S.isActive
+    FROM SLOT S
+    WHERE S.calendarID = ?
+      AND S.isActive = TRUE
+      AND NOT EXISTS (
+        SELECT 1
+        FROM BOOKING B
+        WHERE B.slotID = S.slotID
+          AND B.status IN ('pending', 'accepted', 'completed')
+      )
+    ORDER BY S.startTime
+    `,
+    [calendarID]
+  );
+
+  return rows;
+}
+
 // ─── Minder routes ───────────────────────────────────────────────────────
 
 // GET /api/minders
@@ -281,19 +357,6 @@ register('DELETE', '/api/services/:id', async (req, res, send) => {
   send(res, 200, { ok: true });
 });
 
-async function ensureCalendarForSitter(sitterID) {
-  const calendarID = uuid();
-  await db.query(
-    'INSERT IGNORE INTO CALENDAR (calendarID, sitterID) VALUES (?, ?)',
-    [calendarID, sitterID]
-  );
-  const [[row]] = await db.query(
-    'SELECT calendarID FROM CALENDAR WHERE sitterID = ?',
-    [sitterID]
-  );
-  return row.calendarID;
-}
-
 // GET /api/calendar
 register('GET', '/api/calendar', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
@@ -311,13 +374,7 @@ register('GET', '/api/calendar', async (req, res, send) => {
     return send(res, 200, { calendar: null, slots: [] });
   }
 
-  const [slots] = await db.query(
-    `SELECT slotID, startTime, endTime, isBooked
-     FROM SLOT
-     WHERE calendarID = ?
-     ORDER BY startTime`,
-    [calendar.calendarID]
-  );
+  const slots = await getActiveAvailabilitySlots(calendar.calendarID);
 
   send(res, 200, {
     calendar,
@@ -335,87 +392,132 @@ register('PUT', '/api/calendar', async (req, res, send) => {
     if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
     const body = await req.parseBody();
-    const { slots } = body;
+    const slots = Array.isArray(body?.slots) ? body.slots : null;
 
-    if (!Array.isArray(slots) || slots.length === 0) {
-      return badRequest(send, res, 'slots array is required and must not be empty');
+    if (!slots) {
+      return badRequest(send, res, 'slots must be an array');
     }
 
     const normalizedSlots = [];
-
-    for (const s of slots) {
-      if (!s.startTime || !s.endTime) {
-        return badRequest(send, res, 'Each slot must have startTime and endTime');
+    for (const slot of slots) {
+      const normalized = normalizeSlotInput(slot);
+      if (!normalized) {
+        return badRequest(
+          send,
+          res,
+          'Each slot must have valid startTime and endTime, and endTime must be after startTime'
+        );
       }
-
-      const start = new Date(s.startTime);
-      const end = new Date(s.endTime);
-
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-        return badRequest(send, res, 'Each slot must have valid startTime and endTime');
-      }
-
-      if (end <= start) {
-        return badRequest(send, res, 'Each slot must have endTime after startTime');
-      }
-
-      const startTime = toMySqlDateTime(s.startTime);
-      const endTime = toMySqlDateTime(s.endTime);
-
-      if (!startTime || !endTime) {
-        return badRequest(send, res, 'Each slot must have valid startTime and endTime');
-      }
-
-      normalizedSlots.push({ startTime, endTime });
+      normalizedSlots.push(normalized);
     }
 
     const calendarID = await ensureCalendarForSitter(sitterID);
 
-    await db.query(
+    const requestedMap = new Map(
+      normalizedSlots.map((s) => [slotKey(s.startTime, s.endTime), s])
+    );
+
+    const [allCalendarSlots] = await db.query(
       `
-      DELETE S
+      SELECT
+        S.slotID,
+        S.calendarID,
+        S.startTime,
+        S.endTime,
+        S.isBooked,
+        S.isActive,
+        COUNT(B.bookingID) AS bookingRefCount,
+        SUM(
+          CASE
+            WHEN B.status IN ('pending', 'accepted', 'completed') THEN 1
+            ELSE 0
+          END
+        ) AS activeBookingRefCount
       FROM SLOT S
       LEFT JOIN BOOKING B ON B.slotID = S.slotID
       WHERE S.calendarID = ?
-        AND S.isBooked = FALSE
-        AND B.bookingID IS NULL
+      GROUP BY S.slotID, S.calendarID, S.startTime, S.endTime, S.isBooked, S.isActive
+      ORDER BY S.startTime
       `,
       [calendarID]
     );
 
-    for (const s of normalizedSlots) {
-      const [existing] = await db.query(
-        `
-        SELECT slotID
-        FROM SLOT
-        WHERE calendarID = ?
-          AND startTime = ?
-          AND endTime = ?
-        LIMIT 1
-        `,
-        [calendarID, s.startTime, s.endTime]
-      );
+    // Deactivate or delete slots no longer wanted
+    for (const existing of allCalendarSlots) {
+      const key = slotKey(existing.startTime, existing.endTime);
+      const wanted = requestedMap.has(key);
+      const bookingRefCount = Number(existing.bookingRefCount || 0);
+      const activeBookingRefCount = Number(existing.activeBookingRefCount || 0);
 
-      if (!existing.length) {
-        const slotID = uuid();
+      if (wanted) continue;
+
+      if (activeBookingRefCount > 0) {
+        // Still tied to a pending/accepted/completed booking, keep it
+        continue;
+      }
+
+      if (bookingRefCount > 0) {
+        // Historical cancelled/rejected booking references exist
+        // Keep the row for history, but hide it from availability
         await db.query(
-          'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
-          [slotID, calendarID, s.startTime, s.endTime, false]
+          'UPDATE SLOT SET isActive = FALSE, isBooked = FALSE WHERE slotID = ?',
+          [existing.slotID]
         );
+      } else {
+        // Free orphan slot: delete fully
+        await db.query('DELETE FROM SLOT WHERE slotID = ?', [existing.slotID]);
       }
     }
 
-    const [allSlots] = await db.query(
-      `SELECT slotID, calendarID, startTime, endTime, isBooked
-       FROM SLOT
-       WHERE calendarID = ?
-       ORDER BY startTime`,
-      [calendarID]
-    );
+    // Add or reactivate requested slots
+    for (const slot of normalizedSlots) {
+      const key = slotKey(slot.startTime, slot.endTime);
+
+      const [matchingRows] = await db.query(
+        `
+        SELECT
+          S.slotID,
+          S.isActive,
+          COUNT(B.bookingID) AS bookingRefCount
+        FROM SLOT S
+        LEFT JOIN BOOKING B ON B.slotID = S.slotID
+        WHERE S.calendarID = ?
+          AND S.startTime = ?
+          AND S.endTime = ?
+        GROUP BY S.slotID, S.isActive
+        ORDER BY S.isActive DESC, S.startTime ASC
+        `,
+        [calendarID, slot.startTime, slot.endTime]
+      );
+
+      const activeMatch = matchingRows.find((row) => Number(row.isActive) === 1);
+      if (activeMatch) continue;
+
+      const inactiveReusable = matchingRows.find((row) => Number(row.bookingRefCount || 0) === 0);
+
+      if (inactiveReusable) {
+        await db.query(
+          `UPDATE SLOT
+           SET isActive = TRUE, isBooked = FALSE
+           WHERE slotID = ?`,
+          [inactiveReusable.slotID]
+        );
+        continue;
+      }
+
+      const slotID = uuid();
+      await db.query(
+        `INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked, isActive)
+         VALUES (?, ?, ?, ?, FALSE, TRUE)`,
+        [slotID, calendarID, slot.startTime, slot.endTime]
+      );
+    }
+
+    const finalSlots = await getActiveAvailabilitySlots(calendarID);
 
     send(res, 200, {
       ok: true,
-      slots: allSlots,
+      slots: finalSlots,
     });
   } catch (err) {
     console.error('PUT /api/calendar failed:', err);
@@ -433,22 +535,48 @@ register('POST', '/api/calendar', async (req, res, send) => {
     if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
     const body = await req.parseBody();
-    const { startTime, endTime } = body;
+    const normalized = normalizeSlotInput(body);
 
-    if (!startTime || !endTime) {
-      return badRequest(send, res, 'startTime and endTime are required');
-    }
-
-    if (new Date(endTime) <= new Date(startTime)) {
-      return badRequest(send, res, 'endTime must be after startTime');
+    if (!normalized) {
+      return badRequest(
+        send,
+        res,
+        'startTime and endTime are required, must be valid, and endTime must be after startTime'
+      );
     }
 
     const calendarID = await ensureCalendarForSitter(sitterID);
 
+    const [existing] = await db.query(
+      `
+      SELECT slotID, startTime, endTime, isBooked, isActive
+      FROM SLOT
+      WHERE calendarID = ?
+        AND startTime = ?
+        AND endTime = ?
+      ORDER BY isActive DESC
+      LIMIT 1
+      `,
+      [calendarID, normalized.startTime, normalized.endTime]
+    );
+
+    if (existing.length) {
+      if (!existing[0].isActive) {
+        await db.query(
+          'UPDATE SLOT SET isActive = TRUE, isBooked = FALSE WHERE slotID = ?',
+          [existing[0].slotID]
+        );
+      }
+
+      const [[row]] = await db.query('SELECT * FROM SLOT WHERE slotID = ?', [existing[0].slotID]);
+      return send(res, 200, row);
+    }
+
     const slotID = uuid();
     await db.query(
-      'INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked) VALUES (?, ?, ?, ?, ?)',
-      [slotID, calendarID, startTime, endTime, false]
+      `INSERT INTO SLOT (slotID, calendarID, startTime, endTime, isBooked, isActive)
+       VALUES (?, ?, ?, ?, FALSE, TRUE)`,
+      [slotID, calendarID, normalized.startTime, normalized.endTime]
     );
 
     const [[row]] = await db.query('SELECT * FROM SLOT WHERE slotID = ?', [slotID]);
@@ -468,18 +596,47 @@ register('DELETE', '/api/calendar/:id', async (req, res, send) => {
   if (!sitterID) return send(res, 403, { error: 'Minder profile not found' });
 
   const slotID = req.params.id;
-  const [result] = await db.query(
-    `DELETE S FROM SLOT S
-     JOIN CALENDAR C ON C.calendarID = S.calendarID
-     LEFT JOIN BOOKING B ON B.slotID = S.slotID
-     WHERE S.slotID = ?
-       AND C.sitterID = ?
-       AND S.isBooked = FALSE
-       AND B.bookingID IS NULL`,
+
+  const [[slotRow]] = await db.query(
+    `
+    SELECT
+      S.slotID,
+      S.isBooked,
+      S.isActive,
+      COUNT(B.bookingID) AS bookingRefCount,
+      SUM(
+        CASE
+          WHEN B.status IN ('pending', 'accepted', 'completed') THEN 1
+          ELSE 0
+        END
+      ) AS activeBookingRefCount
+    FROM SLOT S
+    JOIN CALENDAR C ON C.calendarID = S.calendarID
+    LEFT JOIN BOOKING B ON B.slotID = S.slotID
+    WHERE S.slotID = ?
+      AND C.sitterID = ?
+    GROUP BY S.slotID, S.isBooked, S.isActive
+    `,
     [slotID, sitterID]
   );
 
-  if (!result.affectedRows) return notFound(send, res, 'Slot not found (or already booked / linked to a booking)');
+  if (!slotRow) {
+    return notFound(send, res, 'Slot not found');
+  }
+
+  if (Number(slotRow.activeBookingRefCount || 0) > 0) {
+    return notFound(send, res, 'Slot not found (or linked to an active booking)');
+  }
+
+  if (Number(slotRow.bookingRefCount || 0) > 0) {
+    await db.query(
+      'UPDATE SLOT SET isActive = FALSE, isBooked = FALSE WHERE slotID = ?',
+      [slotID]
+    );
+  } else {
+    await db.query('DELETE FROM SLOT WHERE slotID = ?', [slotID]);
+  }
+
   send(res, 200, { ok: true });
 });
 
@@ -497,19 +654,20 @@ register('GET', '/api/minders/:id/slots', async (req, res, send) => {
   if (!calendar) return send(res, 200, []);
 
   const [slots] = await db.query(
-    `SELECT S.slotID, S.startTime, S.endTime
-     FROM SLOT S
-     WHERE S.calendarID = ?
-       AND S.isBooked = FALSE
-       AND NOT EXISTS (
-         SELECT 1
-         FROM BOOKING B
-         WHERE B.sitterID = ?
-           AND B.status IN ('pending', 'accepted')
-           AND NOT (B.endTime <= S.startTime OR B.startTime >= S.endTime)
-       )
-     ORDER BY S.startTime`,
-    [calendar.calendarID, sitterID]
+    `
+    SELECT S.slotID, S.startTime, S.endTime
+    FROM SLOT S
+    WHERE S.calendarID = ?
+      AND S.isActive = TRUE
+      AND NOT EXISTS (
+        SELECT 1
+        FROM BOOKING B
+        WHERE B.slotID = S.slotID
+          AND B.status IN ('pending', 'accepted', 'completed')
+      )
+    ORDER BY S.startTime
+    `,
+    [calendar.calendarID]
   );
 
   send(res, 200, slots);
@@ -551,12 +709,9 @@ register('GET', '/api/minders/:id', async (req, res, send) => {
     [sitterID]
   );
 
-  const [slots] = calendar
-    ? await db.query(
-        'SELECT slotID, startTime, endTime, isBooked FROM SLOT WHERE calendarID = ? ORDER BY startTime',
-        [calendar.calendarID]
-      )
-    : [[], []];
+  const slots = calendar
+    ? await getActiveAvailabilitySlots(calendar.calendarID)
+    : [];
 
   const [reviews] = await db.query(
     `SELECT

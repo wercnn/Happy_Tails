@@ -33,32 +33,38 @@ body {
   overflow: hidden;
 }
 
+/* ── Header ── */
 .rd-header {
   flex-shrink: 0;
-  background: #ee8b28;
-  padding: 20px 18px 18px;
+  background: linear-gradient(135deg, #f28c28 0%, #e07010 100%);
+  padding: 18px 18px 22px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .rd-back {
-  border: none;
   background: none;
+  border: none;
   color: #fff;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.4rem;
+  font-weight: 700;
   cursor: pointer;
-  line-height: 1;
   padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.rd-back:hover {
+  opacity: 0.8;
 }
 
 .rd-title {
   margin: 0;
   color: #fff;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
 }
 
 .rd-scroll {

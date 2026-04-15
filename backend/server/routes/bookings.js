@@ -688,6 +688,7 @@ register('PATCH', '/api/bookings/:id/reject', async (req, res, send) => {
   send(res, 200, updatedRows);
 });
 
+// PATCH /api/bookings/:id/cancel
 register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   if (!requireUser(req, send, res)) return;
   if (!requireRole(req, send, res, 'owner')) return;
@@ -754,17 +755,21 @@ register('PATCH', '/api/bookings/:id/cancel', async (req, res, send) => {
   );
 
   for (const b of bookingsToCancel) {
-    const previousStatus = String(b.status || '').toLowerCase();
+    const placeholders = bookingIDsToCancel.map(() => '?').join(',');
+    const [activeUsingSlot] = await db.query(
+      `
+      SELECT bookingID
+      FROM BOOKING
+      WHERE slotID = ?
+        AND bookingID NOT IN (${placeholders})
+        AND status IN ('pending', 'accepted', 'completed')
+      LIMIT 1
+      `,
+      [b.slotID, ...bookingIDsToCancel]
+    );
 
-    if (previousStatus === 'accepted' || previousStatus === 'pending') {
-      const [acceptedUsingSlot] = await db.query(
-        `SELECT bookingID FROM BOOKING WHERE slotID = ? AND status = 'accepted' LIMIT 1`,
-        [b.slotID]
-      );
-
-      if (!acceptedUsingSlot.length) {
-        await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
-      }
+    if (!activeUsingSlot.length) {
+      await db.query('UPDATE SLOT SET isBooked = FALSE WHERE slotID = ?', [b.slotID]);
     }
   }
 

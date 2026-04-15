@@ -599,6 +599,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
 .av-nav-item--active .av-nav-label { color: #f28c28; }
 
+.av-cal-dot--pending {
+  background: #fff4d6;
+  border: 1.5px solid #f4ddb1;
+}
+
+.av-cal-cell--pending {
+  background: #fff4d6;
+  color: #a86a11;
+  border: 1.5px solid #f4ddb1;
+  cursor: not-allowed;
+  opacity: 0.95;
+}
+
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }

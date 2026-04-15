@@ -57,7 +57,7 @@ function timeToMinutes(timeLabel) {
 }
 
 function formatCardDate(isoStr) {
-  const d = new Date(isoStr.replace(" ", "T"));
+  const d = new Date(String(isoStr).replace(" ", "T"));
   return d.toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
@@ -67,7 +67,7 @@ function formatCardDate(isoStr) {
 }
 
 function formatTimeOnly(isoStr) {
-  const d = new Date(isoStr.replace(" ", "T"));
+  const d = new Date(String(isoStr).replace(" ", "T"));
   return d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
@@ -106,6 +106,9 @@ export default function HappyTailsAvailability() {
   const [endTimeOpen, setEndTimeOpen] = useState(false);
 
   const [existingSlots, setExistingSlots] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [hasLoadedInitialTimes, setHasLoadedInitialTimes] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showSaveOverlay, setShowSaveOverlay] = useState(false);
@@ -124,36 +127,54 @@ export default function HappyTailsAvailability() {
   const isPastDay = (day) =>
     isCurrentMonth && new Date(year, month, day) < today;
 
-  const refreshSlots = () => {
-    fetch(`${API_BASE}/api/minders/me`, { headers: getAuthHeaders() })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((profile) => {
-        if (!profile?.sitterID) return null;
-        return fetch(`${API_BASE}/api/minders/${profile.sitterID}`, {
-          headers: getAuthHeaders(),
-        });
-      })
-      .then((res) => (res && res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.slots) setExistingSlots(data.slots);
-      })
-      .catch(() => {});
+  const refreshData = async ({ resetTimes = false } = {}) => {
+    try {
+      const meRes = await fetch(`${API_BASE}/api/minders/me`, {
+        headers: getAuthHeaders(),
+      });
+      const meData = meRes.ok ? await meRes.json() : null;
+      if (!meData?.sitterID) return;
+
+      const minderRes = await fetch(`${API_BASE}/api/minders/${meData.sitterID}`, {
+        headers: getAuthHeaders(),
+      });
+      const minderData = minderRes.ok ? await minderRes.json() : null;
+
+      const bookingsRes = await fetch(`${API_BASE}/api/bookings`, {
+        headers: getAuthHeaders(),
+      });
+      const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
+
+      setExistingSlots(Array.isArray(minderData?.slots) ? minderData.slots : []);
+      setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+
+      if (resetTimes) {
+        setHasLoadedInitialTimes(false);
+      }
+    } catch {
+      // ignore
+    }
   };
 
   useEffect(() => {
-    refreshSlots();
-    const onFocus = () => refreshSlots();
+    refreshData({ resetTimes: true });
+    const onFocus = () => refreshData();
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   useEffect(() => {
-    const unbookedSlots = existingSlots.filter((s) => !s?.isBooked);
-    if (!unbookedSlots.length) return;
+    if (hasLoadedInitialTimes) return;
 
-    const sorted = [...unbookedSlots].sort(
+    if (!existingSlots.length) {
+      setHasLoadedInitialTimes(true);
+      return;
+    }
+
+    const sorted = [...existingSlots].sort(
       (a, b) =>
-        new Date(a.startTime.replace(" ", "T")) - new Date(b.startTime.replace(" ", "T"))
+        new Date(String(a.startTime).replace(" ", "T")) -
+        new Date(String(b.startTime).replace(" ", "T"))
     );
 
     const detectedStart = formatTimeOnly(sorted[0].startTime);
@@ -161,14 +182,15 @@ export default function HappyTailsAvailability() {
 
     if (detectedStart) setStartTime(detectedStart);
     if (detectedEnd) setEndTime(detectedEnd);
-  }, [existingSlots]);
+
+    setHasLoadedInitialTimes(true);
+  }, [existingSlots, hasLoadedInitialTimes]);
 
   const existingDaysInMonth = useMemo(() => {
     const set = new Set();
 
     existingSlots.forEach((s) => {
-      if (s?.isBooked) return;
-      const d = new Date(s.startTime.replace(" ", "T"));
+      const d = new Date(String(s.startTime).replace(" ", "T"));
       if (d.getFullYear() === year && d.getMonth() === month) {
         set.add(d.getDate());
       }
@@ -180,38 +202,56 @@ export default function HappyTailsAvailability() {
   const bookedDaysInMonth = useMemo(() => {
     const set = new Set();
 
-    existingSlots.forEach((s) => {
-      if (!s?.isBooked) return;
-      const d = new Date(s.startTime.replace(" ", "T"));
+    bookings.forEach((b) => {
+      const status = String(b?.status || "").toLowerCase();
+      if (!["accepted", "completed"].includes(status)) return;
+
+      const d = new Date(String(b.startTime).replace(" ", "T"));
       if (d.getFullYear() === year && d.getMonth() === month) {
         set.add(d.getDate());
       }
     });
 
     return set;
-  }, [existingSlots, year, month]);
+  }, [bookings, year, month]);
+
+  const pendingDaysInMonth = useMemo(() => {
+    const set = new Set();
+
+    bookings.forEach((b) => {
+      const status = String(b?.status || "").toLowerCase();
+      if (status !== "pending") return;
+
+      const d = new Date(String(b.startTime).replace(" ", "T"));
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        set.add(d.getDate());
+      }
+    });
+
+    return set;
+  }, [bookings, year, month]);
 
   const slotsInViewedMonth = useMemo(() => {
     return existingSlots.filter((s) => {
-      if (s?.isBooked) return false;
-      const d = new Date(s.startTime.replace(" ", "T"));
+      const d = new Date(String(s.startTime).replace(" ", "T"));
       return d.getFullYear() === year && d.getMonth() === month;
     });
   }, [existingSlots, year, month]);
 
-  const currentAvailabilityCardData = useMemo(() => {
+  const savedAvailabilityCardData = useMemo(() => {
     if (slotsInViewedMonth.length === 0) return null;
 
     const sortedSlots = [...slotsInViewedMonth].sort(
       (a, b) =>
-        new Date(a.startTime.replace(" ", "T")) - new Date(b.startTime.replace(" ", "T"))
+        new Date(String(a.startTime).replace(" ", "T")) -
+        new Date(String(b.startTime).replace(" ", "T"))
     );
 
     const uniqueDates = [];
     const seen = new Set();
 
     sortedSlots.forEach((slot) => {
-      const key = slot.startTime.slice(0, 10);
+      const key = String(slot.startTime).slice(0, 10);
       if (!seen.has(key)) {
         seen.add(key);
         uniqueDates.push(slot.startTime);
@@ -229,23 +269,45 @@ export default function HappyTailsAvailability() {
     setSaveError("");
 
     if (bookedDaysInMonth.has(day)) {
-      setSaveError("That day is already booked and cannot be changed.");
+      setSaveError("That day already has a confirmed booking and cannot be changed.");
       return;
     }
 
-    if (existingDaysInMonth.has(day) && !deselectedExistingDays.has(day)) {
+    if (pendingDaysInMonth.has(day)) {
+      setSaveError("That day has a pending booking request and cannot be changed.");
+      return;
+    }
+
+    if (selectedDays.has(day)) {
+      setSelectedDays((prev) => {
+        const next = new Set(prev);
+        next.delete(day);
+        return next;
+      });
+      return;
+    }
+
+    if (deselectedExistingDays.has(day)) {
       setDeselectedExistingDays((prev) => {
-        const n = new Set(prev);
-        n.add(day);
-        return n;
+        const next = new Set(prev);
+        next.delete(day);
+        return next;
+      });
+      return;
+    }
+
+    if (existingDaysInMonth.has(day)) {
+      setDeselectedExistingDays((prev) => {
+        const next = new Set(prev);
+        next.add(day);
+        return next;
       });
       return;
     }
 
     setSelectedDays((prev) => {
       const next = new Set(prev);
-      if (next.has(day)) next.delete(day);
-      else next.add(day);
+      next.add(day);
       return next;
     });
   };
@@ -256,37 +318,33 @@ export default function HappyTailsAvailability() {
     const hasNew = selectedDays.size > 0;
     const hasDeselected = deselectedExistingDays.size > 0;
 
-    const allUnbookedExistingDays = existingSlots
-      .filter((s) => !s?.isBooked)
-      .map((s) => {
-        const d = new Date(s.startTime.replace(" ", "T"));
-        return {
-          year: d.getFullYear(),
-          month: d.getMonth(),
-          day: d.getDate(),
-        };
-      });
+    const allEditableExistingDays = existingSlots.map((s) => {
+      const d = new Date(String(s.startTime).replace(" ", "T"));
+      return {
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        day: d.getDate(),
+      };
+    });
 
-    const uniqueAllUnbookedDays = [
+    const uniqueEditableDays = [
       ...new Map(
-        allUnbookedExistingDays.map((d) => [`${d.year}-${d.month}-${d.day}`, d])
+        allEditableExistingDays.map((d) => [`${d.year}-${d.month}-${d.day}`, d])
       ).values(),
     ];
 
-    const remainingAllDays = uniqueAllUnbookedDays.filter(
+    const remainingAllDays = uniqueEditableDays.filter(
       (d) => !(d.year === year && d.month === month && deselectedExistingDays.has(d.day))
     );
 
-    const currentUnbookedSlots = existingSlots.filter((s) => !s?.isBooked);
-
-    const currentGlobalStartTime =
-      currentUnbookedSlots.length > 0 ? formatTimeOnly(currentUnbookedSlots[0].startTime) : null;
-    const currentGlobalEndTime =
-      currentUnbookedSlots.length > 0 ? formatTimeOnly(currentUnbookedSlots[0].endTime) : null;
+    const currentStartTime =
+      existingSlots.length > 0 ? formatTimeOnly(existingSlots[0].startTime) : null;
+    const currentEndTime =
+      existingSlots.length > 0 ? formatTimeOnly(existingSlots[0].endTime) : null;
 
     const timeChangedGlobally =
-      currentUnbookedSlots.length > 0 &&
-      (startTime !== currentGlobalStartTime || endTime !== currentGlobalEndTime);
+      existingSlots.length > 0 &&
+      (startTime !== currentStartTime || endTime !== currentEndTime);
 
     if (!hasNew && !hasDeselected && !timeChangedGlobally) {
       setSaveError("No changes were made.");
@@ -301,10 +359,8 @@ export default function HappyTailsAvailability() {
     setSaving(true);
 
     try {
-      const bookedSlots = existingSlots.filter((s) => !!s.isBooked);
-
       if (hasDeselected || timeChangedGlobally) {
-        const rebuiltAllUnbookedSlots = remainingAllDays.map((d) => ({
+        const rebuiltSlots = remainingAllDays.map((d) => ({
           startTime: buildDatetime(new Date(d.year, d.month, d.day), startTime),
           endTime: buildDatetime(new Date(d.year, d.month, d.day), endTime),
         }));
@@ -313,20 +369,18 @@ export default function HappyTailsAvailability() {
           method: "PUT",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            slots: rebuiltAllUnbookedSlots,
+            slots: rebuiltSlots,
           }),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to update availability.");
 
-        setExistingSlots([...(data.slots || []), ...bookedSlots]);
+        setExistingSlots(Array.isArray(data.slots) ? data.slots : []);
         setDeselectedExistingDays(new Set());
       }
 
       if (hasNew) {
-        const created = [];
-
         for (const day of [...selectedDays].sort((a, b) => a - b)) {
           const res = await fetch(`${API_BASE}/api/calendar`, {
             method: "POST",
@@ -339,12 +393,12 @@ export default function HappyTailsAvailability() {
 
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Failed to save availability.");
-          created.push(data);
         }
 
-        setExistingSlots((prev) => [...prev, ...created]);
         setSelectedDays(new Set());
       }
+
+      await refreshData({ resetTimes: true });
 
       setShowSaveOverlay(true);
       setTimeout(() => {
@@ -432,17 +486,17 @@ export default function HappyTailsAvailability() {
                       );
                     }
 
+                    const isBooked = bookedDaysInMonth.has(day);
+                    const isPending = pendingDaysInMonth.has(day);
                     const isExisting =
                       existingDaysInMonth.has(day) && !deselectedExistingDays.has(day);
                     const isSelected = selectedDays.has(day);
-                    const isDeselected = deselectedExistingDays.has(day);
-                    const isBooked = bookedDaysInMonth.has(day);
 
                     let cls = "av-cal-cell";
                     if (isBooked) cls += " av-cal-cell--booked";
+                    else if (isPending) cls += " av-cal-cell--pending";
                     else if (isExisting) cls += " av-cal-cell--existing";
                     else if (isSelected) cls += " av-cal-cell--available av-cal-cell--selected";
-                    else if (isDeselected) cls += " av-cal-cell--available";
                     else cls += " av-cal-cell--available";
 
                     return (
@@ -463,6 +517,10 @@ export default function HappyTailsAvailability() {
                   <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--booked" />
                     Booked
+                  </span>
+                  <span className="av-cal-legend-item">
+                    <span className="av-cal-dot av-cal-dot--pending" />
+                    Pending
                   </span>
                   <span className="av-cal-legend-item">
                     <span className="av-cal-dot av-cal-dot--available" />
@@ -560,7 +618,7 @@ export default function HappyTailsAvailability() {
                 </div>
               </section>
 
-              {currentAvailabilityCardData && (
+              {savedAvailabilityCardData && (
                 <section className="av-section">
                   <h2 className="av-section-title">Current Availability</h2>
 
@@ -568,7 +626,7 @@ export default function HappyTailsAvailability() {
                     <div className="av-availability-row">
                       <span className="av-availability-label">Dates</span>
                       <div className="av-availability-value">
-                        {currentAvailabilityCardData.dates.map((dateStr, index) => (
+                        {savedAvailabilityCardData.dates.map((dateStr, index) => (
                           <div key={`${dateStr}-${index}`}>
                             {formatCardDate(dateStr)}
                           </div>
@@ -579,7 +637,7 @@ export default function HappyTailsAvailability() {
                     <div className="av-availability-row">
                       <span className="av-availability-label">Time</span>
                       <span className="av-availability-value">
-                        {startTime} - {endTime}
+                        {savedAvailabilityCardData.startTime} - {savedAvailabilityCardData.endTime}
                       </span>
                     </div>
                   </div>
