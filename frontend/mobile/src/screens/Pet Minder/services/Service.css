@@ -66,57 +66,244 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   gap: 14px;
 }
 
-/* ── Service Cards ── */
+/* ── Hero Card ── */
+.ms-hero-card {
+  background: linear-gradient(180deg, #fff6ea 0%, #ffffff 100%);
+  border: 1px solid #f2dcc0;
+  border-radius: 18px;
+  padding: 18px 16px 16px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ms-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ms-eyebrow {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c96f16;
+}
+
+.ms-hero-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.25;
+}
+
+.ms-hero-text {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ── Add New Service ── */
+.ms-add-btn {
+  width: 100%;
+  background: #f28c28;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.ms-add-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
+.ms-add-btn:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* ── Service List ── */
 .ms-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+/* ── Service Card ── */
 .ms-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
-}
-
-.ms-card-info {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid #f2e1d0;
+  border-radius: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.ms-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.09);
+}
+
+.ms-card--inactive {
+  opacity: 0.82;
+}
+
+/* ── Card Top ── */
+.ms-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ms-card-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f8b163 0%, #f28c28 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(242, 140, 40, 0.22);
+}
+
+.ms-card-emoji {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.ms-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ms-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .ms-card-name {
-  font-size: 0.93rem;
-  font-weight: 700;
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
   color: #1a1a1a;
+  line-height: 1.25;
+}
+
+.ms-status-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ms-status-pill--active {
+  background: #e8f8ef;
+  color: #177245;
+  border: 1px solid #cbeed8;
+}
+
+.ms-status-pill--inactive {
+  background: #f4f4f5;
+  color: #666;
+  border: 1px solid #e5e7eb;
+}
+
+.ms-card-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ms-card-price {
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
   color: #f28c28;
 }
 
-.ms-card-controls {
+.ms-card-duration {
+  display: inline-flex;
+  align-items: center;
+  background: #fff3e3;
+  color: #c96f16;
+  border: 1px solid #f3d1ab;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.ms-card-description {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #666;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.ms-card-description--muted {
+  color: #9a9a9a;
+  font-style: italic;
+}
+
+/* ── Card Actions ── */
+.ms-card-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.ms-edit-btn {
+  background: #fff;
+  color: #f28c28;
+  border: 1.5px solid #f3cfaa;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+}
+
+.ms-edit-btn:hover {
+  background: #fff7ef;
+  border-color: #f28c28;
+  transform: translateY(-1px);
+}
+
+.ms-edit-btn:active {
+  transform: translateY(1px);
 }
 
 /* ── Toggle ── */
 .ms-toggle {
-  width: 44px;
-  height: 26px;
+  width: 48px;
+  height: 28px;
   border-radius: 999px;
-  background: #ccc;
+  background: #d1d5db;
   border: none;
   cursor: pointer;
-  padding: 3px;
+  padding: 4px;
   display: flex;
   align-items: center;
   transition: background 0.22s ease;
@@ -138,202 +325,23 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 
 .ms-toggle--on .ms-toggle-thumb {
-  transform: translateX(18px);
+  transform: translateX(20px);
 }
 
-/* ── Edit button ── */
-.ms-edit-btn {
-  background: none;
-  border: none;
-  color: #f28c28;
-  font-size: 0.88rem;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.15s;
-}
-.ms-edit-btn:hover { opacity: 0.75; }
-
-/* ── Edit Modal ── */
-.ms-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  z-index: 50;
-}
-
-.ms-modal {
-  width: min(100%, 340px);
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-
-.ms-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 12px;
-  background: #fff7ef;
-  border-bottom: 1px solid #fde8cc;
-}
-
-.ms-modal-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #1a1a1a;
-}
-
-.ms-modal-close {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #333;
-  padding: 6px 8px;
-  border-radius: 10px;
-}
-.ms-modal-close:hover { background: rgba(0,0,0,0.05); }
-
-.ms-form {
-  padding: 14px 16px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ms-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ms-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #555;
-}
-
-.ms-input,
-.ms-textarea {
-  width: 100%;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 12px 12px;
-  font-family: inherit;
-  font-size: 0.92rem;
-  outline: none;
-}
-
-.ms-textarea { resize: vertical; }
-
-.ms-input:focus,
-.ms-textarea:focus {
-  border-color: #f28c28;
-  box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.14);
-}
-
-.ms-input--error {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
-}
-
-.ms-hint {
-  font-size: 0.78rem;
-  color: #777;
-  text-align: right;
-}
-
-.ms-error {
-  font-size: 0.8rem;
-  color: #b91c1c;
-  font-weight: 600;
-}
-
-.ms-checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 10px;
-  padding: 10px 10px;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.ms-checkbox-grid--error {
-  border-color: #ef4444;
-}
-
-.ms-check {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 0.88rem;
-  color: #333;
-  font-weight: 600;
-}
-
-.ms-modal-actions {
-  display: flex;
-  gap: 10px;
-  padding: 12px 16px 16px;
-}
-
-.ms-primary,
-.ms-secondary {
-  flex: 1;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 12px;
+/* ── Empty States ── */
+.ms-empty {
+  text-align: center;
+  color: #888;
   font-size: 0.9rem;
-  font-weight: 800;
-  font-family: inherit;
-  cursor: pointer;
+  margin: 10px 0;
 }
 
-.ms-primary {
-  background: #f28c28;
-  color: #fff;
+.ms-empty-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
 }
-
-.ms-secondary {
-  background: #f4f4f5;
-  color: #333;
-}
-
-.ms-primary:disabled,
-.ms-secondary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-/* ── Add New Service ── */
-.ms-add-btn {
-  width: 100%;
-  background: #f28c28;
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 15px 10px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  font-family: inherit;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
-  transition: transform 0.15s ease, filter 0.15s ease;
-  margin-top: 5px;
-}
-.ms-add-btn:hover  { filter: brightness(1.06); transform: translateY(-1px); }
-.ms-add-btn:active { transform: translateY(1px); filter: brightness(0.96); }
 
 /* ── Bottom Nav ── */
 .ms-nav {
@@ -359,7 +367,10 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 }
 .ms-nav-item:hover { opacity: 0.75; }
 
-.ms-nav-emoji { font-size: 1.25rem; line-height: 1; }
+.ms-nav-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
 
 .ms-nav-label {
   font-size: 0.63rem;
@@ -369,11 +380,40 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   white-space: nowrap;
 }
 
-.ms-nav-item--active .ms-nav-label { color: #f28c28; }
+.ms-nav-item--active .ms-nav-label {
+  color: #f28c28;
+}
 
 /* ── Responsive ── */
 @media (max-width: 430px) {
   .mobile-stage { padding: 0; }
-  .mobile-frame { width: 100%; height: 100svh; border: none; border-radius: 0; box-shadow: none; }
-  .ms-body { padding: 16px 12px 24px; }
+
+  .mobile-frame {
+    width: 100%;
+    height: 100svh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .ms-body {
+    padding: 16px 12px 24px;
+  }
+
+  .ms-card {
+    padding: 13px;
+  }
+
+  .ms-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ms-card-actions {
+    gap: 10px;
+  }
+
+  .ms-edit-btn {
+    flex: 1;
+  }
 }
