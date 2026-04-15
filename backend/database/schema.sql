@@ -296,6 +296,9 @@ CREATE TABLE SLOT (
     CONSTRAINT CHK_SLOT_TIMES CHECK (endTime > startTime)
 );
 
+CREATE INDEX idx_slot_calendar_active_time
+ON SLOT (calendarID, isActive, startTime, endTime);
+
 -- #10: Recurring weekly availability template (SetAvailabilityScreen day toggles + times)
 CREATE TABLE WEEKLY_AVAILABILITY (
     availID     VARCHAR(36)     NOT NULL,
