@@ -56,7 +56,18 @@ export default function HappyTailsHealthData() {
           });
 
           setMedicalDocuments(
-            Array.isArray(data.medicalDocuments) ? data.medicalDocuments : []
+            Array.isArray(data.medicalDocuments)
+              ? data.medicalDocuments.map((doc, index) => ({
+                  id:
+                    doc.id ||
+                    doc.docID ||
+                    `${doc.name || doc.fileName || "document"}-${index}`,
+                  name: doc.name || doc.fileName || "Medical Document.pdf",
+                  size: doc.size || 0,
+                  uploadedAt: doc.uploadedAt || null,
+                  url: doc.url || doc.fileURL || "",
+                }))
+              : []
           );
         }
       } catch (err) {
@@ -69,8 +80,14 @@ export default function HappyTailsHealthData() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+
     setError("");
+    setSuccess(false);
   };
 
   const fileToDataUrl = (file) =>
@@ -91,6 +108,9 @@ export default function HappyTailsHealthData() {
     const pickedFiles = Array.from(files || []);
     if (pickedFiles.length === 0) return;
 
+    setError("");
+    setSuccess(false);
+
     const invalidFiles = pickedFiles.filter((file) => !isPdfFile(file));
     if (invalidFiles.length > 0) {
       setError("Only PDF medical documents are allowed.");
@@ -110,8 +130,6 @@ export default function HappyTailsHealthData() {
           remainingSlots === 1 ? "" : "s"
         }.`
       );
-    } else {
-      setError("");
     }
 
     const filesToUpload = pickedFiles.slice(0, remainingSlots);
@@ -143,6 +161,7 @@ export default function HappyTailsHealthData() {
   const handleRemoveMedicalDocument = (docId) => {
     setMedicalDocuments((prev) => prev.filter((doc) => doc.id !== docId));
     setError("");
+    setSuccess(false);
   };
 
   const formatFileSize = (bytes) => {
@@ -159,10 +178,21 @@ export default function HappyTailsHealthData() {
       return;
     }
 
+    if (medicalDocuments.length > MAX_MEDICAL_DOCS) {
+      setError(`You can upload up to ${MAX_MEDICAL_DOCS} medical documents only.`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
+    setSuccess(false);
 
     try {
+      const payload = {
+        ...form,
+        medicalDocuments,
+      };
+
       const res = await fetch(`http://localhost:3000/api/pets/${petID}/health`, {
         method: "POST",
         headers: {
@@ -170,10 +200,7 @@ export default function HappyTailsHealthData() {
           "x-user-id": localStorage.getItem("userID") || "",
           "x-user-role": localStorage.getItem("userRole") || "",
         },
-        body: JSON.stringify({
-          ...form,
-          medicalDocuments,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -183,7 +210,23 @@ export default function HappyTailsHealthData() {
         return;
       }
 
+      setMedicalDocuments(
+        Array.isArray(data.medicalDocuments)
+          ? data.medicalDocuments.map((doc, index) => ({
+              id:
+                doc.id ||
+                doc.docID ||
+                `${doc.name || doc.fileName || "document"}-${index}`,
+              name: doc.name || doc.fileName || "Medical Document.pdf",
+              size: doc.size || 0,
+              uploadedAt: doc.uploadedAt || null,
+              url: doc.url || doc.fileURL || "",
+            }))
+          : medicalDocuments
+      );
+
       setSuccess(true);
+
       setTimeout(() => {
         navigate("/petProfile", { state: { pet } });
       }, 1000);
@@ -200,6 +243,7 @@ export default function HappyTailsHealthData() {
       navigate("/petProfile", { state: { pet } });
       return;
     }
+
     navigate("/ownerPets");
   };
 

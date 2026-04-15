@@ -11,6 +11,8 @@ const {
   getOwnerId,
 } = require('../lib/helpers');
 
+const MAX_MEDICAL_DOCS = 3;
+
 const toMysqlDateTime = (value) => {
   if (!value) {
     return new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -43,6 +45,45 @@ const getMedicalDocumentsByPetId = async (petID) => {
   );
 
   return rows.map(mapMedicalDocument);
+};
+
+const normalizeMedicalDocuments = (medicalDocuments) => {
+  if (!Array.isArray(medicalDocuments)) return [];
+
+  return medicalDocuments
+    .filter((doc) => doc && doc.name && doc.url)
+    .slice(0, MAX_MEDICAL_DOCS)
+    .map((doc) => ({
+      name: String(doc.name).trim(),
+      url: String(doc.url).trim(),
+      description: doc.description ? String(doc.description).trim() : null,
+      uploadedAt: toMysqlDateTime(doc.uploadedAt),
+    }))
+    .filter((doc) => doc.name && doc.url);
+};
+
+const replaceMedicalDocumentsForPet = async (petID, medicalDocuments, connection = db) => {
+  const docs = normalizeMedicalDocuments(medicalDocuments);
+
+  await connection.query('DELETE FROM MEDICAL_DOCUMENT WHERE petID = ?', [petID]);
+
+  for (const doc of docs) {
+    await connection.query(
+      `INSERT INTO MEDICAL_DOCUMENT
+        (docID, petID, fileURL, fileName, description, uploadedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        uuid(),
+        petID,
+        doc.url,
+        doc.name,
+        doc.description,
+        doc.uploadedAt,
+      ]
+    );
+  }
+
+  return getMedicalDocumentsByPetId(petID);
 };
 
 
@@ -90,23 +131,7 @@ register('POST', '/api/pets', async (req, res, send) => {
   }
 
   if (Array.isArray(medicalDocuments) && medicalDocuments.length) {
-    for (const doc of medicalDocuments) {
-      if (!doc?.name || !doc?.url) continue;
-
-      await db.query(
-        `INSERT INTO MEDICAL_DOCUMENT
-          (docID, petID, fileURL, fileName, description, uploadedAt)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          uuid(),
-          petID,
-          doc.url,
-          doc.name,
-          doc.description || null,
-          toMysqlDateTime(doc.uploadedAt),
-        ]
-      );
-    }
+    await replaceMedicalDocumentsForPet(petID, medicalDocuments);
   }
 
   const [rows] = await db.query(
@@ -246,25 +271,7 @@ register('PATCH', '/api/pets/:id', async (req, res, send) => {
   }
 
   if (Array.isArray(medicalDocuments)) {
-    await db.query('DELETE FROM MEDICAL_DOCUMENT WHERE petID = ?', [petID]);
-
-    for (const doc of medicalDocuments) {
-      if (!doc?.name || !doc?.url) continue;
-
-      await db.query(
-        `INSERT INTO MEDICAL_DOCUMENT
-          (docID, petID, fileURL, fileName, description, uploadedAt)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          uuid(),
-          petID,
-          doc.url,
-          doc.name,
-          doc.description || null,
-          toMysqlDateTime(doc.uploadedAt),
-        ]
-      );
-    }
+    await replaceMedicalDocumentsForPet(petID, medicalDocuments);
   }
 
   const [rows] = await db.query(
@@ -307,7 +314,13 @@ register('GET', '/api/pets/:id/health', async (req, res, send) => {
     'SELECT * FROM HEALTH_DATA WHERE petID = ?',
     [petID]
   );
-  send(res, 200, rows[0] || null);
+
+  const medicalDocuments = await getMedicalDocumentsByPetId(petID);
+
+  send(res, 200, {
+    ...(rows[0] || null),
+    medicalDocuments,
+  });
 });
 
 
@@ -338,6 +351,7 @@ register('POST', '/api/pets/:id/health', async (req, res, send) => {
     requiresMedication,
     medicalNotes,
     vaccinated,
+    medicalDocuments = [],
   } = body;
 
   const [existing] = await db.query(
@@ -381,11 +395,18 @@ register('POST', '/api/pets/:id/health', async (req, res, send) => {
     );
   }
 
+  await replaceMedicalDocumentsForPet(petID, medicalDocuments);
+
   const [rows] = await db.query(
     'SELECT * FROM HEALTH_DATA WHERE petID = ?',
     [petID]
   );
-  send(res, 200, rows[0]);
+  const savedDocuments = await getMedicalDocumentsByPetId(petID);
+
+  send(res, 200, {
+    ...rows[0],
+    medicalDocuments: savedDocuments,
+  });
 });
 
 
