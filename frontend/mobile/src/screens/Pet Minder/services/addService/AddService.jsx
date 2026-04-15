@@ -5,9 +5,9 @@ import "./AddService.css";
 const API_BASE = "http://localhost:3000";
 
 const SERVICE_TYPES = [
-  { id: "st-walk", name: "Dog Walking" },
+  { id: "st-walk", name: "Pet Walking" },
   { id: "st-board", name: "Pet Boarding" },
-  { id: "st-daycare", name: "Dog Daycare" },
+  { id: "st-daycare", name: "Pet Daycare" },
 ];
 
 const PET_TYPES = [

@@ -74,9 +74,9 @@ INSERT INTO PET_PROFILE (petID, ownerID, name, species, breed, age, weight, neut
 
 -- ─── Service Types ───────────────────────────────────────────
 INSERT INTO SERVICE_TYPE (serviceTypeID, name, description, basePrice, rateCode, duration, supportedPetTypes) VALUES
-  ('st-walk',    'Dog Walking',  '30-minute local walk, solo or small group.',       15.00, 'WALK_30',     30,   'Dog'),
+  ('st-walk',    'Pet Walking',  '30-minute local walk, solo or small group.',       15.00, 'WALK_30',     30,   'Dog'),
   ('st-board',   'Pet Boarding', 'Overnight stay at the minder\'s home.',            45.00, 'BOARD_NIGHT', 1440, 'Dog,Cat'),
-  ('st-daycare', 'Dog Daycare',  'Full day of play and care at the minder\'s home.', 30.00, 'DAYCARE_DAY', 480,  'Dog');
+  ('st-daycare', 'Pet Daycare',  'Full day of play and care at the minder\'s home.', 30.00, 'DAYCARE_DAY', 480,  'Dog');
 
 -- ─── Minder Services ─────────────────────────────────────────
 INSERT INTO MINDER_SERVICE (minderServiceID, sitterID, serviceTypeID, customPrice, isActive) VALUES

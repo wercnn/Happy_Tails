@@ -7,9 +7,9 @@ const API_BASE = "http://localhost:3000";
 const SHOWN_STATUSES = ["pending", "accepted", "completed", "cancelled"];
 
 const SERVICE_NAMES = {
-  "st-walk": "Dog Walking",
+  "st-walk": "Pet Walking",
   "st-board": "Pet Boarding",
-  "st-daycare": "Dog Daycare",
+  "st-daycare": "Pet Daycare",
 };
 
 const SERVICE_EMOJI = {
