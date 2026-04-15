@@ -260,6 +260,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   font-size: 0.8rem;
   color: #ef4444;
   padding-left: 2px;
+  margin-bottom: 8px;
 }
 
 .as-pet-type-grid {

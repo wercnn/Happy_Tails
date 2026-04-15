@@ -4,7 +4,6 @@ import "./AddService.css";
 
 const API_BASE = "http://localhost:3000";
 
-// These IDs must match the SERVICE_TYPE rows in the database.
 const SERVICE_TYPES = [
   { id: "st-walk", name: "Dog Walking" },
   { id: "st-board", name: "Pet Boarding" },
@@ -33,9 +32,11 @@ export default function HappyTailsAddService() {
   const [serviceType, setServiceType] = useState(SERVICE_TYPES[0]);
   const [price, setPrice] = useState("");
   const [selectedPetTypes, setSelectedPetTypes] = useState(["Dogs"]);
+  const [existingServiceTypeIDs, setExistingServiceTypeIDs] = useState([]);
   const [errors, setErrors] = useState({});
   const [serviceOpen, setServiceOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
 
   const serviceDropdownRef = useRef(null);
 
@@ -50,6 +51,36 @@ export default function HappyTailsAddService() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const loadExistingServices = async () => {
+      try {
+        const meRes = await fetch(`${API_BASE}/api/minders/me`, {
+          headers: getAuthHeaders(),
+        });
+
+        const meData = await meRes.json().catch(() => null);
+        if (!meRes.ok || !meData?.sitterID) return;
+
+        const minderRes = await fetch(`${API_BASE}/api/minders/${meData.sitterID}`, {
+          headers: getAuthHeaders(),
+        });
+
+        const minderData = await minderRes.json().catch(() => null);
+        if (!minderRes.ok || !minderData?.services) return;
+
+        const ids = minderData.services
+          .map((service) => service.serviceTypeID)
+          .filter(Boolean);
+
+        setExistingServiceTypeIDs(ids);
+      } catch {
+        // keep silent, form can still work
+      }
+    };
+
+    loadExistingServices();
+  }, []);
+
   const togglePetType = (petType) => {
     setSelectedPetTypes((prev) => {
       if (prev.includes(petType)) {
@@ -59,11 +90,14 @@ export default function HappyTailsAddService() {
     });
 
     setErrors((prev) => ({ ...prev, petTypes: "" }));
+    setSubmitMessage("");
   };
 
   const handleSave = async () => {
     const newErrors = {};
     const parsedPrice = parseFloat(price);
+
+    setSubmitMessage("");
 
     if (!price.trim()) {
       newErrors.price = "Price is required.";
@@ -73,6 +107,10 @@ export default function HappyTailsAddService() {
 
     if (selectedPetTypes.length === 0) {
       newErrors.petTypes = "Please select at least one pet type.";
+    }
+
+    if (existingServiceTypeIDs.includes(serviceType.id)) {
+      newErrors.serviceType = "You already added this service.";
     }
 
     setErrors(newErrors);
@@ -92,14 +130,15 @@ export default function HappyTailsAddService() {
         }),
       });
 
+      const body = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Request failed (${res.status})`);
+        throw new Error(body.error || "Could not save service.");
       }
 
       navigate("/mindService");
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      setSubmitMessage(err.message || "Could not save service.");
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +184,11 @@ export default function HappyTailsAddService() {
                       type="button"
                       id="serviceType"
                       className="as-custom-select-trigger"
-                      onClick={() => setServiceOpen((prev) => !prev)}
+                      onClick={() => {
+                        setServiceOpen((prev) => !prev);
+                        setSubmitMessage("");
+                        setErrors((prev) => ({ ...prev, serviceType: "" }));
+                      }}
                     >
                       <span className="as-custom-select-value">{serviceType.name}</span>
                       <span className="as-custom-select-arrow">
@@ -167,6 +210,8 @@ export default function HappyTailsAddService() {
                             onClick={() => {
                               setServiceType(svc);
                               setServiceOpen(false);
+                              setSubmitMessage("");
+                              setErrors((prev) => ({ ...prev, serviceType: "" }));
                             }}
                           >
                             {svc.name}
@@ -175,6 +220,10 @@ export default function HappyTailsAddService() {
                       </div>
                     )}
                   </div>
+
+                  {errors.serviceType && (
+                    <p className="as-error-text">{errors.serviceType}</p>
+                  )}
                 </div>
 
                 <div className="as-field">
@@ -192,6 +241,7 @@ export default function HappyTailsAddService() {
                     onChange={(e) => {
                       setPrice(e.target.value);
                       setErrors((prev) => ({ ...prev, price: "" }));
+                      setSubmitMessage("");
                     }}
                   />
                   {errors.price && <p className="as-error-text">{errors.price}</p>}
@@ -220,7 +270,11 @@ export default function HappyTailsAddService() {
                         >
                           <span className="as-pet-type-emoji">{petType.emoji}</span>
                           <span className="as-pet-type-label">{petType.label}</span>
-                          <span className={`as-pet-type-check${checked ? " as-pet-type-check--active" : ""}`}>
+                          <span
+                            className={`as-pet-type-check${
+                              checked ? " as-pet-type-check--active" : ""
+                            }`}
+                          >
                             {checked ? "✓" : ""}
                           </span>
                         </button>
@@ -233,6 +287,10 @@ export default function HappyTailsAddService() {
                   )}
                 </div>
               </section>
+
+              {submitMessage && (
+                <p className="as-error-text">{submitMessage}</p>
+              )}
 
               <button
                 className="as-save-btn"
