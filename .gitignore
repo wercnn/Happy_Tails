@@ -1,8 +1,4 @@
 # Ignore MacOS system files
-/node_modules
-backend/.DS_Store
-backend/database/.DS_Store
-backend/server/.DS_Store
-frontend/.DS_Store
-backend/docs/.DS_Store
+.DS_Store
+node_modules
 .env
